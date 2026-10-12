@@ -78,16 +78,16 @@ select test.ok((select count(*) from public.comments where body like 'Chapter 10
 select test.ok(test.error_of($$insert into public.comments (discussion_id, body)
   select id, 'sneaky' from public.discussions where section_number = 10$$) like '%row-level security%',
   'alice cannot post into chapter 10');
-select test.ok(not public.can_access_section('10000000-0000-0000-0000-000000000001', 'hangover', null), 'alice has no Hangover access');
+select test.ok(not public.can_access_section('10000000-0000-0000-0000-000000000001', 'epilogue', null), 'alice cannot enter The Epilogue');
 
 -- 2. Finished readers ---------------------------------------------------------
 select test.login('00000000-0000-0000-0000-00000000000b');
 select test.ok((select progress_section from public.library_entries where user_id = auth.uid()
   and story_id = '10000000-0000-0000-0000-000000000001') = 20, 'Finished sets progress to the last chapter');
 select test.ok((select count(*) from public.comments where body like 'Chapter 10%') = 1, 'bob (finished) reads chapter 10');
-select public.open_discussion('10000000-0000-0000-0000-000000000001', 'hangover');
+select public.open_discussion('10000000-0000-0000-0000-000000000001', 'epilogue');
 select test.ok(test.error_of($$insert into public.comments (discussion_id, body)
-  select id, 'that ending' from public.discussions where kind = 'hangover'$$) is null, 'bob posts in Book Hangover');
+  select id, 'that ending' from public.discussions where kind = 'epilogue'$$) is null, 'bob posts in The Epilogue');
 
 -- 3. Moving progress back re-locks ------------------------------------------
 select test.login('00000000-0000-0000-0000-00000000000c');

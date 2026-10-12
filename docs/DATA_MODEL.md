@@ -10,7 +10,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms | Logged-in users |
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
 | `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public` |
-| `discussions` | One per chapter (or 25-page range) per story, plus one Hangover room | Logged-in users (existence is not a spoiler) |
+| `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
 | `comments` | Comments and replies (one level of `parent_id`) | Only readers who unlocked that discussion |
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
 | `discussion_follows` | Followed / muted discussions, last read time | You |
@@ -38,7 +38,7 @@ table. Anonymous users (`anon`) have no access at all.
 `can_access_section(story, kind, section)` is the single rule used everywhere:
 
 - **chapter N** → `progress_section >= N`, or the reader Finished a story that is not ongoing;
-- **hangover** → the reader Finished the story;
+- **epilogue** → the reader Finished the story;
 - hidden stories → closed for everyone except admins.
 
 It is used by the `comments` read and insert policies, by `open_discussion()` (which creates a
@@ -62,5 +62,5 @@ other, and neither gets notifications from the other.
 ## Tests
 
 `supabase/tests/spoiler_rules.test.sql` checks the locks (chapters, 25-page ranges, WIP fics,
-Hangover, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
+The Epilogue, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
 anonymous access and author opt-out.

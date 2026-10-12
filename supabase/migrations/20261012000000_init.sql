@@ -5,7 +5,7 @@
 -- Key rule (Spoiler Safe Mode), enforced in the database, not only in the UI:
 --   A user can read/write a chapter discussion N only if, in their library entry for that story,
 --   status = 'finished' OR progress_section >= N.
---   The Hangover room (whole-story discussion) is readable only when status = 'finished'.
+--   The Epilogue (whole-story discussion) is readable only when status = 'finished'.
 --
 -- Fandom etiquette (see docs/DECISIONS.md):
 --   * everything is behind login (no anon access to any table)
@@ -24,7 +24,7 @@ create type public.story_status as enum ('completed', 'ongoing');
 create type public.story_source as enum ('open_library', 'ao3', 'manual');
 create type public.library_status as enum ('currently_reading', 'want_to_read', 'finished', 'dnf', 'on_hold');
 create type public.visibility as enum ('public', 'friends', 'private');
-create type public.discussion_kind as enum ('chapter', 'hangover');
+create type public.discussion_kind as enum ('chapter', 'epilogue');
 create type public.report_reason as enum ('spam', 'harassment', 'spoiler', 'inappropriate', 'other');
 create type public.report_status as enum ('open', 'actioned', 'dismissed');
 create type public.notification_type as enum ('reply', 'reaction');
@@ -209,12 +209,12 @@ create table public.discussions (
   section_number int,
   created_at     timestamptz not null default now(),
   constraint section_matches_kind check (
-    (kind = 'chapter' and section_number >= 1) or (kind = 'hangover' and section_number is null)
+    (kind = 'chapter' and section_number >= 1) or (kind = 'epilogue' and section_number is null)
   )
 );
 
 create unique index discussions_chapter_uniq on public.discussions (story_id, section_number) where kind = 'chapter';
-create unique index discussions_hangover_uniq on public.discussions (story_id) where kind = 'hangover';
+create unique index discussions_epilogue_uniq on public.discussions (story_id) where kind = 'epilogue';
 
 -- The single source of truth for spoiler protection.
 create or replace function public.can_access_section(p_story uuid, p_kind public.discussion_kind, p_section int)
@@ -231,8 +231,8 @@ as $$
         and le.story_id = p_story
         and not s.is_hidden
         and (
-          -- Hangover: only once the whole story is Finished
-          (p_kind = 'hangover' and le.status = 'finished')
+          -- The Epilogue: only once the whole story is Finished
+          (p_kind = 'epilogue' and le.status = 'finished')
           -- Chapter N: the reader fully finished chapter N. "Finished" opens every chapter only
           -- for completed stories; on a WIP fic, a new chapter stays locked until it is read.
           or (p_kind = 'chapter' and (
@@ -265,8 +265,8 @@ begin
     raise exception 'locked: finish this chapter to join the discussion' using errcode = '42501';
   end if;
 
-  if p_kind = 'hangover' then
-    select * into d from public.discussions where story_id = p_story and kind = 'hangover';
+  if p_kind = 'epilogue' then
+    select * into d from public.discussions where story_id = p_story and kind = 'epilogue';
   else
     select * into d from public.discussions where story_id = p_story and kind = 'chapter' and section_number = p_section;
   end if;

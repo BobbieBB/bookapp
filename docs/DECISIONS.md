@@ -9,7 +9,9 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
   before launch).
 - **Finished** instead of "Read" — clearer about what unlocks discussions.
 - **Chapter Discussion** instead of "Chapter Chat".
-- **Book Hangover / Fic Hangover** for the whole-story room (we avoid "Reflection Room", which
+- **The Epilogue** for the whole-story room, one name for books and fics, always shown with the
+  subtitle *"The whole story, spoilers and all. Opens when you finish."* so it is not mistaken for
+  a final chapter called "Epilogue". (We avoid "Reflection Room", which
   Fable uses).
 
 ## Spoiler Safe Mode
@@ -18,7 +20,7 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
    Progress means *the last fully finished chapter*.
 2. Books without chapters are split into **25-page ranges**; range *N* covers pages
    `25(N-1)+1 … 25N`.
-3. The Hangover room opens only when the story is marked **Finished**.
+3. The Epilogue opens only when the story is marked **Finished**.
 4. There is **no manual unlock** and no "show spoilers anyway" switch.
 5. Direct links and notifications follow the same rule. Notifications never contain comment text.
 6. Moving progress back locks the later chapters again.
@@ -43,7 +45,7 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 
 In: sign up and onboarding, add a story (book search / manual fanfic), full library with statuses
 (Currently Reading, Want to Read, Finished, DNF, On Hold for fics), favourites, reading progress,
-chapter discussions with replies and reactions, Hangover rooms, ratings and reviews/recs, basic
+chapter discussions with replies and reactions, The Epilogue, ratings and reviews/recs, basic
 discover, home screen, push notifications, report and block, feedback, analytics.
 
 Later (v1.1+): an in-app reader for the user's own EPUB/PDF files, friends and private groups,

@@ -2,7 +2,7 @@
 
 A social reading companion for **books and fanfiction**. Readers track what they read and talk
 about it **chapter by chapter, without spoilers**: you can only enter a chapter's discussion once you
-have finished that chapter, and the *Book Hangover* / *Fic Hangover* room opens only when you finish
+have finished that chapter, and **The Epilogue** (the whole-story room) opens only when you finish
 the whole story.
 
 > **Every fic is a gift. Cherish it. Protect it.**
