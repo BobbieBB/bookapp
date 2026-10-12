@@ -1,0 +1,57 @@
+# Product decisions
+
+Decided 12 Oct 2026. The source of truth for open questions is the Trello card
+*✅ Решения преди разработка*.
+
+## Naming and wording
+
+- **Working name:** Fictionally. Final name still open (fictionally.com is taken; check trademarks
+  before launch).
+- **Finished** instead of "Read" — clearer about what unlocks discussions.
+- **Chapter Discussion** instead of "Chapter Chat".
+- **Book Hangover / Fic Hangover** for the whole-story room (we avoid "Reflection Room", which
+  Fable uses).
+
+## Spoiler Safe Mode
+
+1. A reader can open the discussion for chapter *N* only after fully finishing chapter *N*.
+   Progress means *the last fully finished chapter*.
+2. Books without chapters are split into **25-page ranges**; range *N* covers pages
+   `25(N-1)+1 … 25N`.
+3. The Hangover room opens only when the story is marked **Finished**.
+4. There is **no manual unlock** and no "show spoilers anyway" switch.
+5. Direct links and notifications follow the same rule. Notifications never contain comment text.
+6. Moving progress back locks the later chapters again.
+7. For **ongoing (WIP) fanfiction**, "Finished" does not unlock chapters published later; each new
+   chapter opens once the reader has read it.
+8. All of this is enforced in the database (`can_access_section`), not only in the app.
+
+## Fandom etiquette by design
+
+- Books and fanfiction live in **separate sections**, never mixed in one feed.
+- **No public star ratings for fanfiction.** Readers can rate a fic privately and write a public
+  *rec*. Books get public ratings (half stars) and reviews.
+- Every fic **must link to AO3**; we store metadata only, never the text. No scraping.
+  Auto-filling fic details will only be added if the OTW agrees.
+- Remind readers to leave **kudos and comments on AO3**.
+- **Authors can opt out**: removal requests hide the fic everywhere in the app.
+- Everything is behind login and not indexed by search engines.
+- Fanfiction is never sold or paywalled.
+- An *Authors are welcome* page explains all of the above.
+
+## Scope of MVP v1
+
+In: sign up and onboarding, add a story (book search / manual fanfic), full library with statuses
+(Currently Reading, Want to Read, Finished, DNF, On Hold for fics), favourites, reading progress,
+chapter discussions with replies and reactions, Hangover rooms, ratings and reviews/recs, basic
+discover, home screen, push notifications, report and block, feedback, analytics.
+
+Later (v1.1+): an in-app reader for the user's own EPUB/PDF files, friends and private groups,
+fic auto-fill from AO3 (only with OTW permission).
+
+## Data sources
+
+- **Open Library:** lookups only when a user searches, results cached in `stories`, requests carry a
+  `User-Agent` with the app name and contact email, at most ~3 requests/second. At scale, switch to
+  the Open Library data dumps.
+- **Google Books:** optional; their terms forbid charging users for the data without permission.
