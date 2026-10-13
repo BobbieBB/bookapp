@@ -87,3 +87,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - All discussions live inside the book/fic, chapter by chapter. The Continue Reading card carries a quiet "N new comments in chapter X" hint.
 - Spoiler Safe applies: Home never surfaces anything from a chapter you haven't reached.
 - Why: signal over noise. The start screen lists only things that ask for an action from you.
+
+## Discover: which fandoms to show (14 Oct 2026)
+- AO3 alone has tens of thousands of fandom tags, so there is no fixed list.
+- Discover shows "YOUR FANDOMS" first: the ones picked in onboarding/profile plus the fandoms of fics in your library (max ~6 chips).
+- "All fandoms" opens a search over fandoms that exist in our app, sorted by activity (discussion in the last 7 days).
+- Before launch the app is empty, so we seed a short curated list of big fandoms for people who haven't picked any.
