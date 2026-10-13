@@ -120,3 +120,10 @@ fic auto-fill from AO3 (only with OTW permission).
 - Loading state: the lookup is one fast query (<0.5 s). Show a small spinner inside the link field with "Checking…"; the other fields stay usable. No full-screen loader.
 - Invalid link: inline error under the field: "That doesn't look like an AO3 work link."
 - v2: real auto-fill from AO3 only with OTW permission.
+
+## Fic details in v1 (14 Oct 2026)
+- No scraping, so v1 keeps only what a reader can enter in seconds: title, author, fandom, ship, status, chapters, rating, and AO3 Archive Warnings (fixed chips, stored in stories.warnings).
+- Warnings matter for safety: readers check them before starting, so they show on the fic page.
+- Full tags and summary are the author's work: we link to them ("All tags ↗") instead of copying.
+- No cover images for fics (fanart is someone else's art); typographic covers instead.
+- v2: if OTW gives permission, or an author claims their fic in the app, show full tags, summary and cover. Agreed with Boryana 14 Oct.
