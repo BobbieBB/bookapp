@@ -79,8 +79,8 @@ export default function Onboarding() {
             <Card tone="mine">
               <T v="moment" style={{ fontSize: 24 }}>Every fic is a gift. Cherish it. Protect it.</T>
               <T v="muted">
-                This app follows fanfiction etiquette. Fics stay where their authors posted them, and we only
-                link back.
+                This app follows fanfiction etiquette. Fics stay where their authors posted them. You read them
+                there, and talk about them here.
               </T>
             </Card>
           )}
