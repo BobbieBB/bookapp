@@ -14,6 +14,13 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
   a final chapter called "Epilogue". (We avoid "Reflection Room", which
   Fable uses).
 
+## Profiles
+
+- **One name per reader** (13 Oct 2026): a single unique *Name* (letters, numbers, `_`), shown
+  everywhere. No separate display name, because two name fields confused people. Uniqueness is
+  needed for blocking, reporting and future @mentions. The `display_name` column stays unused in
+  case names with spaces are wanted later.
+
 ## Spoiler Safe Mode
 
 1. A reader can open the discussion for chapter *N* only after fully finishing chapter *N*.

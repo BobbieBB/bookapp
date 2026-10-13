@@ -13,8 +13,8 @@ export default function Profile() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
         <View style={{ gap: space.xs }}>
-          <Text style={text.h1}>{profile?.display_name || profile?.username}</Text>
-          <Text style={text.muted}>@{profile?.username} · {session?.user.email}</Text>
+          <Text style={text.h1}>{profile?.username}</Text>
+          <Text style={text.muted}>{session?.user.email}</Text>
           <Text style={text.body}>Reads: {reads}</Text>
         </View>
 
