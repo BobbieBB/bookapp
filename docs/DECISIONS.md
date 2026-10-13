@@ -127,3 +127,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Full tags and summary are the author's work: we link to them ("All tags ↗") instead of copying.
 - No cover images for fics (fanart is someone else's art); typographic covers instead.
 - v2: if OTW gives permission, or an author claims their fic in the app, show full tags, summary and cover. Agreed with Boryana 14 Oct.
+
+## Custom covers (14 Oct 2026)
+- v1: a reader can upload their own cover for a story in their library. Only they see it (private Supabase Storage bucket, owner-only RLS). Everyone else sees the typographic cover (or the Open Library cover for books).
+- No public user-uploaded covers: that would be redistributing someone else's art; reposting fanart without permission is a strong taboo in fandom, and credit is not permission. Private images also avoid App Store UGC moderation requirements.
+- Reverse image search to find the artist: no (no usable free API, unreliable, and attribution still isn't permission).
+- v2: public covers only from people with the right: the fic's author (claimed fic) or an artist uploading their own fanart with a link to their profile.
