@@ -37,11 +37,9 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
         <Text numberOfLines={4} style={{ fontFamily: fonts.moment, fontSize: 15, lineHeight: 15, color: cover.fg }}>
           {s.title}
         </Text>
-        {s.kind === 'fanfic' && s.fandoms[0] ? (
-          <Text numberOfLines={1} style={{ fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 0.5, color: cover.fg }}>
-            {s.fandoms[0].toUpperCase()}
-          </Text>
-        ) : null}
+        <Text numberOfLines={1} style={{ fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 0.5, color: cover.fg }}>
+          {s.author_name.toUpperCase()}
+        </Text>
       </View>
       <View style={{ flex: 1, gap: 3 }}>
         <T v="h2" numberOfLines={2}>
