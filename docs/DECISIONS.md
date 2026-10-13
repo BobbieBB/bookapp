@@ -100,3 +100,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Shows complete and WIP fics (DONE/WIP tag), ranked by discussion activity this week, in your fandoms.
 - Never empty: if this week is quiet, widen to 30 days, then to all-time most-read in your fandoms, then to the curated starter list.
 - Readers who don't follow WIPs: if your library is (almost) all complete fics, complete ones rank first. Later: a "Complete only" filter.
+
+## Add a book: "Can't find it? Add it by hand" (14 Oct 2026)
+- Hidden before the first search. After a search it always sits at the END of the results list (not sticky).
+- Results capped at ~10 so the end is always reachable; refining the search is the main path.
+- No results: the empty state makes "Add it by hand" the main (primary) button, with the search text pre-filled as the title.
+- Why: manual entries create duplicates and messy data, so we offer them at the moment the person has actually looked through the results.
