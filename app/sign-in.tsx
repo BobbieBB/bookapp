@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, ErrorText, Field, text } from '@/components/ui';
+import { Button, ErrorText, Field, T } from '@/components/ui';
 import { APP_NAME } from '@/lib/config';
 import { supabase } from '@/lib/supabase';
-import { colors, space } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 export default function SignIn() {
+  const { c } = useTheme();
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,16 +39,16 @@ export default function SignIn() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.ground }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.band }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
           <View style={{ gap: space.s, marginBottom: space.m }}>
-            <Text style={[text.overline, { color: colors.accent }]}>{APP_NAME.toUpperCase()}</Text>
-            <Text style={text.h1}>{mode === 'sign-in' ? 'Welcome back' : 'Join the readers'}</Text>
-            <Text style={text.body}>
-              Talk about books and fanfiction chapter by chapter, with people who are exactly where you are.
-              No spoilers, ever.
-            </Text>
+            <T v="overline">{APP_NAME.toUpperCase()}</T>
+            <T v="h1">{mode === 'sign-in' ? 'Welcome back' : 'Join the readers'}</T>
+            <T>
+              Talk about books and fanfiction chapter by chapter, with people who are exactly where you are. No
+              spoilers, ever.
+            </T>
           </View>
 
           <Field
@@ -69,12 +70,12 @@ export default function SignIn() {
           />
 
           <ErrorText>{error}</ErrorText>
-          {notice ? <Text style={[text.body, { color: colors.success }]}>{notice}</Text> : null}
+          {notice ? <T style={{ color: c.success }}>{notice}</T> : null}
 
           <Button title={mode === 'sign-in' ? 'Sign in' : 'Create account'} onPress={submit} loading={busy} />
           <Button
             variant="link"
-            title={mode === 'sign-in' ? "New here? Create an account" : 'Already have an account? Sign in'}
+            title={mode === 'sign-in' ? 'New here? Create an account' : 'Already have an account? Sign in'}
             onPress={() => {
               setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
               setError('');

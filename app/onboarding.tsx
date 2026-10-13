@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, ErrorText, Field, Toggle, text } from '@/components/ui';
+import { Button, Card, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { colors, space } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 export default function Onboarding() {
+  const { c } = useTheme();
   const { session, refreshProfile, signOut } = useAuth();
   const [username, setUsername] = useState('');
   const [readsBooks, setReadsBooks] = useState(true);
@@ -40,46 +41,46 @@ export default function Onboarding() {
         await refreshProfile();
         return;
       }
-      setError(error.code === '23505' ? 'That username is taken. Try another one.' : error.message);
+      setError(error.code === '23505' ? 'That name is taken. Try another one.' : error.message);
       return;
     }
     await refreshProfile();
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.ground }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
           <View style={{ gap: space.s }}>
-            <Text style={text.h1}>Make yourself at home</Text>
-            <Text style={text.body}>Pick a name other readers will see in discussions.</Text>
+            <T v="h1">Make yourself at home</T>
+            <T>Pick a name other readers will see in discussions.</T>
           </View>
 
-          <Field
-            label="Name"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="e.g. nightowl_reads"
-          />
-          <Text style={[text.muted, { marginTop: -space.s }]}>
-            Unique to you. Letters, numbers and _ only.
-          </Text>
+          <View style={{ gap: space.xs }}>
+            <Field
+              label="Name"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="e.g. nightowl_reads"
+            />
+            <T v="muted">Unique to you. Letters, numbers and _ only.</T>
+          </View>
 
           <Card>
-            <Text style={text.h2}>What do you read?</Text>
+            <T v="h2">What do you read?</T>
             <Toggle label="Books" value={readsBooks} onChange={setReadsBooks} />
             <Toggle label="Fanfiction" value={readsFanfic} onChange={setReadsFanfic} />
-            <Text style={text.muted}>Books and fics live in separate sections. You can change this later.</Text>
+            <T v="muted">Books and fics live in separate sections. You can change this later.</T>
           </Card>
 
-          <Card>
-            <Text style={[text.h2, { color: colors.accentDark }]}>Every fic is a gift. Cherish it. Protect it.</Text>
-            <Text style={text.muted}>
+          <Card tone="mine">
+            <T v="moment" style={{ fontSize: 24 }}>Every fic is a gift. Cherish it. Protect it.</T>
+            <T v="muted">
               We never host or sell fanfiction. We link back to the author, and remind you to leave kudos and
               comments where they posted it.
-            </Text>
+            </T>
           </Card>
 
           <ErrorText>{error}</ErrorText>

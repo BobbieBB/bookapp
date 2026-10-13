@@ -1,21 +1,34 @@
+import {
+  AtkinsonHyperlegible_400Regular,
+  AtkinsonHyperlegible_700Bold,
+} from '@expo-google-fonts/atkinson-hyperlegible';
+import {
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import { CormorantGaramond_700Bold_Italic } from '@expo-google-fonts/cormorant-garamond';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { colors } from '@/theme';
+import { useTheme } from '@/theme';
+
+function Loading() {
+  const { c } = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.ground }}>
+      <ActivityIndicator color={c.primary} />
+    </View>
+  );
+}
 
 function RootStack() {
   const { loading, session, profile } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ground }}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  const { c } = useTheme();
+  if (loading) return <Loading />;
 
   const signedIn = !!session;
   const onboarded = signedIn && !!profile;
@@ -23,7 +36,7 @@ function RootStack() {
   // Each screen is only reachable in the right state: signed out → sign-in,
   // signed in without a profile → onboarding, otherwise → the app.
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ground } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
@@ -38,11 +51,20 @@ function RootStack() {
 }
 
 export default function RootLayout() {
+  const { isDark } = useTheme();
+  const [fontsLoaded] = useFonts({
+    AtkinsonHyperlegible_400Regular,
+    AtkinsonHyperlegible_700Bold,
+    BricolageGrotesque_600SemiBold,
+    BricolageGrotesque_800ExtraBold,
+    CormorantGaramond_700Bold_Italic,
+  });
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="dark" />
-        <RootStack />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        {fontsLoaded ? <RootStack /> : <Loading />}
       </AuthProvider>
     </SafeAreaProvider>
   );

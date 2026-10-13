@@ -14,6 +14,20 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
   a final chapter called "Epilogue". (We avoid "Reflection Room", which
   Fable uses).
 
+## Visual design (14 Oct 2026)
+
+- **Ink & Bloom**: light mode "Fresh Ink" (hot pink + fresh mint, night-violet ink outlines and hard
+  "sticker" shadows), dark mode "Midnight Bloom" (neon rose + electric mint on violet night).
+  Same colour roles in both; tokens live in `src/theme.ts`. Design file: claude.ai artifact
+  "Fictionally — Style Directions".
+- Type: Bricolage Grotesque (UI headings), Cormorant Garamond italic (moments: chapter titles,
+  The Epilogue), Atkinson Hyperlegible (reading text).
+- The discussion comes first: "I finished chapter N+1" is a small pill in the header plus a quiet
+  row at the end of the comments, never the main button on the screen.
+- No content rating badge inside a chapter discussion; the rating belongs on the story page.
+- Replies are one level deep; long threads show the last 2 replies + "View N earlier replies".
+- No Liquid Glass: a plain tab bar keeps one consistent character.
+
 ## Profiles
 
 - **One name per reader** (13 Oct 2026): a single unique *Name* (letters, numbers, `_`), shown

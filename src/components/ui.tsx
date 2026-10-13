@@ -2,15 +2,17 @@ import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  StyleSheet,
   Switch,
   Text,
   TextInput,
   View,
+  type StyleProp,
   type TextInputProps,
+  type TextStyle,
+  type ViewStyle,
 } from 'react-native';
 
-import { colors, radius, space } from '@/theme';
+import { fonts, radius, space, useTheme } from '@/theme';
 
 export function Button({
   title,
@@ -25,119 +27,138 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
 }) {
-  const style =
-    variant === 'primary' ? styles.primary : variant === 'secondary' ? styles.secondary : styles.link;
-  const textStyle =
-    variant === 'primary' ? styles.primaryText : variant === 'secondary' ? styles.secondaryText : styles.linkText;
+  const { c, isDark } = useTheme();
+  const base: ViewStyle = { minHeight: 52, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.l };
+  const style: ViewStyle =
+    variant === 'primary'
+      ? { ...base, backgroundColor: c.primary, borderWidth: isDark ? 0 : 2, borderColor: c.outline, shadowColor: isDark ? c.secondary : c.shadow, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0 }
+      : variant === 'secondary'
+        ? { ...base, borderWidth: 2, borderColor: isDark ? c.secondary : c.outline, backgroundColor: isDark ? 'transparent' : c.surface }
+        : { minHeight: 44, alignItems: 'center', justifyContent: 'center' };
+  const textColor = variant === 'primary' ? c.onPrimary : variant === 'secondary' ? (isDark ? c.secondary : c.ink) : c.ink;
+
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [style, (pressed || disabled) && { opacity: 0.6 }]}
+      style={({ pressed }) => [style, (pressed || disabled) && { opacity: 0.7, transform: [{ translateY: 1 }] }]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#fff' : colors.accent} />
+        <ActivityIndicator color={textColor} />
       ) : (
-        <Text style={textStyle}>{title}</Text>
+        <Text
+          style={{
+            color: textColor,
+            fontSize: 16,
+            fontFamily: fonts.bodyBold,
+            textDecorationLine: variant === 'link' ? 'underline' : 'none',
+          }}
+        >
+          {title}
+        </Text>
       )}
     </Pressable>
   );
 }
 
 export function Field({ label, ...props }: TextInputProps & { label: string }) {
+  const { c } = useTheme();
   return (
     <View style={{ gap: space.xs }}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={{ fontSize: 14, fontFamily: fonts.bodyBold, color: c.inkSoft }}>{label}</Text>
       <TextInput
-        placeholderTextColor={colors.muted}
-        style={styles.input}
+        placeholderTextColor={c.muted}
         accessibilityLabel={label}
+        style={{
+          height: 50,
+          borderRadius: radius.s,
+          borderWidth: 2,
+          borderColor: c.outline,
+          backgroundColor: c.surface,
+          paddingHorizontal: space.m,
+          fontSize: 16,
+          fontFamily: fonts.body,
+          color: c.ink,
+        }}
         {...props}
       />
     </View>
   );
 }
 
-export function Toggle({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
+export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  const { c } = useTheme();
   return (
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: colors.accent, false: colors.line }}
-        accessibilityLabel={label}
-      />
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
+      <Text style={{ fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
     </View>
   );
 }
 
-export function Card({ children }: { children: ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+export function Card({ children, tone = 'surface', style }: { children: ReactNode; tone?: 'surface' | 'mine' | 'band'; style?: StyleProp<ViewStyle> }) {
+  const t = useTheme();
+  return (
+    <View style={[t.card, { padding: space.l, gap: space.s, backgroundColor: t.c[tone] }, style]}>{children}</View>
+  );
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
+  const { c } = useTheme();
   if (!children) return null;
-  return <Text style={styles.error}>{children}</Text>;
+  return <Text style={{ color: c.danger, fontSize: 14, lineHeight: 20, fontFamily: fonts.bodyBold }}>{children}</Text>;
 }
 
-export const text = StyleSheet.create({
-  h1: { fontSize: 28, fontWeight: '700', color: colors.ink },
-  h2: { fontSize: 18, fontWeight: '700', color: colors.ink },
-  body: { fontSize: 16, lineHeight: 23, color: colors.inkSoft },
-  muted: { fontSize: 14, lineHeight: 20, color: colors.muted },
-  overline: { fontSize: 12, fontWeight: '700', letterSpacing: 1, color: colors.muted },
-});
+/** Text in one of the design-system roles. */
+export function T({
+  v = 'body',
+  children,
+  style,
+  numberOfLines,
+}: {
+  v?: 'h1' | 'h2' | 'moment' | 'body' | 'muted' | 'overline' | 'label';
+  children: ReactNode;
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+}) {
+  const { c } = useTheme();
+  const styles: Record<string, TextStyle> = {
+    h1: { fontFamily: fonts.display, fontSize: 32, letterSpacing: -0.8, color: c.ink },
+    h2: { fontFamily: fonts.display, fontSize: 19, letterSpacing: -0.3, color: c.ink },
+    moment: { fontFamily: fonts.moment, fontSize: 28, color: c.ink },
+    body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: c.inkSoft },
+    muted: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.muted },
+    overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.2, color: c.muted },
+    label: { fontFamily: fonts.bodyBold, fontSize: 14, color: c.ink },
+  };
+  return (
+    <Text style={[styles[v], style]} numberOfLines={numberOfLines}>
+      {children}
+    </Text>
+  );
+}
 
-const styles = StyleSheet.create({
-  primary: {
-    height: 52,
-    borderRadius: radius.m,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  secondary: {
-    height: 52,
-    borderRadius: radius.m,
-    borderWidth: 2,
-    borderColor: '#CFC6E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryText: { color: colors.accentDark, fontSize: 16, fontWeight: '700' },
-  link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  linkText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
-  label: { fontSize: 14, fontWeight: '700', color: colors.inkSoft },
-  input: {
-    height: 50,
-    borderRadius: radius.s,
-    borderWidth: 1,
-    borderColor: '#CFC6E0',
-    backgroundColor: colors.surface,
-    paddingHorizontal: space.m,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
-  toggleLabel: { fontSize: 16, color: colors.ink },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.l,
-    padding: space.l,
-    gap: space.s,
-  },
-  error: { color: colors.danger, fontSize: 14, lineHeight: 20 },
-});
+export function Chip({ label, active, onPress, big }: { label: string; active: boolean; onPress: () => void; big?: boolean }) {
+  const { c } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={{
+        minHeight: 44,
+        paddingHorizontal: big ? 18 : 14,
+        borderRadius: radius.s,
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: active ? c.outline : c.hairline,
+        backgroundColor: active ? c.primary : c.surface,
+      }}
+    >
+      <Text style={{ fontSize: big ? 16 : 14, fontFamily: active ? fonts.bodyBold : fonts.body, color: active ? c.onPrimary : c.inkSoft }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
