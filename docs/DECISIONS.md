@@ -93,3 +93,4 @@ fic auto-fill from AO3 (only with OTW permission).
 - Discover shows "YOUR FANDOMS" first: the ones picked in onboarding/profile plus the fandoms of fics in your library (max ~6 chips).
 - "All fandoms" opens a search over fandoms that exist in our app, sorted by activity (discussion in the last 7 days).
 - Before launch the app is empty, so we seed a short curated list of big fandoms for people who haven't picked any.
+- Where fandoms get added: no extra onboarding step (keep onboarding short). When you add a fic, its fandom is suggested in Profile > Your fandoms (dashed chip with +); one tap adds it. You can also add/remove via Edit. Stored in profiles.favourite_fandoms.
