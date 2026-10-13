@@ -106,3 +106,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Results capped at ~10 so the end is always reachable; refining the search is the main path.
 - No results: the empty state makes "Add it by hand" the main (primary) button, with the search text pre-filled as the title.
 - Why: manual entries create duplicates and messy data, so we offer them at the moment the person has actually looked through the results.
+
+## Search-as-you-type (14 Oct 2026)
+- Suggestions start at 3 characters, after the person pauses typing for ~350 ms (debounce). Each new keystroke cancels the previous request.
+- Fewer than 3 characters: no search; show "Type at least 3 letters" only if they press Search.
+- A pasted ISBN (10/13 digits) or an AO3 link searches immediately.
+- Why: Open Library is a free, volunteer-run API; we don't send a request per keystroke. 1–2 letters return thousands of useless results anyway.
