@@ -26,6 +26,9 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
   row at the end of the comments, never the main button on the screen.
 - No content rating badge inside a chapter discussion; the rating belongs on the story page.
 - Replies are one level deep; long threads show the last 2 replies + "View N earlier replies".
+- Covers: books use the real cover from Open Library; fics get a typographic cover (title +
+  fandom) because fanart is someone else's work. Cover colour comes from the story id (6 brand
+  colours), the same everywhere for everyone; not by fandom.
 - No Liquid Glass: a plain tab bar keeps one consistent character.
 
 ## Profiles

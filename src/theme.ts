@@ -49,6 +49,33 @@ const dark: typeof light = {
 
 export type Palette = typeof light;
 
+// Cover colours for stories without a real cover (all fics, books without one).
+// Picked from the story id, so a story has the same colour everywhere, for everyone.
+// Decided 14 Oct 2026: by story, not by fandom.
+const coverLight = [
+  { bg: '#FF4F84', fg: '#1E1328' },
+  { bg: '#3DBE95', fg: '#1E1328' },
+  { bg: '#FFD3E1', fg: '#1E1328' },
+  { bg: '#BFEBD8', fg: '#1E1328' },
+  { bg: '#C9B6F2', fg: '#1E1328' },
+  { bg: '#1E1328', fg: '#FFD3E1' },
+];
+const coverDark = [
+  { bg: '#FF8FB1', fg: '#1E1328' },
+  { bg: '#8EE6CC', fg: '#0F2A23' },
+  { bg: '#4A2338', fg: '#FFD3E1' },
+  { bg: '#13302A', fg: '#A9F0DA' },
+  { bg: '#3B2A5C', fg: '#E4DCF3' },
+  { bg: '#F7EEF3', fg: '#1E1328' },
+];
+
+export function coverColor(storyId: string, isDark: boolean) {
+  let h = 0;
+  for (let i = 0; i < storyId.length; i++) h = (h * 31 + storyId.charCodeAt(i)) >>> 0;
+  const set = isDark ? coverDark : coverLight;
+  return set[h % set.length]!;
+}
+
 // Font family names as registered in app/_layout.tsx.
 export const fonts = {
   display: 'BricolageGrotesque_800ExtraBold', // UI headings
