@@ -75,13 +75,15 @@ export default function Onboarding() {
             <T v="muted">Books and fics live in separate sections. You can change this later.</T>
           </Card>
 
-          <Card tone="mine">
-            <T v="moment" style={{ fontSize: 24 }}>Every fic is a gift. Cherish it. Protect it.</T>
-            <T v="muted">
-              We never host or sell fanfiction. We link back to the author, and remind you to leave kudos and
-              comments where they posted it.
-            </T>
-          </Card>
+          {readsFanfic && (
+            <Card tone="mine">
+              <T v="moment" style={{ fontSize: 24 }}>Every fic is a gift. Cherish it. Protect it.</T>
+              <T v="muted">
+                Fics stay where their authors posted them. We only link back. Loved a chapter? Leave kudos and a
+                comment there too, that's how authors know you're reading.
+              </T>
+            </Card>
+          )}
 
           <ErrorText>{error}</ErrorText>
           <Button title="Start reading" onPress={save} loading={busy} />
