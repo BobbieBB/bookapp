@@ -94,3 +94,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - "All fandoms" opens a search over fandoms that exist in our app, sorted by activity (discussion in the last 7 days).
 - Before launch the app is empty, so we seed a short curated list of big fandoms for people who haven't picked any.
 - Where fandoms get added: no extra onboarding step (keep onboarding short). When you add a fic, its fandom is suggested in Profile > Your fandoms (dashed chip with +); one tap adds it. You can also add/remove via Edit. Stored in profiles.favourite_fandoms.
+
+## Discover: "Lively in your fandoms" (14 Oct 2026)
+- Replaces "New chapters today" (WIP-only). Discover is for stories you don't read yet; new chapters of stories you DO read go to Home and notifications.
+- Shows complete and WIP fics (DONE/WIP tag), ranked by discussion activity this week, in your fandoms.
+- Never empty: if this week is quiet, widen to 30 days, then to all-time most-read in your fandoms, then to the curated starter list.
+- Readers who don't follow WIPs: if your library is (almost) all complete fics, complete ones rank first. Later: a "Complete only" filter.
