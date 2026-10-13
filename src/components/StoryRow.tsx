@@ -37,7 +37,7 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
         <Text numberOfLines={4} style={{ fontFamily: fonts.moment, fontSize: 15, lineHeight: 15, color: cover.fg }}>
           {s.title}
         </Text>
-        <Text numberOfLines={1} style={{ fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 0.2, color: cover.fg }}>
+        <Text numberOfLines={2} style={{ fontFamily: fonts.bodyBold, fontSize: 8, lineHeight: 9, letterSpacing: 0.2, color: cover.fg }}>
           {s.author_name.toUpperCase()}
         </Text>
       </View>
