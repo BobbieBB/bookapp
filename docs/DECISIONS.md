@@ -110,5 +110,13 @@ fic auto-fill from AO3 (only with OTW permission).
 ## Search-as-you-type (14 Oct 2026)
 - Suggestions start at 3 characters, after the person pauses typing for ~350 ms (debounce). Each new keystroke cancels the previous request.
 - Fewer than 3 characters: no search; show "Type at least 3 letters" only if they press Search.
-- A pasted ISBN (10/13 digits) or an AO3 link searches immediately.
+- A pasted ISBN (10/13 digits) searches Open Library immediately.
 - Why: Open Library is a free, volunteer-run API; we don't send a request per keystroke. 1–2 letters return thousands of useless results anyway.
+
+## Add a fic: what happens when you paste an AO3 link (14 Oct 2026)
+- We do NOT fetch anything from AO3 (no scraping, see above). The link is looked up in OUR database only.
+- Found (someone already added it): fields are filled in from our record, with a line "Already on Fictionally, so we filled in the details. Check they look right." The person joins the same story, so no duplicate rooms.
+- Not found: fields stay empty for manual entry; the work id is taken from the link so the same fic can't be added twice.
+- Loading state: the lookup is one fast query (<0.5 s). Show a small spinner inside the link field with "Checking…"; the other fields stay usable. No full-screen loader.
+- Invalid link: inline error under the field: "That doesn't look like an AO3 work link."
+- v2: real auto-fill from AO3 only with OTW permission.
