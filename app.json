@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Fictionally",
+    "slug": "bookapp",
+    "scheme": "bookapp",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": ["expo-router"],
+    "ios": { "supportsTablet": false },
+    "android": {},
+    "web": { "bundler": "metro" }
+  }
+}

@@ -12,8 +12,9 @@ the whole story.
 
 ## Status
 
-Pre-MVP. This repository currently holds the database (schema, security rules and tests). The
-mobile app comes next. Planning lives on the Trello board *Book club app* (list **MVP v1**).
+Pre-MVP, sprint 1. Done: database with spoiler rules and tests, live on Supabase; app foundation
+(sign up / sign in, onboarding, Home, My Library, Profile). Next: adding stories, reading progress and
+chapter discussions. Planning lives on the Trello board *Book club app*.
 
 ## Stack
 
@@ -27,6 +28,14 @@ mobile app comes next. Planning lives on the Trello board *Book club app* (list 
 ## Repository layout
 
 ```
+app/                  Screens (Expo Router: one file = one screen)
+  (tabs)/             Home, Library, Profile
+  sign-in.tsx         Sign up / sign in
+  onboarding.tsx      Username and what you read
+src/
+  lib/                Supabase client, auth, data helpers, types
+  components/         Shared UI
+  theme.ts            Colours and spacing (prototype palette)
 supabase/
   migrations/         SQL migrations (schema, functions, RLS policies)
   tests/              SQL tests for spoiler rules and privacy
@@ -34,6 +43,31 @@ docs/
   DECISIONS.md        Product decisions and the reasoning behind them
   DATA_MODEL.md       Tables, spoiler logic and privacy rules explained
 ```
+
+## Running the app
+
+You need Node.js 20+ on your computer and the **Expo Go** app on your phone (App Store / Google Play).
+
+```bash
+git clone https://github.com/BobbieBB/bookapp.git
+cd bookapp
+npm install
+npx expo install --fix     # aligns package versions with the installed Expo SDK
+npx expo start
+```
+
+Scan the QR code with the phone camera (iPhone) or the Expo Go app (Android). The phone and the
+computer must be on the same Wi-Fi.
+
+If Expo Go says the project uses an older SDK, upgrade it once with `npx expo install expo@latest`
+followed by `npx expo install --fix`.
+
+The app talks to the Supabase project set in `src/lib/config.ts`. Only the **publishable** key belongs
+there. The database password and the secret / service_role key must never be in the app or in Git.
+
+**Supabase setting for development:** in Authentication → Sign In / Providers → Email, turning
+*Confirm email* off lets you create test accounts without clicking an email link. Turn it back on
+before real users join.
 
 ## Running the database tests
 
@@ -48,6 +82,9 @@ schema, applies every migration and runs `supabase/tests/spoiler_rules.test.sql`
 `ALL TESTS PASSED`. The same tests run on GitHub Actions for every push.
 
 ## Applying to Supabase
+
+Either paste the migration file into the Supabase **SQL Editor** and press Run (how the current
+project was set up), or with the Supabase CLI:
 
 ```bash
 supabase link --project-ref <your-project-ref>
