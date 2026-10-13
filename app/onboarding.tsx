@@ -10,7 +10,6 @@ import { colors, space } from '@/theme';
 export default function Onboarding() {
   const { session, refreshProfile, signOut } = useAuth();
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [readsBooks, setReadsBooks] = useState(true);
   const [readsFanfic, setReadsFanfic] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -20,7 +19,7 @@ export default function Onboarding() {
     setError('');
     const handle = username.trim();
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(handle)) {
-      return setError('Usernames use 3–30 letters, numbers or underscores.');
+      return setError('Names use 3–30 letters, numbers or underscores, no spaces.');
     }
     if (!readsBooks && !readsFanfic) return setError('Pick at least one: books or fanfiction.');
 
@@ -28,7 +27,9 @@ export default function Onboarding() {
     const { error } = await supabase.from('profiles').insert({
       id: session!.user.id,
       username: handle,
-      display_name: displayName.trim() || null,
+      // One name per reader (decided 13 Oct 2026). display_name stays in the
+      // database, unused, in case we ever allow names with spaces.
+      display_name: null,
       reads_books: readsBooks,
       reads_fanfic: readsFanfic,
     });
@@ -55,19 +56,16 @@ export default function Onboarding() {
           </View>
 
           <Field
-            label="Username"
+            label="Name"
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="e.g. nightowl_reads"
           />
-          <Field
-            label="Display name (optional)"
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="e.g. Maya"
-          />
+          <Text style={[text.muted, { marginTop: -space.s }]}>
+            Unique to you. Letters, numbers and _ only.
+          </Text>
 
           <Card>
             <Text style={text.h2}>What do you read?</Text>

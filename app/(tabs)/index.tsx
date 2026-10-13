@@ -11,7 +11,7 @@ import { colors, space } from '@/theme';
 export default function Home() {
   const { session, profile } = useAuth();
   const { entries, loading, error } = useMyLibrary(session?.user.id, 'currently_reading');
-  const name = profile?.display_name || profile?.username;
+  const name = profile?.username;
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.ground }}>
