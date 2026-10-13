@@ -20,11 +20,22 @@ export default function Home() {
           <T v="h1">Hi, {profile?.username}</T>
         </View>
 
-        <T v="overline">CONTINUE READING</T>
         {loading ? (
           <ActivityIndicator color={c.primary} />
         ) : entries.length ? (
-          entries.map((e) => <StoryRow key={e.story_id} entry={e} />)
+          // Fanfiction and books are never mixed in one list (fandom etiquette).
+          (['fanfic', 'book'] as const).map((kind) => {
+            const group = entries.filter((e) => e.story.kind === kind);
+            if (!group.length) return null;
+            return (
+              <View key={kind} style={{ gap: space.m }}>
+                <T v="overline">CONTINUE READING · {kind === 'fanfic' ? 'FANFICTION' : 'BOOKS'}</T>
+                {group.map((e) => (
+                  <StoryRow key={e.story_id} entry={e} />
+                ))}
+              </View>
+            );
+          })
         ) : (
           <Card>
             <T v="h2">Nothing on the go yet</T>
