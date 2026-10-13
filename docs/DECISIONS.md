@@ -81,3 +81,9 @@ fic auto-fill from AO3 (only with OTW permission).
   `User-Agent` with the app name and contact email, at most ~3 requests/second. At scale, switch to
   the Open Library data dumps.
 - **Google Books:** optional; their terms forbid charging users for the data without permission.
+
+## Home: replies to you, not all discussions (14 Oct 2026)
+- Home shows only what needs you: replies and @mentions, max 3, with "See all" leading to notifications. Section title: "REPLIES TO YOU".
+- All discussions live inside the book/fic, chapter by chapter. The Continue Reading card carries a quiet "N new comments in chapter X" hint.
+- Spoiler Safe applies: Home never surfaces anything from a chapter you haven't reached.
+- Why: signal over noise. The start screen lists only things that ask for an action from you.

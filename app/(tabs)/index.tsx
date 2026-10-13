@@ -47,9 +47,9 @@ export default function Home() {
         )}
         <ErrorText>{error}</ErrorText>
 
-        <T v="overline">ACTIVE DISCUSSIONS</T>
+        <T v="overline">REPLIES TO YOU</T>
         <Card tone="band">
-          <T v="muted">Discussions you join will show up here, so you can find your way back.</T>
+          <T v="muted">When someone replies to you or mentions you, you'll see it here.</T>
         </Card>
       </ScrollView>
     </SafeAreaView>
