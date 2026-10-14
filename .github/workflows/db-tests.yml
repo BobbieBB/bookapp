@@ -1,4 +1,4 @@
-name: Database tests
+name: Tests
 
 on:
   push:
@@ -23,3 +23,22 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
         run: supabase/tests/run.sh
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      - name: Start local Supabase
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+          supabase status -o env | sed -n 's/^API_URL="\(.*\)"$/EXPO_PUBLIC_SUPABASE_URL=\1/p; s/^PUBLISHABLE_KEY="\(.*\)"$/EXPO_PUBLIC_SUPABASE_KEY=\1/p' >> "$GITHUB_ENV"
+      - run: npm run typecheck
+      - run: npm test

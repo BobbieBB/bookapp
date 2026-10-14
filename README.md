@@ -39,6 +39,7 @@ src/
 supabase/
   migrations/         SQL migrations (schema, functions, RLS policies)
   tests/              SQL tests for spoiler rules and privacy
+test/                 Jest environment and helpers for the app tests
 docs/
   DECISIONS.md        Product decisions and the reasoning behind them
   DATA_MODEL.md       Tables, spoiler logic and privacy rules explained
@@ -107,6 +108,19 @@ PGHOST=localhost PGUSER=postgres supabase/tests/run.sh
 The script creates a throwaway database `bookapp_test`, adds a small stand-in for Supabase's `auth`
 schema, applies every migration and runs `supabase/tests/spoiler_rules.test.sql`. It ends with
 `ALL TESTS PASSED`. The same tests run on GitHub Actions for every push.
+
+## Running the app tests
+
+```bash
+npm run db:start   # the tests need the local stack and .env.local (see above)
+npm test
+```
+
+Jest with `jest-expo` and React Native Testing Library. Tests live next to the code in
+`__tests__/` folders and talk to the **local** Supabase stack with real accounts they sign up
+themselves. `jest.setup.ts` refuses to run against any URL that is not `127.0.0.1` / `localhost`, so
+the tests can never touch the live project. `test/network.ts` can hold one request back to force
+an order of replies (a slow, stale response); every reply still comes from the real server.
 
 ## Applying to Supabase
 
