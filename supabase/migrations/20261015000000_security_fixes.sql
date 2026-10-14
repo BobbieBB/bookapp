@@ -76,7 +76,8 @@ begin
   if not public.is_active_user() then
     raise exception 'not allowed' using errcode = '42501';
   end if;
-  select * into s from public.stories where id = p_story;
+  -- Locked, so two readers bumping at once cannot lower the count.
+  select * into s from public.stories where id = p_story for update;
   if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'ongoing'
      or p_count is null or p_count > 5000
      or (s.total_sections is not null and p_count > s.total_sections) then
@@ -86,6 +87,33 @@ begin
     return s;  -- never goes down
   end if;
   update public.stories set published_sections = p_count, updated_at = now()
+   where id = p_story returning * into s;
+  return s;
+end $$;
+
+-- A WIP fic is finished: ongoing → completed only, by a reader who has it. The guard above
+-- blocks direct edits once others read the story, so without this it stayed ongoing forever
+-- (and its Epilogue never opened). The final count defaults to the published chapters.
+create or replace function public.complete_story(p_story uuid, p_total int default null)
+returns public.stories
+language plpgsql security definer set search_path = public
+as $$
+declare
+  s public.stories;
+  n int;
+begin
+  if not public.is_active_user() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  select * into s from public.stories where id = p_story for update;
+  n := coalesce(p_total, s.published_sections);
+  if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'ongoing'
+     or not exists (select 1 from public.library_entries where story_id = p_story and user_id = auth.uid())
+     or n < coalesce(s.published_sections, 0) or n > 5000 then
+    raise exception 'cannot complete this story';
+  end if;
+  update public.stories
+     set status = 'completed', total_sections = n, published_sections = n, updated_at = now()
    where id = p_story returning * into s;
   return s;
 end $$;

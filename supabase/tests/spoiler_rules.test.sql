@@ -208,6 +208,24 @@ select test.ok(public.comment_author_of('c0000000-0000-0000-0000-000000000002') 
 insert into public.library_entries (story_id, status) values ('20000000-0000-0000-0000-000000000002', 'finished');
 select test.ok(not public.can_access_section('20000000-0000-0000-0000-000000000002', 'epilogue', null),
   'The Epilogue stays closed while a fic is ongoing');
+select test.login('00000000-0000-0000-0000-0000000000e2');
+insert into public.library_entries (story_id, status) values ('20000000-0000-0000-0000-000000000002', 'currently_reading');
+select test.login('00000000-0000-0000-0000-0000000000e1');
+select test.ok(test.error_of($$update public.stories set status = 'completed' where id = '20000000-0000-0000-0000-000000000002'$$)
+  like 'other readers%', 'creator cannot edit a fic directly once others read it');
+select public.bump_published_sections('20000000-0000-0000-0000-000000000002', 2);
+select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-0000-000000000002', 1)$$) like 'cannot complete%',
+  'a completed fic cannot have fewer chapters than were published');
+select public.complete_story('20000000-0000-0000-0000-000000000002');
+select test.ok((select (status, total_sections) = ('completed', 2) from public.stories
+  where id = '20000000-0000-0000-0000-000000000002'), 'a reader can still mark a WIP fic complete once others read it');
+select test.ok(public.can_access_section('20000000-0000-0000-0000-000000000002', 'epilogue', null),
+  'The Epilogue opens once the fic is complete');
+select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-0000-000000000001')$$) like 'cannot complete%',
+  'only ongoing fics can be completed');
+select test.login('00000000-0000-0000-0000-00000000000d');
+select test.ok(test.error_of($$select public.complete_story('10000000-0000-0000-0000-000000000002')$$) like 'cannot complete%',
+  'only readers who have the fic can complete it');
 
 select test.login('00000000-0000-0000-0000-0000000000e2');
 select test.ok(public.is_blocked_between('00000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-00000000000a'),
