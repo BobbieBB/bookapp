@@ -38,12 +38,26 @@ table. Anonymous users (`anon`) have no access at all.
 `can_access_section(story, kind, section)` is the single rule used everywhere:
 
 - **chapter N** → `progress_section >= N`, or the reader Finished a story that is not ongoing;
-- **epilogue** → the reader Finished the story;
+- **epilogue** → the reader Finished the story, and the story is not ongoing (a WIP fic has no
+  Epilogue yet: readers who "finished" at different chapters would spoil each other);
 - hidden stories → closed for everyone except admins.
 
 It is used by the `comments` read and insert policies, by `open_discussion()` (which creates a
 discussion on first use and refuses locked ones), and indirectly by `reactions`.
 `section_reader_counts(story)` returns anonymous counts ("12 readers finished chapter 4").
+
+Discussions exist only for chapters the story has. Replies are one level deep. Deleting a comment
+replaces its text with `[deleted]`; it cannot be edited or restored afterwards.
+
+## Story edits and limits
+
+- Fic links must be the canonical AO3 form `https://archiveofourown.org/works/<id>` (the app
+  normalises pasted links), so a fic can't be added twice. Covers only from `covers.openlibrary.org`.
+- Every fic says whether it is `completed` or `ongoing`.
+- The type and source of a story never change. Once another reader has a story in their library,
+  only admins can edit it (changing chapters or pages would move discussions and leak spoilers).
+- At most 5000 chapters and 50 000 pages. `bump_published_sections` works only on ongoing fics.
+- Names are unique regardless of capitals (`Alice` = `alice`).
 
 ## Blocking
 
