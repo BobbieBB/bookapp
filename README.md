@@ -70,6 +70,32 @@ there. The database password and the secret / service_role key must never be in 
 *Confirm email* off lets you create test accounts without clicking an email link. Turn it back on
 before real users join.
 
+## Running everything locally (no live project, no phone needed)
+
+Needs Docker Desktop running. The local backend applies `supabase/migrations` automatically and
+needs no email confirmation.
+
+```bash
+npm install
+npm run db:start            # local Supabase: API :54321, Studio http://127.0.0.1:54323
+```
+
+Create `.env.local` (git-ignored) with the `PUBLISHABLE_KEY` printed by `db:start`:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_KEY=sb_publishable_...
+```
+
+```bash
+npx expo start --web        # opens http://localhost:8081
+```
+
+Sign up in the app, then `npm run db:seed:dev` adds sample books and fics to every local user's
+library. `npm run db:reset` wipes the local database and re-applies the migrations; `npm run db:stop`
+shuts it down. To test on a phone with Expo Go against the local backend, use your Mac's LAN IP
+instead of `127.0.0.1` in `.env.local`. Delete `.env.local` to go back to the live project.
+
 ## Running the database tests
 
 Needs PostgreSQL 15+ and `psql`.

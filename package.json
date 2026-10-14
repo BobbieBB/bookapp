@@ -9,21 +9,31 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "db:test": "supabase/tests/run.sh"
+    "db:test": "supabase/tests/run.sh",
+    "db:start": "npx -y supabase@latest start",
+    "db:stop": "npx -y supabase@latest stop",
+    "db:reset": "npx -y supabase@latest db reset",
+    "db:seed:dev": "docker exec -i supabase_db_bookapp psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/dev-seed.sql"
   },
   "dependencies": {
+    "@expo-google-fonts/atkinson-hyperlegible": "^0.4.1",
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo-google-fonts/cormorant-garamond": "^0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.57.0",
-    "expo": "^57.0.28",
+    "expo": "~57.0.29",
     "expo-constants": "~57.0.21",
-    "expo-linking": "~57.0.12",
-    "expo-router": "~57.0.26",
+    "expo-font": "~57.0.4",
+    "expo-linking": "~57.0.13",
+    "expo-router": "~57.0.27",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-url-polyfill": "^2.0.0"
+    "react-native-url-polyfill": "^2.0.0",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
     "@types/react": "~19.2.4",
