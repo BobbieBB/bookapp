@@ -140,3 +140,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Mark complete: only a caught-up reader (has read every published chapter).
 - Undo: any caught-up reader can set it back to ongoing within 7 days, if no chapters were added since. After that, only moderators.
 - Why: fast for readers, but one mistaken or hostile tap can't end a WIP for everyone. Implemented in PR #1 (review, 15 Oct).
+
+## Finishing a fic: no ratings, no recs (15 Oct 2026)
+- No star ratings for fanfiction at all (not even private). Books keep ratings on the book page.
+- No recs in the app: recs, kudos and comments belong to the author on AO3. The "You finished it!" screen points readers there ("Leave kudos, a comment, or bookmark it as a rec on AO3").
+- Our job is the discussion: the screen's main button is "Join The Epilogue".
+- Later cleanup: the fic part of `ratings` and the `recs` feature in the schema are unused by the app.
