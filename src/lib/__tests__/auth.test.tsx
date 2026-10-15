@@ -24,13 +24,13 @@ async function createUser(name: string, withProfile: boolean) {
 
 type User = Awaited<ReturnType<typeof createUser>>;
 
-function Probe() {
+type Snapshot = { loading: boolean; user: string | null; username: string | null; profileState: string };
+
+function Probe({ onRender }: { onRender?: (state: Snapshot) => void }) {
   const { loading, session, profile, profileState } = useAuth();
-  return (
-    <Text testID="auth">
-      {JSON.stringify({ loading, user: session?.user.email ?? null, username: profile?.username ?? null, profileState })}
-    </Text>
-  );
+  const state = { loading, user: session?.user.email ?? null, username: profile?.username ?? null, profileState };
+  onRender?.(state);
+  return <Text testID="auth">{JSON.stringify(state)}</Text>;
 }
 
 function authState() {
@@ -91,6 +91,23 @@ test('a slow profile reply for the previous reader never replaces the current on
     await new Promise<void>((resolve) => setImmediate(resolve));
   });
   expect(authState()).toMatchObject({ user: bob.email, username: bob.username, profileState: 'ready' });
+});
+
+test('switching reader never shows the previous reader\'s profile', async () => {
+  const seen: Snapshot[] = [];
+  await render(<AuthProvider><Probe onRender={(state) => seen.push(state)} /></AuthProvider>);
+  await waitFor(() => expect(authState().loading).toBe(false));
+  await act(() => supabase.auth.signInWithPassword({ email: alice.email, password }).then(() => undefined));
+  await waitFor(() => expect(authState().username).toBe(alice.username));
+  const bobProfile = holdRequest((url) => url.includes('/rest/v1/profiles') && url.includes(bob.id));
+  await act(() => supabase.auth.signInWithPassword({ email: bob.email, password }).then(() => undefined));
+  await waitFor(() => expect(authState()).toMatchObject({ user: bob.email, username: null, profileState: 'loading' }));
+  await act(async () => {
+    bobProfile.release();
+    await bobProfile.answer;
+  });
+  await waitFor(() => expect(authState()).toMatchObject({ user: bob.email, username: bob.username, profileState: 'ready' }));
+  expect(seen.filter((state) => state.user === bob.email && state.username === alice.username)).toEqual([]);
 });
 
 test('signing out clears the profile', async () => {

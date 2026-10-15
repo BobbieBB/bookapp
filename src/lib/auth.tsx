@@ -29,7 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = useCallback(async (userId: string | undefined) => {
     const id = ++requestId.current;
-    loadedFor.current = userId ?? null;
+    const next = userId ?? null;
+    // A different reader: never show the previous one's profile while this one loads (or fails).
+    if (loadedFor.current !== next) setProfile(null);
+    loadedFor.current = next;
     if (!userId) {
       setProfile(null);
       setProfileState('ready');
