@@ -156,7 +156,6 @@ fic auto-fill from AO3 (only with OTW permission).
 - Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
-## Add a story: details (15 Oct 2026, proposed in the Add Story PR)
-- A book new to Fictionally asks one question: split discussions by chapter (enter the count) or by pages (25-page parts, page count pre-filled from Open Library). Open Library doesn't know chapter counts.
-- When adding, the reader picks "Reading now" (default) or "Want to read".
-- A book that is already on Fictionally is added straight away as "Reading now".
+## Add a story: details (15 Oct 2026, decided by the PO)
+- Book discussions are by chapter. A book new to Fictionally asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
+- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Fictionally (no silent default).

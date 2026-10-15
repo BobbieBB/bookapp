@@ -15,7 +15,6 @@ import {
   createFic,
   createManualBook,
   findStory,
-  type BookSplit,
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
 import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
@@ -99,7 +98,7 @@ function AddBook() {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
-  const [picked, setPicked] = useState<BookResult | null>(null);
+  const [picked, setPicked] = useState<{ book: BookResult; existing: Story | null } | null>(null);
   const [manual, setManual] = useState(false);
 
   useEffect(() => {
@@ -132,7 +131,7 @@ function AddBook() {
     };
   }, [query]);
 
-  if (picked) return <NewBookSplit book={picked} onCancel={() => setPicked(null)} />;
+  if (picked) return <ConfirmBook {...picked} onCancel={() => setPicked(null)} />;
   if (manual) return <ManualBook initialTitle={query} onCancel={() => setManual(false)} />;
 
   return (
@@ -149,7 +148,7 @@ function AddBook() {
       {searching && <ActivityIndicator />}
       <ErrorText>{error}</ErrorText>
       {results.map((b) => (
-        <BookRow key={b.key} book={b} onPick={setPicked} />
+        <BookRow key={b.key} book={b} onPick={(book, existing) => setPicked({ book, existing })} />
       ))}
       {searched && !searching && (
         results.length ? (
@@ -189,7 +188,7 @@ function SmallCover({ title, author, url, id }: { title: string; author: string;
   );
 }
 
-function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) => void }) {
+function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult, existing: Story | null) => void }) {
   const t = useTheme();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -198,9 +197,7 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
     setBusy(true);
     setError('');
     try {
-      const existing = await findStory({ openLibraryKey: book.key });
-      if (existing) await finish(existing.id, 'currently_reading');
-      else onPick(book); // new to us: ask how to split it first
+      onPick(book, await findStory({ openLibraryKey: book.key }));
     } catch (e) {
       setError(friendly(e));
     } finally {
@@ -225,24 +222,23 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
   );
 }
 
-function NewBookSplit({ book, onCancel }: { book: BookResult; onCancel: () => void }) {
-  const [byPages, setByPages] = useState(false);
+/**
+ * Last step before adding a book: the reading status, and for a book new to Fictionally,
+ * its chapter count (Open Library doesn't know it). Discussions are by chapter (PO, 15 Oct).
+ */
+function ConfirmBook({ book, existing, onCancel }: { book: BookResult; existing: Story | null; onCancel: () => void }) {
   const [chapters, setChapters] = useState('');
-  const [pages, setPages] = useState(book.pages ? String(book.pages) : '');
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   async function save() {
-    const n = Number(byPages ? pages : chapters);
-    if (!Number.isInteger(n) || n < 1 || n > (byPages ? 50000 : 5000)) {
-      return setError(byPages ? 'Enter the number of pages.' : 'Enter the number of chapters.');
-    }
-    const split: BookSplit = byPages ? { pages: n } : { chapters: n };
+    const n = Number(chapters);
+    if (!existing && (!Number.isInteger(n) || n < 1 || n > 5000)) return setError('Enter the number of chapters.');
     setBusy(true);
     setError('');
     try {
-      const story = await createBook(book, split);
+      const story = existing ?? (await createBook(book, { chapters: n }));
       await finish(story.id, status);
     } catch (e) {
       setError(friendly(e));
@@ -252,20 +248,19 @@ function NewBookSplit({ book, onCancel }: { book: BookResult; onCancel: () => vo
 
   return (
     <Card>
-      <T v="h2">{book.title}</T>
-      <T v="muted">You’re the first to add this book. How should we split its discussions?</T>
-      <View style={{ flexDirection: 'row', gap: space.s }}>
-        <Chip label="By chapter" active={!byPages} onPress={() => setByPages(false)} />
-        <Chip label="By pages" active={byPages} onPress={() => setByPages(true)} />
+      <View style={{ flexDirection: 'row', gap: space.m, alignItems: 'center' }}>
+        <SmallCover title={book.title} author={book.author} url={book.coverUrl} id={book.key} />
+        <View style={{ flex: 1 }}>
+          <T v="h2">{book.title}</T>
+          <T v="muted">{book.author}</T>
+        </View>
       </View>
-      {byPages ? (
-        <Field label="Pages" keyboardType="number-pad" value={pages} onChangeText={setPages} />
-      ) : (
-        <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder="e.g. 40" />
+      {!existing && (
+        <>
+          <T v="muted">You’re the first to add this book. How many chapters does it have? Each chapter gets its own discussion.</T>
+          <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder="e.g. 40" />
+        </>
       )}
-      <T v="muted" style={{ fontSize: 12 }}>
-        {byPages ? 'Discussions open every 25 pages.' : 'Each chapter gets its own discussion.'}
-      </T>
       <StatusPicker value={status} onChange={setStatus} />
       <ErrorText>{error}</ErrorText>
       <Button title="Add to my library" onPress={save} loading={busy} />
