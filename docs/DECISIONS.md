@@ -146,3 +146,12 @@ fic auto-fill from AO3 (only with OTW permission).
 - No recs in the app: recs, kudos and comments belong to the author on AO3. The "You finished it!" screen points readers there ("Leave kudos, a comment, or bookmark it as a rec on AO3").
 - Our job is the discussion: the screen's main button is "Join The Epilogue".
 - Later cleanup: the fic part of `ratings` and the `recs` feature in the schema are unused by the app.
+
+## Visual refresh: "Modern A, bold colours" (15 Oct 2026)
+- Replaces the neo-brutalist look (thick ink outlines, hard offset shadows), which felt retro.
+- Keeps the bold palette: hot pink #FF4F84, mint #3DBE95, ink #1E1328; light ground #F6F8F7, white cards.
+- No outlines; soft shadows (0 1px 2px + 0 12px 28px, low opacity); radii 14–22 px; round icon buttons.
+- Tab bar: white, active tab = pink pill with icon + label, others icon only.
+- Dark mode: ground #120C17, cards #1F1726, pink #FF6B97, mint #4FD1A6, same shapes.
+- Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
+- Code (src/theme.ts, components) still uses the old style: update in the next coding session.
