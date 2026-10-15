@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddButton } from '@/components/AddButton';
 import { StoryRow } from '@/components/StoryRow';
 import { Card, Chip, ErrorText, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -25,7 +26,10 @@ export default function Library() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <T v="h1">My Library</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <T v="h1">My Library</T>
+          <AddButton kind={kind} />
+        </View>
 
         <View style={{ flexDirection: 'row', gap: space.s }}>
           <Chip label="Books" active={kind === 'book'} onPress={() => setKind('book')} big />
@@ -45,7 +49,7 @@ export default function Library() {
         ) : (
           <Card>
             <T v="h2">{kind === 'book' ? 'No books here yet' : 'No fics here yet'}</T>
-            <T v="muted">Adding stories arrives in the next update.</T>
+            <T v="muted">Tap + to add one.</T>
           </Card>
         )}
         <ErrorText>{error}</ErrorText>
