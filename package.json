@@ -10,9 +10,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "db:test": "supabase/tests/run.sh",
-    "db:start": "npx -y supabase@latest start",
-    "db:stop": "npx -y supabase@latest stop",
-    "db:reset": "npx -y supabase@latest db reset",
+    "db:start": "npx -y supabase@2.121.0 start",
+    "db:stop": "npx -y supabase@2.121.0 stop",
+    "db:reset": "npx -y supabase@2.121.0 db reset",
     "db:seed:dev": "docker exec -i supabase_db_bookapp psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/dev-seed.sql",
     "test": "jest"
   },
