@@ -257,6 +257,18 @@ update public.stories set completed_at = now() - interval '8 days' where id = '2
 select test.login('00000000-0000-0000-0000-0000000000e1');
 select test.ok(test.error_of($$select public.reopen_story('20000000-0000-0000-0000-000000000002')$$) like 'cannot reopen%',
   'a fic cannot be reopened more than 7 days after it was completed');
+select test.logout();
+insert into public.stories (id, kind, title, author_name, status, source, source_url, created_by) values
+  ('20000000-0000-0000-0000-000000000003', 'fanfic', 'Uncounted WIP', 'w', 'ongoing', 'ao3', 'https://archiveofourown.org/works/102',
+   '00000000-0000-0000-0000-0000000000e1');
+select test.login('00000000-0000-0000-0000-0000000000e1');
+insert into public.library_entries (story_id, status, progress_section) values ('20000000-0000-0000-0000-000000000003', 'currently_reading', 4999);
+select test.ok(test.error_of($$select public.bump_published_sections('20000000-0000-0000-0000-000000000003', 5000)$$) like 'cannot update%',
+  'progress on a fic with no chapter count yet does not let a reader inflate it');
+select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-0000-000000000003', 5000)$$) like 'cannot complete%',
+  'nor complete it with an inflated count');
+select test.ok(test.error_of($$select public.bump_published_sections('20000000-0000-0000-0000-000000000003', 1)$$) is null,
+  'a reader can report the first chapter of a fic with no chapter count yet');
 select test.login('00000000-0000-0000-0000-0000000000ad');
 select test.ok(test.error_of($$update public.stories set status = 'ongoing', total_sections = null, completed_at = null
   where id = '20000000-0000-0000-0000-000000000002'$$) is null, 'an admin can still reopen it after 7 days');

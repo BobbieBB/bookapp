@@ -81,7 +81,9 @@ begin
   end if;
   -- Locked, so two readers bumping at once cannot lower the count.
   select * into s from public.stories where id = p_story for update;
-  select progress_section into p from public.library_entries where story_id = p_story and user_id = auth.uid();
+  -- Progress counts only up to the published chapters: with no count yet it is not capped.
+  select least(progress_section, coalesce(s.published_sections, 0)) into p
+    from public.library_entries where story_id = p_story and user_id = auth.uid();
   if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'ongoing'
      or p is null or p_count is null or p_count > p + 1 or p_count > 5000
      or (s.total_sections is not null and p_count > s.total_sections) then
@@ -115,7 +117,9 @@ begin
     raise exception 'not allowed' using errcode = '42501';
   end if;
   select * into s from public.stories where id = p_story for update;
-  select progress_section into p from public.library_entries where story_id = p_story and user_id = auth.uid();
+  -- Progress counts only up to the published chapters: with no count yet it is not capped.
+  select least(progress_section, coalesce(s.published_sections, 0)) into p
+    from public.library_entries where story_id = p_story and user_id = auth.uid();
   n := coalesce(p_total, s.published_sections);
   if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'ongoing'
      or p is null or p < coalesce(s.published_sections, 0)
@@ -142,7 +146,9 @@ begin
     raise exception 'not allowed' using errcode = '42501';
   end if;
   select * into s from public.stories where id = p_story for update;
-  select progress_section into p from public.library_entries where story_id = p_story and user_id = auth.uid();
+  -- Progress counts only up to the published chapters: with no count yet it is not capped.
+  select least(progress_section, coalesce(s.published_sections, 0)) into p
+    from public.library_entries where story_id = p_story and user_id = auth.uid();
   if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'completed'
      or s.completed_at is null or s.completed_at <= now() - interval '7 days'
      or s.total_sections is distinct from s.published_sections
