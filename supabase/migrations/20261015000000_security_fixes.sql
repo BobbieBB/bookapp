@@ -64,22 +64,26 @@ end $$;
 create trigger stories_guard_update before update on public.stories
   for each row execute function public.stories_guard_update();
 
--- New WIP chapters: fanfiction that is ongoing only, only upwards, within the limits.
--- (It used to work on any story, so a stranger could shrink a 20-chapter book to 1.)
+-- New WIP chapters: fanfiction that is ongoing only, only upwards, within the limits, and only
+-- by a reader who has the fic, at most one chapter past their own progress (the chapter they
+-- are about to read). It used to work on any story, so a stranger could shrink a 20-chapter
+-- book to 1, or raise any fic to 5000 chapters for good.
 create or replace function public.bump_published_sections(p_story uuid, p_count int)
 returns public.stories
 language plpgsql security definer set search_path = public
 as $$
 declare
   s public.stories;
+  p int;
 begin
   if not public.is_active_user() then
     raise exception 'not allowed' using errcode = '42501';
   end if;
   -- Locked, so two readers bumping at once cannot lower the count.
   select * into s from public.stories where id = p_story for update;
+  select progress_section into p from public.library_entries where story_id = p_story and user_id = auth.uid();
   if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'ongoing'
-     or p_count is null or p_count > 5000
+     or p is null or p_count is null or p_count > p + 1 or p_count > 5000
      or (s.total_sections is not null and p_count > s.total_sections) then
     raise exception 'cannot update chapters for this story';
   end if;
@@ -91,29 +95,62 @@ begin
   return s;
 end $$;
 
--- A WIP fic is finished: ongoing → completed only, by a reader who has it. The guard above
+-- When a WIP fic was completed; it can be reopened within 7 days of this (see reopen_story).
+alter table public.stories add column completed_at timestamptz;
+
+-- A WIP fic is finished: ongoing → completed only, by a reader who is caught up. The guard above
 -- blocks direct edits once others read the story, so without this it stayed ongoing forever
--- (and its Epilogue never opened). The final count defaults to the published chapters.
+-- (and its Epilogue never opened). The final count defaults to the published chapters and, as
+-- with bumps, can be at most one past the reader's progress.
 create or replace function public.complete_story(p_story uuid, p_total int default null)
 returns public.stories
 language plpgsql security definer set search_path = public
 as $$
 declare
   s public.stories;
+  p int;
   n int;
 begin
   if not public.is_active_user() then
     raise exception 'not allowed' using errcode = '42501';
   end if;
   select * into s from public.stories where id = p_story for update;
+  select progress_section into p from public.library_entries where story_id = p_story and user_id = auth.uid();
   n := coalesce(p_total, s.published_sections);
   if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'ongoing'
-     or not exists (select 1 from public.library_entries where story_id = p_story and user_id = auth.uid())
-     or n < coalesce(s.published_sections, 0) or n > 5000 then
+     or p is null or p < coalesce(s.published_sections, 0)
+     or n is null or n < coalesce(s.published_sections, 0) or n > p + 1 then
     raise exception 'cannot complete this story';
   end if;
   update public.stories
-     set status = 'completed', total_sections = n, published_sections = n, updated_at = now()
+     set status = 'completed', total_sections = n, published_sections = n, completed_at = now(), updated_at = now()
+   where id = p_story returning * into s;
+  return s;
+end $$;
+
+-- Undo a completion: a caught-up reader can set the fic back to ongoing within 7 days, as long
+-- as no chapters were added since. After that only an admin can (stories_guard_update).
+create or replace function public.reopen_story(p_story uuid)
+returns public.stories
+language plpgsql security definer set search_path = public
+as $$
+declare
+  s public.stories;
+  p int;
+begin
+  if not public.is_active_user() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  select * into s from public.stories where id = p_story for update;
+  select progress_section into p from public.library_entries where story_id = p_story and user_id = auth.uid();
+  if s.id is null or s.is_hidden or s.kind <> 'fanfic' or s.status is distinct from 'completed'
+     or s.completed_at is null or s.completed_at <= now() - interval '7 days'
+     or s.total_sections is distinct from s.published_sections
+     or p is null or p < coalesce(s.published_sections, 0) then
+    raise exception 'cannot reopen this story';
+  end if;
+  update public.stories
+     set status = 'ongoing', total_sections = null, completed_at = null, updated_at = now()
    where id = p_story returning * into s;
   return s;
 end $$;

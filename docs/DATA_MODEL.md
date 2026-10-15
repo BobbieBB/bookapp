@@ -30,8 +30,12 @@ table. Anonymous users (`anon`) have no access at all.
 - Marking a story **Finished** sets progress to the last section.
 - Progress cannot go past the number of published sections.
 - *On Hold* is only allowed for fanfiction.
-- Readers can raise the number of published chapters of a WIP fic with
-  `bump_published_sections(story, count)`; it never goes down.
+- A reader who has a WIP fic can raise its number of published chapters with
+  `bump_published_sections(story, count)`, at most to one past their own progress (the chapter
+  they are about to read); it never goes down.
+- A caught-up reader (progress at the last published chapter) can mark a WIP fic complete with
+  `complete_story(story)`. Any caught-up reader can undo that with `reopen_story(story)` within
+  7 days (`stories.completed_at`), as long as no chapters were added since; after that only admins can.
 
 ## The spoiler wall
 
@@ -72,6 +76,8 @@ other, and neither gets notifications from the other.
 | `can_access_section(story, kind, section)` | Show locked / unlocked state in the UI |
 | `section_reader_counts(story)` | Anonymous "N readers are here" counts |
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
+| `complete_story(story, total?)` | A WIP fic was finished by its author |
+| `reopen_story(story)` | Undo a completion (within 7 days) |
 
 ## Tests
 

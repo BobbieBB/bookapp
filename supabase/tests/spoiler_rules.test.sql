@@ -213,9 +213,22 @@ insert into public.library_entries (story_id, status) values ('20000000-0000-000
 select test.login('00000000-0000-0000-0000-0000000000e1');
 select test.ok(test.error_of($$update public.stories set status = 'completed' where id = '20000000-0000-0000-0000-000000000002'$$)
   like 'other readers%', 'creator cannot edit a fic directly once others read it');
+select test.login('00000000-0000-0000-0000-00000000000d');
+select test.ok(test.error_of($$select public.bump_published_sections('20000000-0000-0000-0000-000000000002', 1)$$) like 'cannot update%',
+  'a stranger cannot raise a fic''s chapter count');
+select test.login('00000000-0000-0000-0000-0000000000e1');
+select test.ok(test.error_of($$select public.bump_published_sections('20000000-0000-0000-0000-000000000002', 2)$$) like 'cannot update%',
+  'a reader can only report the chapter right after their own progress');
+select public.bump_published_sections('20000000-0000-0000-0000-000000000002', 1);
+update public.library_entries set progress_section = 1 where story_id = '20000000-0000-0000-0000-000000000002' and user_id = auth.uid();
 select public.bump_published_sections('20000000-0000-0000-0000-000000000002', 2);
+select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-0000-000000000002')$$) like 'cannot complete%',
+  'a reader who is not caught up cannot complete a fic');
+update public.library_entries set progress_section = 2 where story_id = '20000000-0000-0000-0000-000000000002' and user_id = auth.uid();
 select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-0000-000000000002', 1)$$) like 'cannot complete%',
   'a completed fic cannot have fewer chapters than were published');
+select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-0000-000000000002', 5000)$$) like 'cannot complete%',
+  'completing a fic cannot inflate its chapter count');
 select public.complete_story('20000000-0000-0000-0000-000000000002');
 select test.ok((select (status, total_sections) = ('completed', 2) from public.stories
   where id = '20000000-0000-0000-0000-000000000002'), 'a reader can still mark a WIP fic complete once others read it');
@@ -226,6 +239,27 @@ select test.ok(test.error_of($$select public.complete_story('20000000-0000-0000-
 select test.login('00000000-0000-0000-0000-00000000000d');
 select test.ok(test.error_of($$select public.complete_story('10000000-0000-0000-0000-000000000002')$$) like 'cannot complete%',
   'only readers who have the fic can complete it');
+select test.ok(test.error_of($$select public.reopen_story('20000000-0000-0000-0000-000000000002')$$) like 'cannot reopen%',
+  'a stranger cannot reopen a completed fic');
+select test.login('00000000-0000-0000-0000-0000000000e2');
+select test.ok(test.error_of($$select public.reopen_story('20000000-0000-0000-0000-000000000002')$$) like 'cannot reopen%',
+  'a reader who is not caught up cannot reopen a fic');
+select test.login('00000000-0000-0000-0000-0000000000e1');
+select public.reopen_story('20000000-0000-0000-0000-000000000002');
+select test.ok((select status = 'ongoing' and total_sections is null and completed_at is null and published_sections = 2
+  from public.stories where id = '20000000-0000-0000-0000-000000000002'), 'a caught-up reader can reopen a fic within 7 days');
+select test.ok(test.error_of($$select public.bump_published_sections('20000000-0000-0000-0000-000000000002', 3)$$) is null,
+  'a reopened fic gets new chapters again');
+update public.library_entries set progress_section = 3 where story_id = '20000000-0000-0000-0000-000000000002' and user_id = auth.uid();
+select public.complete_story('20000000-0000-0000-0000-000000000002');
+select test.logout();
+update public.stories set completed_at = now() - interval '8 days' where id = '20000000-0000-0000-0000-000000000002';
+select test.login('00000000-0000-0000-0000-0000000000e1');
+select test.ok(test.error_of($$select public.reopen_story('20000000-0000-0000-0000-000000000002')$$) like 'cannot reopen%',
+  'a fic cannot be reopened more than 7 days after it was completed');
+select test.login('00000000-0000-0000-0000-0000000000ad');
+select test.ok(test.error_of($$update public.stories set status = 'ongoing', total_sections = null, completed_at = null
+  where id = '20000000-0000-0000-0000-000000000002'$$) is null, 'an admin can still reopen it after 7 days');
 
 select test.login('00000000-0000-0000-0000-0000000000e2');
 select test.ok(public.is_blocked_between('00000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-00000000000a'),
