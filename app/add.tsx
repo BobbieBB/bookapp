@@ -15,6 +15,7 @@ import {
   createFic,
   createManualBook,
   findStory,
+  type BookLanguage,
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
 import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
@@ -76,6 +77,21 @@ function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s:
   );
 }
 
+const guessLanguage = (title: string): BookLanguage => (/[А-Яа-яЁё]/.test(title) ? 'bg' : 'en');
+
+/** Which edition the reader has: discussions are separate per language (PO, 15 Oct 2026). */
+function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l: BookLanguage) => void }) {
+  return (
+    <View style={{ gap: space.xs }}>
+      <T v="label">I’m reading it in</T>
+      <View style={{ flexDirection: 'row', gap: space.s }}>
+        <Chip label="English" active={value === 'en'} onPress={() => onChange('en')} />
+        <Chip label="Bulgarian" active={value === 'bg'} onPress={() => onChange('bg')} />
+      </View>
+    </View>
+  );
+}
+
 async function finish(storyId: string, status: LibraryStatus) {
   await addToLibrary(storyId, status);
   router.back();
@@ -98,7 +114,7 @@ function AddBook() {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
-  const [picked, setPicked] = useState<{ book: BookResult; existing: Story | null } | null>(null);
+  const [picked, setPicked] = useState<BookResult | null>(null);
   const [manual, setManual] = useState(false);
 
   useEffect(() => {
@@ -131,7 +147,7 @@ function AddBook() {
     };
   }, [query]);
 
-  if (picked) return <ConfirmBook {...picked} onCancel={() => setPicked(null)} />;
+  if (picked) return <ConfirmBook book={picked} onCancel={() => setPicked(null)} />;
   if (manual) return <ManualBook initialTitle={query} onCancel={() => setManual(false)} />;
 
   return (
@@ -148,7 +164,7 @@ function AddBook() {
       {searching && <ActivityIndicator />}
       <ErrorText>{error}</ErrorText>
       {results.map((b) => (
-        <BookRow key={b.key} book={b} onPick={(book, existing) => setPicked({ book, existing })} />
+        <BookRow key={b.key} book={b} onPick={setPicked} />
       ))}
       {searched && !searching && (
         results.length ? (
@@ -188,22 +204,8 @@ function SmallCover({ title, author, url, id }: { title: string; author: string;
   );
 }
 
-function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult, existing: Story | null) => void }) {
+function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) => void }) {
   const t = useTheme();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  async function add() {
-    setBusy(true);
-    setError('');
-    try {
-      onPick(book, await findStory({ openLibraryKey: book.key }));
-    } catch (e) {
-      setError(friendly(e));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <View style={[t.card, { padding: 10, flexDirection: 'row', alignItems: 'center', gap: space.m }]}>
@@ -213,32 +215,45 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult, e
         <T v="muted" numberOfLines={1}>
           {[book.author, book.year, book.pages ? `${book.pages} pages` : null].filter(Boolean).join(' · ')}
         </T>
-        <ErrorText>{error}</ErrorText>
       </View>
       <View style={{ width: 84 }}>
-        <Button title="Add" onPress={add} loading={busy} />
+        <Button title="Add" onPress={() => onPick(book)} />
       </View>
     </View>
   );
 }
 
 /**
- * Last step before adding a book: the reading status, and for a book new to Fictionally,
- * its chapter count (Open Library doesn't know it). Discussions are by chapter (PO, 15 Oct).
+ * Last step before adding a book: the edition language (rooms are per language), the reading
+ * status, and for an edition new to Fictionally its chapter count (Open Library doesn't know it).
  */
-function ConfirmBook({ book, existing, onCancel }: { book: BookResult; existing: Story | null; onCancel: () => void }) {
+function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => void }) {
+  const [language, setLanguage] = useState<BookLanguage>(guessLanguage(book.title));
+  const [existing, setExisting] = useState<Story | null | undefined>(undefined); // undefined = checking
   const [chapters, setChapters] = useState('');
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    let live = true;
+    setExisting(undefined);
+    findStory({ openLibraryKey: book.key, language })
+      .then((s) => live && setExisting(s))
+      .catch((e) => live && (setExisting(null), setError(friendly(e))));
+    return () => {
+      live = false;
+    };
+  }, [book.key, language]);
+
   async function save() {
     const n = Number(chapters);
+    if (existing === undefined) return;
     if (!existing && (!Number.isInteger(n) || n < 1 || n > 5000)) return setError('Enter the number of chapters.');
     setBusy(true);
     setError('');
     try {
-      const story = existing ?? (await createBook(book, { chapters: n }));
+      const story = existing ?? (await createBook(book, { chapters: n }, language));
       await finish(story.id, status);
     } catch (e) {
       setError(friendly(e));
@@ -255,15 +270,20 @@ function ConfirmBook({ book, existing, onCancel }: { book: BookResult; existing:
           <T v="muted">{book.author}</T>
         </View>
       </View>
-      {!existing && (
-        <>
-          <T v="muted">You’re the first to add this book. How many chapters does it have? Each chapter gets its own discussion.</T>
-          <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder="e.g. 40" />
-        </>
+      <LanguagePicker value={language} onChange={setLanguage} />
+      {existing === undefined ? (
+        <ActivityIndicator />
+      ) : (
+        !existing && (
+          <>
+            <T v="muted">You’re the first to add this edition. How many chapters does it have? Each chapter gets its own discussion.</T>
+            <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder="e.g. 40" />
+          </>
+        )
       )}
       <StatusPicker value={status} onChange={setStatus} />
       <ErrorText>{error}</ErrorText>
-      <Button title="Add to my library" onPress={save} loading={busy} />
+      <Button title="Add to my library" onPress={save} loading={busy} disabled={existing === undefined} />
       <Button variant="link" title="Back to results" onPress={onCancel} />
     </Card>
   );
@@ -273,6 +293,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   const [title, setTitle] = useState(isbnOf(initialTitle) ? '' : initialTitle.trim());
   const [author, setAuthor] = useState('');
   const [chapters, setChapters] = useState('');
+  const [language, setLanguage] = useState<BookLanguage>(guessLanguage(initialTitle));
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -284,7 +305,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setBusy(true);
     setError('');
     try {
-      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n });
+      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n, language });
       await finish(story.id, status);
     } catch (e) {
       setError(friendly(e));
@@ -298,6 +319,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
       <Field label="Title" value={title} onChangeText={setTitle} />
       <Field label="Author" value={author} onChangeText={setAuthor} />
       <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} />
+      <LanguagePicker value={language} onChange={setLanguage} />
       <StatusPicker value={status} onChange={setStatus} />
       <ErrorText>{error}</ErrorText>
       <Button title="Add to my library" onPress={save} loading={busy} />
