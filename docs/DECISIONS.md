@@ -160,4 +160,3 @@ fic auto-fill from AO3 (only with OTW permission).
 - A book new to Fictionally asks one question: split discussions by chapter (enter the count) or by pages (25-page parts, page count pre-filled from Open Library). Open Library doesn't know chapter counts.
 - When adding, the reader picks "Reading now" (default) or "Want to read".
 - A book that is already on Fictionally is added straight away as "Reading now".
-EOF
