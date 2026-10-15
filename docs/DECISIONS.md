@@ -134,3 +134,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Copy shown before picking an image: "A cover just for you. Only you will see this cover. We never share it or show it to other readers, because the art belongs to the person who made it." Under a custom cover: "Only you see this cover".
 - Reverse image search to find the artist: no (no usable free API, unreliable, and attribution still isn't permission).
 - v2: public covers only from people with the right: the fic's author (claimed fic) or an artist uploading their own fanart with a link to their profile.
+
+## Who can change a WIP fic's chapters or finish it (15 Oct 2026)
+- New chapter: only a reader who has the fic, and at most their own progress + 1.
+- Mark complete: only a caught-up reader (has read every published chapter).
+- Undo: any caught-up reader can set it back to ongoing within 7 days, if no chapters were added since. After that, only moderators.
+- Why: fast for readers, but one mistaken or hostile tap can't end a WIP for everyone. Implemented in PR #1 (review, 15 Oct).
