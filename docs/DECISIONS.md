@@ -155,3 +155,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Dark mode: ground #120C17, cards #1F1726, pink #FF6B97, mint #4FD1A6, same shapes.
 - Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
+
+## Reading progress: chapters unlock, pages are personal (15 Oct 2026, PO: option B)
+- Discussions unlock only with "I finished chapter X" (and the chapter picker). That is the key to the rooms.
+- Book readers may also log a page ("I'm on page 143") to see a percentage. Pages never unlock anything: we don't know which page is in which chapter, and page numbers differ between editions.
+- Fanfiction: chapters only.
+- Schema already supports this: `library_entries.progress_page` is personal; `progress_section` is what the spoiler wall checks.
