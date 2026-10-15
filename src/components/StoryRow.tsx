@@ -4,7 +4,7 @@ import { T } from '@/components/ui';
 import { progressLine, sectionTotal } from '@/lib/library';
 import type { LibraryEntry } from '@/lib/types';
 import { STATUS_LABEL } from '@/lib/types';
-import { coverColor, fonts, space, useTheme } from '@/theme';
+import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
 
 export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatus?: boolean }) {
   const t = useTheme();
@@ -18,7 +18,7 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
   const cover = coverColor(s.id, t.isDark);
 
   return (
-    <View style={[t.card, { flexDirection: 'row', gap: space.m, padding: space.m, borderRadius: 16 }]}>
+    <View style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}>
       {/* Typographic cover: fics never have covers (fanart is someone else's work). */}
       <View
         accessible
@@ -26,10 +26,9 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
         style={{
           width: 64,
           height: 92,
-          borderRadius: 8,
+          borderRadius: 10,
           backgroundColor: cover.bg,
-          borderWidth: t.isDark ? 0 : 2,
-          borderColor: c.outline,
+          ...softShadow(t.isDark, 'small'),
           justifyContent: 'space-between',
           padding: 6,
         }}
@@ -54,16 +53,14 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
         </T>
         <View
           style={{
-            height: 8,
-            borderRadius: 4,
-            borderWidth: t.isDark ? 0 : 1.5,
-            borderColor: c.outline,
+            height: 6,
+            borderRadius: 999,
             backgroundColor: c.track,
             overflow: 'hidden',
-            marginTop: 4,
+            marginTop: 6,
           }}
         >
-          <View style={{ height: '100%', width: `${pct}%`, backgroundColor: s.kind === 'fanfic' ? c.secondary : c.primary }} />
+          <View style={{ height: '100%', borderRadius: 999, width: `${pct}%`, backgroundColor: s.kind === 'fanfic' ? c.secondary : c.primary }} />
         </View>
       </View>
     </View>

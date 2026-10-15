@@ -12,7 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { fonts, radius, space, useTheme } from '@/theme';
+import { fonts, radius, softShadow, space, useTheme } from '@/theme';
 
 export function Button({
   title,
@@ -31,18 +31,18 @@ export function Button({
   const base: ViewStyle = { minHeight: 52, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.l };
   const style: ViewStyle =
     variant === 'primary'
-      ? { ...base, backgroundColor: c.primary, borderWidth: isDark ? 0 : 2, borderColor: c.outline, shadowColor: isDark ? c.secondary : c.shadow, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0 }
+      ? { ...base, backgroundColor: c.primary, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: isDark ? 0.25 : 0.35, shadowRadius: 14, elevation: 3 }
       : variant === 'secondary'
-        ? { ...base, borderWidth: 2, borderColor: isDark ? c.secondary : c.outline, backgroundColor: isDark ? 'transparent' : c.surface }
+        ? { ...base, backgroundColor: c.surface, ...softShadow(isDark, 'small') }
         : { minHeight: 44, alignItems: 'center', justifyContent: 'center' };
-  const textColor = variant === 'primary' ? c.onPrimary : variant === 'secondary' ? (isDark ? c.secondary : c.ink) : c.ink;
+  const textColor = variant === 'primary' ? c.onPrimary : c.ink;
 
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [style, (pressed || disabled) && { opacity: 0.7, transform: [{ translateY: 1 }] }]}
+      style={({ pressed }) => [style, (pressed || disabled) && { opacity: 0.75, transform: [{ scale: 0.98 }] }]}
     >
       {loading ? (
         <ActivityIndicator color={textColor} />
@@ -73,8 +73,8 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
         style={{
           height: 50,
           borderRadius: radius.s,
-          borderWidth: 2,
-          borderColor: c.outline,
+          borderWidth: 1.5,
+          borderColor: c.hairline,
           backgroundColor: c.surface,
           paddingHorizontal: space.m,
           fontSize: 16,
@@ -140,7 +140,7 @@ export function T({
 }
 
 export function Chip({ label, active, onPress, big }: { label: string; active: boolean; onPress: () => void; big?: boolean }) {
-  const { c } = useTheme();
+  const { c, isDark } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -149,11 +149,10 @@ export function Chip({ label, active, onPress, big }: { label: string; active: b
       style={{
         minHeight: 44,
         paddingHorizontal: big ? 18 : 14,
-        borderRadius: radius.s,
+        borderRadius: radius.pill,
         justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: active ? c.outline : c.hairline,
         backgroundColor: active ? c.primary : c.surface,
+        ...(active ? {} : softShadow(isDark, 'small')),
       }}
     >
       <Text style={{ fontSize: big ? 16 : 14, fontFamily: active ? fonts.bodyBold : fonts.body, color: active ? c.onPrimary : c.inkSoft }}>

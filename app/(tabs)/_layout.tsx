@@ -1,24 +1,63 @@
+import Feather from '@expo/vector-icons/Feather';
 import { Tabs } from 'expo-router';
+import { Text, View } from 'react-native';
 
 import { fonts, useTheme } from '@/theme';
 
+type IconName = 'home' | 'book-open' | 'user';
+
+// Modern tab bar (design 15 Oct 2026): the active tab is a pink pill with icon + label,
+// the others show only their icon (their label stays available to VoiceOver).
+function TabIcon({ name, label, focused }: { name: IconName; label: string; focused: boolean }) {
+  const { c } = useTheme();
+  if (!focused) return <Feather name={name} size={22} color={c.muted} />;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        height: 44,
+        paddingHorizontal: 16,
+        borderRadius: 999,
+        backgroundColor: c.primary,
+      }}
+    >
+      <Feather name={name} size={20} color={c.onPrimary} />
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.onPrimary }}>{label}</Text>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const { c } = useTheme();
+  const tab = (label: string, icon: IconName) => ({
+    title: label,
+    tabBarAccessibilityLabel: label,
+    tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon name={icon} label={label} focused={focused} />,
+  });
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: c.ink,
-        tabBarInactiveTintColor: c.muted,
-        tabBarActiveBackgroundColor: c.mine,
-        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.outline, borderTopWidth: 2 },
-        tabBarLabelStyle: { fontSize: 13, fontFamily: fonts.bodyBold },
-        tabBarIconStyle: { display: 'none' }, // icons come with the next design pass
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: c.surface,
+          borderTopWidth: 0,
+          height: 88,
+          paddingTop: 12,
+          shadowColor: '#1E1328',
+          shadowOffset: { width: 0, height: -1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 0,
+          elevation: 8,
+        },
+        tabBarIconStyle: { width: 'auto', height: 48 },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="library" options={{ title: 'Library' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      <Tabs.Screen name="index" options={tab('Home', 'home')} />
+      <Tabs.Screen name="library" options={tab('Library', 'book-open')} />
+      <Tabs.Screen name="profile" options={tab('Profile', 'user')} />
     </Tabs>
   );
 }
