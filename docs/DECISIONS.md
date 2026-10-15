@@ -155,3 +155,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Dark mode: ground #120C17, cards #1F1726, pink #FF6B97, mint #4FD1A6, same shapes.
 - Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
+
+## Add a story: details (15 Oct 2026, proposed in the Add Story PR)
+- A book new to Fictionally asks one question: split discussions by chapter (enter the count) or by pages (25-page parts, page count pre-filled from Open Library). Open Library doesn't know chapter counts.
+- When adding, the reader picks "Reading now" (default) or "Want to read".
+- A book that is already on Fictionally is added straight away as "Reading now".
+EOF
