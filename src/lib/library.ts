@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
+import type { MessageKey } from '../i18n/en';
+import type { Params } from '../i18n';
 import { supabase } from './supabase';
 import type { LibraryEntry, LibraryStatus } from './types';
 
@@ -52,10 +54,14 @@ export function sectionTotal(entry: LibraryEntry) {
   return s.published_sections ?? s.total_sections ?? null;
 }
 
-export function progressLine(entry: LibraryEntry) {
+/** Text for `key` in the UI language, as returned by `useT()`. */
+export type Translate = (key: MessageKey, params?: Params) => string;
+
+export function progressLine(entry: LibraryEntry, t: Translate) {
   const total = sectionTotal(entry);
-  const unit = entry.story.has_chapters ? 'chapter' : 'part';
-  if (entry.status === 'finished') return 'Finished';
-  if (entry.progress_section === 0) return 'Not started';
-  return `Finished ${unit} ${entry.progress_section}${total ? ` of ${total}` : ''}`;
+  const n = entry.progress_section;
+  if (entry.status === 'finished') return t('library.status.finished');
+  if (n === 0) return t('library.notStarted');
+  const unit = entry.story.has_chapters ? 'Chapter' : 'Part';
+  return total ? t(`library.finished${unit}Of`, { n, total }) : t(`library.finished${unit}`, { n });
 }
