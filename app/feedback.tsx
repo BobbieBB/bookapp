@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { track } from '@/lib/analytics';
 import { sendFeedback, type FeedbackKind } from '@/lib/safety';
 import { space, useTheme } from '@/theme';
 
@@ -26,6 +27,7 @@ export default function Feedback() {
     setSent(false);
     try {
       await sendFeedback(kind, body);
+      void track('feedback_sent', { kind });
       setBody('');
       setSent(true);
     } catch {

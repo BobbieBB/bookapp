@@ -1,12 +1,14 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Button, T } from '@/components/ui';
 import { FONT_FILES } from '@/fonts';
 import { LanguageProvider, useT } from '@/i18n';
+import { track } from '@/lib/analytics';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { space, useTheme } from '@/theme';
 
@@ -36,9 +38,17 @@ export function ProfileError() {
 function RootStack() {
   const { loading, session, profile, profileState } = useAuth();
   const { c } = useTheme();
+  const signedIn = !!session;
+  const opened = useRef(false);
+  // Once per cold start, as soon as a signed-in session exists.
+  useEffect(() => {
+    if (signedIn && !opened.current) {
+      opened.current = true;
+      void track('app_open');
+    }
+  }, [signedIn]);
   if (loading) return <Loading />;
 
-  const signedIn = !!session;
   // Wait for the profile before choosing a screen, otherwise existing readers see onboarding flash by.
   if (signedIn && !profile && profileState === 'loading') return <Loading />;
   if (signedIn && !profile && profileState === 'error') return <ProfileError />;

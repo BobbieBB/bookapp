@@ -22,6 +22,7 @@ import {
   type Thread,
 } from '@/lib/discussions';
 import { block, reportComment } from '@/lib/safety';
+import { track } from '@/lib/analytics';
 import { finishChapter, loadStoryPage, nextChapter } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
@@ -67,6 +68,10 @@ export default function RoomScreen() {
 
   const next = page?.entry ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
+  const finishAndTrack = async (chapter: NonNullable<typeof next>, uid: string) => {
+    await finishChapter(params.storyId, uid, chapter);
+    if (page) void track('chapter_finished', { kind: page.story.kind });
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
@@ -84,7 +89,7 @@ export default function RoomScreen() {
           {next && userId ? (
             <FinishPill
               label={t('room.finishedPill', { n: next.chapter })}
-              onDone={async () => finishChapter(params.storyId, userId, next)}
+              onDone={() => finishAndTrack(next, userId)}
               onChanged={refresh}
             />
           ) : null}
@@ -101,7 +106,7 @@ export default function RoomScreen() {
               loadFailed={!!comments.error}
               reload={reloadComments}
               userId={userId}
-              finishRow={next && userId ? { label: t('room.finishedRow', { n: next.chapter }), onDone: () => finishChapter(params.storyId, userId, next), onChanged: refresh } : null}
+              finishRow={next && userId ? { label: t('room.finishedRow', { n: next.chapter }), onDone: () => finishAndTrack(next, userId), onChanged: refresh } : null}
             />
           ) : null}
         </ScrollView>
@@ -194,6 +199,7 @@ function Discussion({
     setFailed(false);
     try {
       await postComment(discussionId, draft, replyTo?.id);
+      void track('comment_posted', { kind: replyTo ? 'reply' : 'comment' });
       setDraft('');
       setReplyTo(null);
       reload();
@@ -211,7 +217,10 @@ function Discussion({
       mine={comment.author.id === userId}
       onReply={top ? () => setReplyTo({ id: comment.id, username: comment.author.username }) : undefined}
       onDelete={() => void act(() => deleteComment(comment.id))}
-      onReact={(emoji: Emoji, mine: boolean) => void act(() => toggleReaction(comment.id, emoji, mine))}
+      onReact={(emoji: Emoji, mine: boolean) => void act(async () => {
+          await toggleReaction(comment.id, emoji, mine);
+          if (!mine) void track('reaction_added');
+        })}
       onReport={(reason, details) => reportComment(comment.id, reason, details)}
       onBlock={async () => {
         await block(comment.author.id);

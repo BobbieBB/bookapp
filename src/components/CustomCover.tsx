@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { track } from '@/lib/analytics';
 import { myCoverUrl, removeCover, uploadCover } from '@/lib/covers';
 import { space } from '@/theme';
 
@@ -92,6 +93,9 @@ export function useCustomCover(storyId: string, enabled: boolean) {
           return;
         }
         await uploadCover(storyId, bytes, 'image/jpeg');
+        if (!asset.base64) throw new Error('The picker returned no image data.');
+        await uploadCover(storyId, decodeBase64(asset.base64), asset.mimeType ?? 'image/jpeg');
+        void track('cover_set');
         const link = await myCoverUrl(storyId);
         if (alive.current) setUrl(link);
       }, t('covers.uploadFailed')),

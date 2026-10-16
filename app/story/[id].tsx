@@ -11,6 +11,7 @@ import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
 import { isAo3Link } from '@/lib/links';
 import { progressLine } from '@/lib/library';
+import { track } from '@/lib/analytics';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
 import {
   canComplete,
@@ -250,7 +251,7 @@ function StoryBody({
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
-              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' && entry.status !== 'finished' ? () => router.push(`/finished/${story.id}`) : undefined)} />
+              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
             ))}
           </View>
 
@@ -259,7 +260,7 @@ function StoryBody({
           {next ? (
             <Button
               title={next.newlyPublished ? t('story.chapterOut', { n: next.chapter }) : t('story.finishChapter', { n: next.chapter })}
-              onPress={() => saved({ progress_section: next.chapter }, () => finishChapter(story.id, userId, next))}
+              onPress={() => saved({ progress_section: next.chapter }, async () => { await finishChapter(story.id, userId, next); void track('chapter_finished', { kind: story.kind }); })}
              
             />
           ) : null}
