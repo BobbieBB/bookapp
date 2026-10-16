@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
+import { FONT_FILES } from '../fonts';
 import { fontsFor, useTheme } from '../theme';
 
 // The UI fonts have no Cyrillic, so Bulgarian text would fall back to the system font.
@@ -25,4 +26,10 @@ it('useTheme falls back to the English fonts outside a LanguageProvider', async 
   }
   await render(<Probe />);
   expect(screen.getByTestId('f').props.children).toBe('BricolageGrotesque_800ExtraBold');
+});
+
+it('every font the theme names is loaded at start-up', () => {
+  for (const language of ['en', 'bg'] as const) {
+    for (const family of Object.values(fontsFor(language))) expect(Object.keys(FONT_FILES)).toContain(family);
+  }
 });

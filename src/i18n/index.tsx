@@ -30,8 +30,11 @@ export function translate(language: Language, key: MessageKey, params: Params = 
 const isLanguage = (v: unknown): v is Language => LANGUAGES.includes(v as Language);
 
 export function deviceLanguage(): Language {
-  const code = getLocales()[0]?.languageCode;
-  return code === 'bg' ? 'bg' : 'en';
+  try {
+    return getLocales()[0]?.languageCode === 'bg' ? 'bg' : 'en';
+  } catch {
+    return 'en'; // the phone's language can't be read: English
+  }
 }
 
 type LanguageState = { language: Language; setLanguage: (l: Language) => void };

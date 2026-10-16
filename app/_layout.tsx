@@ -1,13 +1,3 @@
-import {
-  AtkinsonHyperlegible_400Regular,
-  AtkinsonHyperlegible_700Bold,
-} from '@expo-google-fonts/atkinson-hyperlegible';
-import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_800ExtraBold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import { CormorantGaramond_700Bold_Italic } from '@expo-google-fonts/cormorant-garamond';
-import { Onest_400Regular, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold } from '@expo-google-fonts/onest';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Button, T } from '@/components/ui';
+import { FONT_FILES } from '@/fonts';
 import { LanguageProvider, useT } from '@/i18n';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { space, useTheme } from '@/theme';
@@ -73,17 +64,7 @@ function RootStack() {
 
 export default function RootLayout() {
   const { isDark } = useTheme();
-  const [fontsLoaded] = useFonts({
-    AtkinsonHyperlegible_400Regular,
-    AtkinsonHyperlegible_700Bold,
-    BricolageGrotesque_600SemiBold,
-    BricolageGrotesque_800ExtraBold,
-    CormorantGaramond_700Bold_Italic,
-    Onest_400Regular, // Bulgarian UI: the brand fonts have no Cyrillic (src/theme.ts)
-    Onest_600SemiBold,
-    Onest_700Bold,
-    Onest_800ExtraBold,
-  });
+  const [fontsLoaded] = useFonts(FONT_FILES);
 
   return (
     <SafeAreaProvider>

@@ -2,16 +2,18 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 
+import { useT } from '@/i18n';
 import type { StoryKind } from '@/lib/types';
 import { useTheme } from '@/theme';
 
 /** The round pink "+" that opens Add a story (pre-set to books or fanfiction when known). */
 export function AddButton({ kind }: { kind?: StoryKind }) {
   const { c } = useTheme();
+  const t = useT();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Add a story"
+      accessibilityLabel={t('add.title')}
       onPress={() => router.push(kind ? { pathname: '/add', params: { kind } } : '/add')}
       style={({ pressed }) => ({
         width: 44,

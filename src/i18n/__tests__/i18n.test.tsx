@@ -94,6 +94,15 @@ describe('LanguageProvider', () => {
     expect(screen.getByTestId('lang').props.children).toBe('bg');
   });
 
+  it('falls back to English when the phone language cannot be read', async () => {
+    getLocales.mockImplementation(() => {
+      throw new Error('no locale');
+    });
+    await render(<LanguageProvider><Probe /></LanguageProvider>);
+    expect(screen.getByTestId('lang').props.children).toBe('en');
+    getLocales.mockReset();
+  });
+
   it('ignores a corrupt stored value', async () => {
     deviceLanguage('en');
     await AsyncStorage.setItem(STORAGE_KEY, 'klingon');
