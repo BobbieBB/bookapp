@@ -14,10 +14,18 @@ function load(key: string) {
 
 function Probe({ k, delay }: { k: string | null; delay?: number }) {
   const r = useLookup(k, load(k ?? ''), delay);
-  return <Text testID="r">{JSON.stringify({ loading: r.loading, data: r.data ?? null, error: r.error ? String(r.error) : null })}</Text>;
+  return (
+    <Text testID="r">
+      {JSON.stringify({ loading: r.loading, data: r.data ?? null, error: r.error ? String(r.error) : null, previous: r.previous ?? null })}
+    </Text>
+  );
 }
 
-const state = () => JSON.parse(String(screen.getByTestId('r').props.children));
+function state() {
+  const { previous: _previous, ...rest } = JSON.parse(String(screen.getByTestId('r').props.children));
+  return rest;
+}
+const previous = () => JSON.parse(String(screen.getByTestId('r').props.children)).previous;
 
 beforeEach(() => {
   calls = [];
@@ -72,4 +80,51 @@ it('reports a failure for the current key', async () => {
   await act(async () => jest.runAllTimers());
   await act(async () => calls[0].reject(new Error('offline')));
   expect(state()).toEqual({ loading: false, data: null, error: 'Error: offline' });
+});
+
+it('coming back to an earlier key loads it again instead of showing the old answer as current', async () => {
+  const view = await render(<Probe k="a" />);
+  await act(async () => jest.runAllTimers());
+  await act(async () => calls[0].resolve('old A'));
+  await view.rerender(<Probe k={null} />);
+  await view.rerender(<Probe k="a" />);
+  expect(state()).toEqual({ loading: true, data: null, error: null });
+  await act(async () => jest.runAllTimers());
+  await act(async () => calls[1].resolve('new A'));
+  expect(state()).toEqual({ loading: false, data: 'new A', error: null });
+});
+
+it('keeps the last answer available as `previous` while the next one loads or fails', async () => {
+  const view = await render(<Probe k="a" />);
+  await act(async () => jest.runAllTimers());
+  await act(async () => calls[0].resolve('A'));
+  await view.rerender(<Probe k="b" />);
+  expect(state().loading).toBe(true);
+  expect(previous()).toBe('A');
+  await act(async () => jest.runAllTimers());
+  await act(async () => calls[1].reject(new Error('offline')));
+  expect(state()).toEqual({ loading: false, data: null, error: 'Error: offline' });
+  expect(previous()).toBe('A');
+});
+
+it('uses the latest load function when the timer fires', async () => {
+  const seen: string[] = [];
+  function Latest({ tag }: { tag: string }) {
+    useLookup('same', async () => {
+      seen.push(tag);
+      return tag;
+    }, 100);
+    return null;
+  }
+  const view = await render(<Latest tag="first" />);
+  await view.rerender(<Latest tag="second" />);
+  await act(async () => jest.runAllTimers());
+  expect(seen).toEqual(['second']);
+});
+
+it('unmounting mid-flight cancels the request', async () => {
+  const view = await render(<Probe k="a" />);
+  await act(async () => jest.runAllTimers());
+  await view.unmount();
+  expect(calls[0].signal.aborted).toBe(true);
 });

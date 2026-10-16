@@ -170,3 +170,10 @@ fic auto-fill from AO3 (only with OTW permission).
 - Discussions are separate per edition language: a Bulgarian and an English reader of the same book are in different rooms. Translations can merge or split chapters, so "chapter 12" must mean the same thing for everyone in a room; it also keeps each room in one language.
 - Books: a story = Open Library work + language (`source_id` = `<work key>#<lang>`, `stories.language`). The reader picks the edition language when adding (guessed from the title's script).
 - Fics: AO3 translations are separate works with their own links, so they are separate stories already.
+
+## Dev defaults (pending PO review)
+Choices made during development where the decisions above don't say. Each one is easy to change.
+- **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
+  (`Fictionally/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
+  a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
+  reaches Open Library from the iOS and Android apps.

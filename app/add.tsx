@@ -112,8 +112,9 @@ function AddBook() {
   const q = query.trim();
   const delay = searchDelay(q);
   const search = useLookup(delay === null ? null : q, (signal) => searchBooks(q, signal), delay ?? 0);
-  const results = search.data ?? [];
-  const searched = search.data !== undefined;
+  // While the next search loads (or if it fails), the last results stay on screen.
+  const results = delay === null ? [] : (search.data ?? search.previous ?? []);
+  const settled = search.data !== undefined || search.error !== undefined;
   const error = search.error ? friendly(search.error) : '';
 
   if (picked) return <ConfirmBook book={picked} onCancel={() => setPicked(null)} />;
@@ -135,7 +136,7 @@ function AddBook() {
       {results.map((b) => (
         <BookRow key={b.key} book={b} onPick={setPicked} />
       ))}
-      {searched && (
+      {settled && (
         results.length ? (
           <CantFind onPress={() => setManual(true)} />
         ) : (
