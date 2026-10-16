@@ -19,7 +19,7 @@ import {
   type BookLanguage,
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
-import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
+import { coverColor, softShadow, space, useTheme } from '@/theme';
 
 // Short labels for AO3's archive warnings (the stored value stays AO3's wording).
 const WARNING_LABEL: Record<string, string> = {
@@ -163,6 +163,7 @@ function CantFind({ onPress }: { onPress: () => void }) {
 
 function SmallCover({ title, author, url, id }: { title: string; author: string; url?: string | null; id: string }) {
   const t = useTheme();
+  const { fonts } = t;
   const col = coverColor(id, t.isDark);
   const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(t.isDark, 'small') };
   if (url) return <Image source={{ uri: url }} style={style} accessibilityLabel={`${title} cover`} />;

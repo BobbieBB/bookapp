@@ -2,14 +2,14 @@ import Feather from '@expo/vector-icons/Feather';
 import { Tabs } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { fonts, useTheme } from '@/theme';
+import { useTheme } from '@/theme';
 
 type IconName = 'home' | 'book-open' | 'user';
 
 // Modern tab bar (design 15 Oct 2026): the active tab is a pink pill with icon + label,
 // the others show only their icon (their label stays available to VoiceOver).
 function TabIcon({ name, label, focused }: { name: IconName; label: string; focused: boolean }) {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   if (!focused) return <Feather name={name} size={22} color={c.muted} />;
   return (
     <View

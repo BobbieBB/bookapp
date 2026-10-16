@@ -177,3 +177,7 @@ Choices made during development where the decisions above don't say. Each one is
   (`Fictionally/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
   reaches Open Library from the iOS and Android apps.
+- **Fonts for Bulgarian (16 Oct 2026):** Bricolage Grotesque and Atkinson Hyperlegible have no
+  Cyrillic, so in the Bulgarian UI headings and reading text use **Onest** (a grotesque made for
+  Cyrillic screens). Cormorant Garamond has Cyrillic and stays for "moments" in both languages.
+  Cyrillic text inside the English UI (e.g. a Bulgarian book title) falls back to the system font.

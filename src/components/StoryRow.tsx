@@ -4,10 +4,11 @@ import { T } from '@/components/ui';
 import { progressLine, sectionTotal } from '@/lib/library';
 import type { LibraryEntry } from '@/lib/types';
 import { STATUS_LABEL } from '@/lib/types';
-import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
+import { coverColor, softShadow, space, useTheme } from '@/theme';
 
 export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatus?: boolean }) {
   const t = useTheme();
+  const { fonts } = t;
   const { c } = t;
   const s = entry.story;
   const total = sectionTotal(entry);
