@@ -10,4 +10,5 @@ for f in migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -d $DB -f "$f"; done
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/spoiler_rules.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/story_rules.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/discussions.test.sql
+psql -v ON_ERROR_STOP=1 -d $DB -f tests/discover.test.sql
 bash tests/bump_race.test.sh

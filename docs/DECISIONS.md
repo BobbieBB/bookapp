@@ -184,3 +184,7 @@ Choices made during development where the decisions above don't say. Each one is
 - **Old fic ratings and recs (16 Oct 2026):** from now on ratings and reviews can only be written
   for books. Fic ratings or recs made before stay visible only as before and can be deleted, but not
   edited. Nothing is deleted automatically.
+- **Discover details (16 Oct 2026):** the starter list is eight big AO3 fandoms (Harry Potter, MCU,
+  Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
+  `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
+  means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
