@@ -6,7 +6,8 @@ import * as library from './messages/library';
 import * as add from './messages/add';
 import * as profile from './messages/profile';
 import * as story from './messages/story';
+import * as room from './messages/room';
 
-export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en };
+export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en };
 
 export type MessageKey = keyof typeof en;

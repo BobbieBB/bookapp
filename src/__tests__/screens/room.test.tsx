@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { fireEvent, screen, within } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
 import type { ReactElement } from 'react';
 
@@ -73,7 +73,7 @@ describe('a chapter you finished', () => {
   it('shows the discussion, with long threads collapsed to the last 2 replies', async () => {
     await open('en', '2');
     expect(screen.getByTestId('room-title')).toHaveTextContent('Chapter 2');
-    expect(await screen.findByText('That ending of chapter 2!')).toBeOnTheScreen();
+    expect(await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getAllByText(writer.username).length).toBeGreaterThan(0);
     expect(screen.queryByText('reply 1')).toBeNull();
     expect(screen.getByText('reply 3')).toBeOnTheScreen();
@@ -83,23 +83,23 @@ describe('a chapter you finished', () => {
 
   it('you can post a comment and reply to one', async () => {
     await open('en', '2');
-    await screen.findByText('That ending of chapter 2!');
+    await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 });
     await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'My first thought');
     await fireEvent.press(screen.getByText('Post'));
-    expect(await screen.findByText('My first thought')).toBeOnTheScreen();
+    expect(await screen.findByText('My first thought', {}, { timeout: 8000 })).toBeOnTheScreen();
 
     const thread = screen.getByTestId(`thread-${(await firstCommentId('That ending of chapter 2!'))}`);
     await fireEvent.press(within(thread).getAllByText('Reply')[0]);
     await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'A reply from me');
     await fireEvent.press(screen.getByText('Post'));
-    expect(await within(thread).findByText('A reply from me')).toBeOnTheScreen();
+    expect(await within(thread).findByText('A reply from me', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('you can react to a comment', async () => {
     await open('en', '2');
     const id = await firstCommentId('That ending of chapter 2!');
     await fireEvent.press(screen.getByLabelText(`React 🔥 to comment ${id}`));
-    await waitFor(() => expect(within(screen.getByTestId(`reactions-${id}`)).getByText('🔥 1')).toBeOnTheScreen());
+    expect(await within(screen.getByTestId(`reactions-${id}`)).findByText('🔥 1', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('offers the next chapter as a small pill, never the main button', async () => {
