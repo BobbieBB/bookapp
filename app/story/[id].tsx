@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } 
 
 import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
+import { CoverActions, useCustomCover } from '@/components/CustomCover';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
@@ -70,12 +71,15 @@ export default function StoryScreen() {
   );
 }
 
-function Cover({ story }: { story: StoryDetails }) {
+function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | null }) {
   const th = useTheme();
   const t = useT();
   const { fonts } = th;
   const size = { width: 96, height: 140, borderRadius: 14, ...softShadow(th.isDark, 'small') };
   const label = t('library.coverLabel', { title: story.title });
+  if (customUrl) {
+    return <Image source={{ uri: customUrl }} accessibilityLabel={t('covers.customLabel', { title: story.title })} style={size} />;
+  }
   if (story.kind === 'book' && story.cover_url) {
     return <Image source={{ uri: story.cover_url }} accessibilityLabel={label} style={size} />;
   }
@@ -130,6 +134,7 @@ function StoryBody({
   const entry = loaded && pending.base === loaded ? { ...loaded, ...pending.patch } : loaded;
   const [pageText, setPageText] = useState(entry?.progress_page?.toString() ?? '');
 
+  const myCover = useCustomCover(story.id, loaded !== null);
   const isFic = story.kind === 'fanfic';
   const count = chapterCount(story);
 
@@ -181,7 +186,10 @@ function StoryBody({
   return (
     <>
       <View style={{ flexDirection: 'row', gap: space.l }}>
-        <Cover story={story} />
+        <View style={{ width: 96, gap: space.xs }}>
+          <Cover story={story} customUrl={myCover.url} />
+          {myCover.url ? <T v="muted">{t('covers.onlyYou')}</T> : null}
+        </View>
         <View style={{ flex: 1, gap: space.xs }}>
           <Text accessibilityRole="header" testID="story-title" style={{ fontFamily: fonts.display, fontSize: 26, letterSpacing: -0.5, color: c.ink }}>
             {story.title}
@@ -221,6 +229,8 @@ function StoryBody({
       ) : null}
 
       <ErrorText>{error}</ErrorText>
+
+      {entry ? <CoverActions cover={myCover} /> : null}
 
       {entry && libraryEntry ? (
         <Card style={{ gap: space.m }}>

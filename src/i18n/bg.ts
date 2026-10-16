@@ -11,6 +11,7 @@ import * as discover from './messages/discover';
 import * as safety from './messages/safety';
 import * as finishing from './messages/finishing';
 import * as notifications from './messages/notifications';
+import * as covers from './messages/covers';
 import type { Message } from './types';
 
-export const bg: Record<MessageKey, Message> = { ...common.bg, ...auth.bg, ...home.bg, ...library.bg, ...add.bg, ...profile.bg, ...story.bg, ...room.bg, ...discover.bg, ...safety.bg, ...finishing.bg, ...notifications.bg };
+export const bg: Record<MessageKey, Message> = { ...common.bg, ...auth.bg, ...home.bg, ...library.bg, ...add.bg, ...profile.bg, ...story.bg, ...room.bg, ...discover.bg, ...safety.bg, ...finishing.bg, ...notifications.bg, ...covers.bg };

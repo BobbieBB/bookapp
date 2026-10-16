@@ -11,7 +11,8 @@ import * as discover from './messages/discover';
 import * as safety from './messages/safety';
 import * as finishing from './messages/finishing';
 import * as notifications from './messages/notifications';
+import * as covers from './messages/covers';
 
-export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en, ...notifications.en };
+export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en, ...notifications.en, ...covers.en };
 
 export type MessageKey = keyof typeof en;
