@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { T } from '@/components/ui';
+import { Button, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
 import { REACTIONS, type Comment, type Emoji } from '@/lib/discussions';
+import type { ReportReason } from '@/lib/safety';
 import { radius, space, useTheme } from '@/theme';
 
 const MINUTE = 60_000;
@@ -30,26 +32,99 @@ function QuietAction({ label, onPress }: { label: string; onPress: () => void })
   );
 }
 
+const REASONS: readonly ReportReason[] = ['spam', 'harassment', 'spoiler', 'inappropriate', 'other'];
+
+type Panel = 'report' | 'block' | null;
+
+/** The inline report form and block confirmation of someone else's comment. */
+function SafetyPanel({
+  panel,
+  name,
+  onClose,
+  onReport,
+  onBlock,
+}: {
+  panel: 'report' | 'block';
+  name: string;
+  onClose: () => void;
+  onReport: (reason: ReportReason, details: string) => Promise<void>;
+  onBlock: () => Promise<void>;
+}) {
+  const t = useT();
+  const [reason, setReason] = useState<ReportReason>('other');
+  const [details, setDetails] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const run = async (work: () => Promise<void>) => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      await work();
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View accessibilityViewIsModal={false} style={{ gap: space.s, paddingTop: space.s }}>
+      {panel === 'report' ? (
+        <>
+          <T v="label">{t('safety.reportTitle')}</T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+            {REASONS.map((r) => (
+              <Chip key={r} label={t(`safety.reason.${r}`)} active={reason === r} onPress={() => setReason(r)} />
+            ))}
+          </View>
+          <Field label={t('safety.detailsLabel')} value={details} onChangeText={setDetails} multiline />
+        </>
+      ) : (
+        <T>{t('safety.blockConfirm', { name })}</T>
+      )}
+      <ErrorText>{failed ? t('safety.error') : null}</ErrorText>
+      <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
+        {panel === 'report' ? (
+          <Button title={t('safety.sendReport')} loading={busy} onPress={() => void run(() => onReport(reason, details))} />
+        ) : (
+          <Button title={t('safety.blockButton')} loading={busy} onPress={() => void run(onBlock)} />
+        )}
+        <Button variant="link" title={t('safety.cancel')} onPress={onClose} />
+      </View>
+    </View>
+  );
+}
+
 export function CommentCard({
   comment,
   mine,
   onReply,
   onDelete,
   onReact,
+  onReport,
+  onBlock,
 }: {
   comment: Comment;
   mine: boolean;
   onReply?: () => void;
   onDelete: () => void;
   onReact: (emoji: Emoji, mine: boolean) => void;
+  /** Present on other people's comments: sends a report. */
+  onReport?: (reason: ReportReason, details: string) => Promise<void>;
+  /** Present on other people's comments: blocks the author. */
+  onBlock?: () => Promise<void>;
 }) {
   const { c, fonts } = useTheme();
   const t = useT();
   const shortTime = useShortTime();
   const deleted = comment.deleted_at !== null;
+  const [panel, setPanel] = useState<Panel>(null);
+  const [reported, setReported] = useState(false);
+  const canModerate = !mine && !deleted && !!onReport && !!onBlock;
 
   return (
-    <View style={{ gap: space.xs, padding: space.m, borderRadius: radius.m, backgroundColor: mine ? c.mine : c.surface }}>
+    <View testID={`comment-${comment.id}`} style={{ gap: space.xs, padding: space.m, borderRadius: radius.m, backgroundColor: mine ? c.mine : c.surface }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.s }}>
         <T v="label">{comment.author.username}</T>
         <T v="muted">{shortTime(comment.created_at)}</T>
@@ -91,7 +166,32 @@ export function CommentCard({
           <View style={{ flexDirection: 'row' }}>
             {onReply ? <QuietAction label={t('room.reply')} onPress={onReply} /> : null}
             {mine ? <QuietAction label={t('room.delete')} onPress={onDelete} /> : null}
+            {canModerate ? (
+              <>
+                <QuietAction label={t('safety.report')} onPress={() => setPanel('report')} />
+                <QuietAction label={t('safety.block', { name: comment.author.username })} onPress={() => setPanel('block')} />
+              </>
+            ) : null}
           </View>
+          {canModerate && panel ? (
+            <SafetyPanel
+              key={panel}
+              panel={panel}
+              name={comment.author.username}
+              onClose={() => setPanel(null)}
+              onReport={async (reason, details) => {
+                await onReport(reason, details);
+                setPanel(null);
+                setReported(true);
+              }}
+              onBlock={onBlock}
+            />
+          ) : null}
+          {reported ? (
+            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+              {t('safety.reported')}
+            </Text>
+          ) : null}
         </>
       )}
     </View>

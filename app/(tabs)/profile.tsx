@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, T } from '@/components/ui';
@@ -104,6 +105,7 @@ function YourFandoms() {
 export default function Profile() {
   const { c } = useTheme();
   const t = useT();
+  const router = useRouter();
   const { language, setLanguage } = useLanguage();
   const { profile, session, signOut } = useAuth();
   const reads = profile?.reads_books
@@ -137,6 +139,14 @@ export default function Profile() {
         <Card tone="mine">
           <T v="moment" style={{ fontSize: 26 }}>{t('profile.authorsWelcome')}</T>
           <T v="muted">{t('profile.authorsNote')}</T>
+          <View style={{ alignItems: 'flex-start' }}>
+            <Button variant="link" title={t('safety.readMore')} onPress={() => router.push('/authors')} />
+          </View>
+        </Card>
+
+        <Card>
+          <Button variant="link" title={t('safety.feedbackTitle')} onPress={() => router.push('/feedback')} />
+          <Button variant="link" title={t('safety.blockedTitle')} onPress={() => router.push('/blocked')} />
         </Card>
 
         <Button variant="secondary" title={t('common.signOut')} onPress={signOut} />

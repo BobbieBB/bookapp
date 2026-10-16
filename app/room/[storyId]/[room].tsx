@@ -21,6 +21,7 @@ import {
   type Emoji,
   type Thread,
 } from '@/lib/discussions';
+import { block, reportComment } from '@/lib/safety';
 import { finishChapter, loadStoryPage, nextChapter } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
@@ -154,6 +155,7 @@ function Discussion({
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [blockedNotice, setBlockedNotice] = useState(false);
 
   useEffect(() => {
     markRead(discussionId).catch(() => {
@@ -210,6 +212,12 @@ function Discussion({
       onReply={top ? () => setReplyTo({ id: comment.id, username: comment.author.username }) : undefined}
       onDelete={() => void act(() => deleteComment(comment.id))}
       onReact={(emoji: Emoji, mine: boolean) => void act(() => toggleReaction(comment.id, emoji, mine))}
+      onReport={(reason, details) => reportComment(comment.id, reason, details)}
+      onBlock={async () => {
+        await block(comment.author.id);
+        setBlockedNotice(true);
+        reload();
+      }}
     />
   );
 
@@ -244,6 +252,11 @@ function Discussion({
 
       {finishRow ? <FinishRowButton {...finishRow} /> : null}
       {failed ? <ErrorText>{t('room.error')}</ErrorText> : null}
+      {blockedNotice ? (
+        <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+          {t('safety.blocked')}
+        </Text>
+      ) : null}
 
       <View style={{ gap: space.s }}>
         {replyTo ? (
