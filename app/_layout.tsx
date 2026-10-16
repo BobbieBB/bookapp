@@ -13,8 +13,9 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { Button, T } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { useTheme } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 function Loading() {
   const { c } = useTheme();
@@ -25,12 +26,28 @@ function Loading() {
   );
 }
 
+function ProfileError() {
+  const { c } = useTheme();
+  const { refreshProfile, signOut } = useAuth();
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', padding: space.xl, gap: space.l, backgroundColor: c.ground }}>
+      <T v="h2">We couldn’t load your profile</T>
+      <T v="muted">Check your connection and try again.</T>
+      <Button title="Try again" onPress={refreshProfile} />
+      <Button variant="link" title="Sign out" onPress={signOut} />
+    </View>
+  );
+}
+
 function RootStack() {
-  const { loading, session, profile } = useAuth();
+  const { loading, session, profile, profileState } = useAuth();
   const { c } = useTheme();
   if (loading) return <Loading />;
 
   const signedIn = !!session;
+  // Wait for the profile before choosing a screen, otherwise existing readers see onboarding flash by.
+  if (signedIn && !profile && profileState === 'loading') return <Loading />;
+  if (signedIn && !profile && profileState === 'error') return <ProfileError />;
   const onboarded = signedIn && !!profile;
 
   // Each screen is only reachable in the right state: signed out → sign-in,
@@ -45,6 +62,7 @@ function RootStack() {
       </Stack.Protected>
       <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="add" options={{ presentation: 'modal' }} />
       </Stack.Protected>
     </Stack>
   );

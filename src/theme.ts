@@ -8,10 +8,9 @@ const light = {
   ground: '#F6F8F7',
   surface: '#FFFFFF',
   band: '#BFEBD8', // header band
-  ink: '#1E1328', // text and outlines
+  ink: '#1E1328', // text
   inkSoft: '#3B2F45',
   muted: '#4E4459',
-  outline: '#1E1328',
   hairline: '#E0D9E5', // input borders, dividers
   shadow: '#1E1328', // soft shadow colour (used at low opacity)
   primary: '#FF4F84', // hot pink
@@ -33,7 +32,6 @@ const dark: typeof light = {
   ink: '#F7EEF3',
   inkSoft: '#EDE2EA',
   muted: '#B4A6BD',
-  outline: '#3A2F44',
   hairline: '#3A2F44',
   shadow: '#000000',
   primary: '#FF6B97', // rose
