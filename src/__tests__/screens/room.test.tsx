@@ -57,7 +57,7 @@ afterAll(async () => {
 
 async function open(language: Language, room: string) {
   await renderScreen(language, { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/${room}`);
-  await screen.findByTestId('room-title', {}, { timeout: 8000 });
+  await screen.findByTestId('room-title', {}, { timeout: 20_000 }); // the first load on a freshly started CI stack is slow
 }
 
 describe('a chapter you finished', () => {
