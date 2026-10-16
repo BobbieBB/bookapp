@@ -29,7 +29,7 @@ const previous = () => JSON.parse(String(screen.getByTestId('r').props.children)
 
 beforeEach(() => {
   calls = [];
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: false }); // these tests step time themselves
 });
 
 afterEach(() => {

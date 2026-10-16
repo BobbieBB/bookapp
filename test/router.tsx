@@ -1,5 +1,4 @@
 // Render app screens through Expo Router, signed in, in a given language.
-import { act } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
 import type { ComponentType, ReactElement } from 'react';
 
@@ -21,8 +20,4 @@ export async function renderScreen(
       </InLanguage>
     ),
   });
-  // renderRouter switches Jest to fake timers, but these screens wait on a real local database:
-  // start what is already scheduled, then continue on real time.
-  await act(async () => jest.runOnlyPendingTimers());
-  jest.useRealTimers();
 }

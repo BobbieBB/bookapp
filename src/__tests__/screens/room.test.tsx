@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import { renderScreen } from '../../../test/router';
@@ -79,18 +79,20 @@ describe('a chapter you finished', () => {
     await fireEvent.press(screen.getByText('Post'));
     expect(await screen.findByText('My first thought', {}, { timeout: 8000 })).toBeOnTheScreen();
 
-    const thread = screen.getByTestId(`thread-${(await firstCommentId('That ending of chapter 2!'))}`);
+    const topId = await firstCommentId('That ending of chapter 2!');
+    const thread = screen.getByTestId(`thread-${topId}`);
     await fireEvent.press(within(thread).getAllByText('Reply')[0]);
     await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'A reply from me');
     await fireEvent.press(screen.getByText('Post'));
-    expect(await within(thread).findByText('A reply from me', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await waitFor(() => expect(within(screen.getByTestId(`thread-${topId}`)).getByText('A reply from me')).toBeOnTheScreen(), { timeout: 8000 });
   });
 
   it('you can react to a comment', async () => {
     await open('en', '2');
     const id = await firstCommentId('That ending of chapter 2!');
     await fireEvent.press(screen.getByLabelText(`React 🔥 to comment ${id}`));
-    expect(await within(screen.getByTestId(`reactions-${id}`)).findByText('🔥 1', {}, { timeout: 8000 })).toBeOnTheScreen();
+    // The room reloads after the reaction, so look the row up afresh each time.
+    await waitFor(() => expect(within(screen.getByTestId(`reactions-${id}`)).getByText('🔥 1')).toBeOnTheScreen(), { timeout: 8000 });
   });
 
   it('offers the next chapter as a small pill, never the main button', async () => {
