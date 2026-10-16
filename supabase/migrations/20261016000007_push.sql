@@ -17,6 +17,18 @@ grant select, insert, update, delete on public.push_tokens to authenticated;
 create policy push_tokens_own on public.push_tokens for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- Register this device for the signed-in reader. A phone can change hands, so the device moves to
+-- whoever signs in on it now.
+create or replace function public.claim_push_token(p_token text, p_language text, p_platform text)
+returns void language sql security definer set search_path = public as $$
+  insert into public.push_tokens (token, user_id, language, platform)
+  values (p_token, auth.uid(), p_language, p_platform)
+  on conflict (token) do update set user_id = excluded.user_id, language = excluded.language,
+    platform = excluded.platform, updated_at = now()
+$$;
+revoke execute on function public.claim_push_token(text, text, text) from public, anon;
+grant execute on function public.claim_push_token(text, text, text) to authenticated;
+
 -- One row: where pushes go and whether sending is on (off until the project is set up for it).
 create table public.push_settings (
   id      boolean primary key default true check (id),

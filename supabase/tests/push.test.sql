@@ -25,6 +25,17 @@ select test.ok(test.error_of($$insert into public.push_tokens (user_id, token, l
   values ('00000000-0000-0000-0000-000000000901', 'ExponentPushToken[sneaky]', 'en', 'ios')$$) like '%row-level security%',
   'you cannot register a device for someone else');
 
+-- A phone changes hands: the device follows whoever signs in on it now.
+select test.login('00000000-0000-0000-0000-000000000901');
+select public.claim_push_token('ExponentPushToken[shared-phone]', 'en', 'ios');
+select test.login('00000000-0000-0000-0000-000000000902');
+select public.claim_push_token('ExponentPushToken[shared-phone]', 'bg', 'ios');
+select test.logout();
+select test.ok((select user_id from public.push_tokens where token = 'ExponentPushToken[shared-phone]') = '00000000-0000-0000-0000-000000000902',
+  'a device belongs to whoever signed in on it last');
+delete from public.push_tokens where token = 'ExponentPushToken[shared-phone]';
+select test.login('00000000-0000-0000-0000-000000000902');
+
 -- 2. What a push says --------------------------------------------------------------------------
 select public.open_discussion('99000000-0000-0000-0000-000000000001', 'chapter', 2);
 select test.login('00000000-0000-0000-0000-000000000901');
