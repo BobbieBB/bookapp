@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
+import type { MessageKey } from '../i18n/en';
+import type { Params } from '../i18n';
 import { supabase } from './supabase';
 import type { LibraryEntry, LibraryStatus } from './types';
 
 const SELECT = `
   story_id, status, is_favourite, progress_section, progress_page, updated_at,
-  story:stories (
+  story:stories!inner (
     id, kind, title, author_name, fandoms, ships, has_chapters,
     published_sections, total_sections, page_count, status, source_url
   )
@@ -19,14 +21,21 @@ export function useMyLibrary(userId: string | undefined, status?: LibraryStatus)
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     // Filter by user: other readers' public entries are readable too (for counts and profiles).
+    // `!inner` drops entries whose story is hidden (author opt-out): the story row is
+    // invisible to us then, and the entry would arrive with `story: null`.
     let query = supabase.from('library_entries').select(SELECT).eq('user_id', userId);
     if (status) query = query.eq('status', status);
     const { data, error } = await query.order('updated_at', { ascending: false });
     setError(error ? error.message : '');
-    setEntries((data as unknown as LibraryEntry[]) ?? []);
+    const rows = (data as unknown as LibraryEntry[] | null) ?? [];
+    setEntries(rows.filter((e) => e.story)); // belt and braces
     setLoading(false);
   }, [userId, status]);
 
@@ -45,10 +54,14 @@ export function sectionTotal(entry: LibraryEntry) {
   return s.published_sections ?? s.total_sections ?? null;
 }
 
-export function progressLine(entry: LibraryEntry) {
+/** Text for `key` in the UI language, as returned by `useT()`. */
+export type Translate = (key: MessageKey, params?: Params) => string;
+
+export function progressLine(entry: LibraryEntry, t: Translate) {
   const total = sectionTotal(entry);
-  const unit = entry.story.has_chapters ? 'chapter' : 'part';
-  if (entry.status === 'finished') return 'Finished';
-  if (entry.progress_section === 0) return 'Not started';
-  return `Finished ${unit} ${entry.progress_section}${total ? ` of ${total}` : ''}`;
+  const n = entry.progress_section;
+  if (entry.status === 'finished') return t('library.status.finished');
+  if (n === 0) return t('library.notStarted');
+  const unit = entry.story.has_chapters ? 'Chapter' : 'Part';
+  return total ? t(`library.finished${unit}Of`, { n, total }) : t(`library.finished${unit}`, { n });
 }

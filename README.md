@@ -39,6 +39,7 @@ src/
 supabase/
   migrations/         SQL migrations (schema, functions, RLS policies)
   tests/              SQL tests for spoiler rules and privacy
+test/                 Jest environment and helpers for the app tests
 docs/
   DECISIONS.md        Product decisions and the reasoning behind them
   DATA_MODEL.md       Tables, spoiler logic and privacy rules explained
@@ -70,6 +71,32 @@ there. The database password and the secret / service_role key must never be in 
 *Confirm email* off lets you create test accounts without clicking an email link. Turn it back on
 before real users join.
 
+## Running everything locally (no live project, no phone needed)
+
+Needs Docker Desktop running. The local backend applies `supabase/migrations` automatically and
+needs no email confirmation.
+
+```bash
+npm install
+npm run db:start            # local Supabase: API :54321, Studio http://127.0.0.1:54323
+```
+
+Create `.env.local` (git-ignored) with the `PUBLISHABLE_KEY` printed by `db:start`:
+
+```
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_KEY=sb_publishable_...
+```
+
+```bash
+npx expo start --web        # opens http://localhost:8081
+```
+
+Sign up in the app, then `npm run db:seed:dev` adds sample books and fics to every local user's
+library. `npm run db:reset` wipes the local database and re-applies the migrations; `npm run db:stop`
+shuts it down. To test on a phone with Expo Go against the local backend, use your Mac's LAN IP
+instead of `127.0.0.1` in `.env.local`. Delete `.env.local` to go back to the live project.
+
 ## Running the database tests
 
 Needs PostgreSQL 15+ and `psql`.
@@ -81,6 +108,24 @@ PGHOST=localhost PGUSER=postgres supabase/tests/run.sh
 The script creates a throwaway database `bookapp_test`, adds a small stand-in for Supabase's `auth`
 schema, applies every migration and runs `supabase/tests/spoiler_rules.test.sql`. It ends with
 `ALL TESTS PASSED`. The same tests run on GitHub Actions for every push.
+
+## Running the app tests
+
+```bash
+npm run db:start   # the tests need the local stack and .env.local (see above)
+npm test
+```
+
+Jest with `jest-expo` and React Native Testing Library. Tests live next to the code in
+`__tests__/` folders and talk to the **local** Supabase stack with real accounts they sign up
+themselves. `jest.setup.ts` refuses to run against any URL that is not `127.0.0.1` / `localhost`, so
+the tests can never touch the live project. `test/network.ts` can hold one request back to force
+an order of replies (a slow, stale response); every reply still comes from the real server.
+Open Library is never called from tests: `EXPO_PUBLIC_OPEN_LIBRARY_URL` points the search at a
+small local stand-in server inside the test.
+
+Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
+no warnings allowed); CI runs all three.
 
 ## Applying to Supabase
 
