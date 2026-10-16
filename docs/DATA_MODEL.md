@@ -73,8 +73,10 @@ replaces its text with `[deleted]`; it cannot be edited or restored afterwards.
 
 ## Live updates
 
-`comments` and `reactions` are in the `supabase_realtime` publication. Realtime applies the same
-Row Level Security, so a locked chapter's comments are never pushed to a reader who hasn't reached it.
+`comments` is in the `supabase_realtime` publication. Realtime applies Row Level Security to inserts
+and updates, so a locked chapter's comments are never pushed to a reader who hasn't reached it.
+`reactions` is deliberately **not** published: Realtime does not apply RLS to deletes, and a removed
+reaction's key would reveal who reacted to what in a locked room.
 
 ## Blocking
 

@@ -121,7 +121,9 @@ export async function markRead(discussionId: string) {
 export function subscribeToRoom(discussionId: string, onChange: () => void): Promise<() => void> {
   return new Promise((resolve, reject) => {
     const channel = supabase
-      .channel(`room:${discussionId}`)
+      // A fresh channel each time: realtime-js reuses a channel with the same name, and adding a
+      // listener to one that is already joined throws (e.g. the same room opened twice).
+      .channel(`room:${discussionId}:${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `discussion_id=eq.${discussionId}` }, onChange)
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') resolve(() => void supabase.removeChannel(channel));

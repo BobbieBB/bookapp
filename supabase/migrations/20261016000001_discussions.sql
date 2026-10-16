@@ -18,8 +18,10 @@ as $$
     union all
     select 'epilogue'::public.discussion_kind, null::int from story
   ), entries as (
-    select le.progress_section, le.status
-    from public.library_entries le
+    -- Counted only where can_access_section would let them in: "Finished" opens every chapter
+    -- and The Epilogue only once the story is no longer ongoing.
+    select le.progress_section, le.status = 'finished' and story.status is distinct from 'ongoing' as done
+    from public.library_entries le, story
     where le.story_id = p_story and le.status in ('currently_reading', 'finished', 'dnf', 'on_hold')
   ), access as (
     select r.kind, r.section_number, public.can_access_section(p_story, r.kind, r.section_number) as unlocked
@@ -30,8 +32,8 @@ as $$
     a.section_number,
     a.unlocked,
     case when a.kind = 'epilogue'
-      then (select count(*) from entries e where e.status = 'finished')
-      else (select count(*) from entries e where e.status = 'finished' or e.progress_section >= a.section_number)
+      then (select count(*) from entries e where e.done)
+      else (select count(*) from entries e where e.done or e.progress_section >= a.section_number)
     end,
     case when a.unlocked then (
       select count(*)
@@ -49,13 +51,15 @@ revoke execute on function public.story_rooms(uuid) from public, anon;
 grant execute on function public.story_rooms(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Live comments and reactions. Supabase Realtime applies the same RLS policies, so a locked
--- chapter's comments are never pushed to a reader who hasn't reached it. (The publication only
--- exists on Supabase, not in the plain-Postgres test database.)
+-- Live comments. Supabase Realtime applies the comments_read policy to inserts and updates, so a
+-- locked chapter's comments are never pushed to a reader who hasn't reached it; a deleted comment's
+-- text is erased before it is written. Reactions are NOT published: Realtime does not apply RLS to
+-- deletes, and a removed reaction's key would tell anyone who reacted to what in a locked room.
+-- (The publication only exists on Supabase, not in the plain-Postgres test database.)
 -- ---------------------------------------------------------------------------
 do $$
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    alter publication supabase_realtime add table public.comments, public.reactions;
+    alter publication supabase_realtime add table public.comments;
   end if;
 end $$;

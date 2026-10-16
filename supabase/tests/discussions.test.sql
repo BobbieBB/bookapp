@@ -61,6 +61,19 @@ select test.login('00000000-0000-0000-0000-000000000d04');
 select test.ok((select bool_and(not unlocked) and bool_and(comments is null) from public.story_rooms('d5000000-0000-0000-0000-000000000001')),
   'a reader without the story sees every room locked');
 
+-- On a WIP fic, "Finished" readers are only counted where they can actually go.
+select test.logout();
+insert into public.stories (id, kind, title, author_name, published_sections, status, source, source_url) values
+  ('d5000000-0000-0000-0000-000000000002', 'fanfic', 'Still Going', 'w', 3, 'ongoing', 'ao3', 'https://archiveofourown.org/works/8801');
+insert into public.library_entries (user_id, story_id, status, progress_section) values
+  ('00000000-0000-0000-0000-000000000d02', 'd5000000-0000-0000-0000-000000000002', 'finished', 3);
+update public.stories set published_sections = 4 where id = 'd5000000-0000-0000-0000-000000000002'; -- a new chapter came out
+select test.login('00000000-0000-0000-0000-000000000d02');
+select test.ok((select readers from public.story_rooms('d5000000-0000-0000-0000-000000000002') where kind = 'chapter' and section_number = 4) = 0,
+  'a "finished" reader of a WIP is not counted in a chapter published after they finished');
+select test.ok((select readers from public.story_rooms('d5000000-0000-0000-0000-000000000002') where kind = 'epilogue') = 0,
+  'nobody is counted in the Epilogue of a story that is still ongoing');
+
 select test.logout();
 update public.stories set is_hidden = true where id = 'd5000000-0000-0000-0000-000000000001';
 select test.login('00000000-0000-0000-0000-000000000d02');

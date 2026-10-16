@@ -132,6 +132,44 @@ it('new comments arrive live in a room you unlocked', async () => {
   unsubscribe();
 }, 20_000);
 
+it('a reader who has not unlocked a room gets no live events from it, not even reactions', async () => {
+  await as(behind);
+  await progress(storyId, behind, 2);
+  const ch3 = await (async () => {
+    await as(ahead);
+    return (await openRoom(storyId, 'chapter', 3)).id;
+  })();
+  await as(behind);
+  const events: unknown[] = [];
+  const spy = supabase
+    .channel(`spy-${run}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (e) => events.push(e))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, (e) => events.push(e));
+  await new Promise<void>((resolve, reject) =>
+    spy.subscribe((status, err) => (status === 'SUBSCRIBED' ? resolve() : status === 'CHANNEL_ERROR' ? reject(err) : undefined)),
+  );
+
+  const other = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  await other.auth.signInWithPassword({ email: ahead.email, password });
+  const { data: posted } = await other.from('comments').insert({ discussion_id: ch3, body: 'chapter 3 secret' }).select('id').single().throwOnError();
+  await other.from('reactions').insert({ comment_id: posted!.id, emoji: '😱' }).throwOnError();
+  await other.from('reactions').delete().eq('comment_id', posted!.id).throwOnError();
+  await other.from('comments').update({ deleted_at: new Date().toISOString() }).eq('id', posted!.id).throwOnError();
+  await other.auth.signOut();
+
+  await new Promise((r) => setTimeout(r, 3000));
+  await supabase.removeChannel(spy);
+  expect(events).toEqual([]);
+}, 20_000);
+
+it('the same room can be followed twice at once (e.g. opened twice)', async () => {
+  await as(ahead);
+  const first = await subscribeToRoom(ch2, () => undefined);
+  const second = await subscribeToRoom(ch2, () => undefined);
+  first();
+  second();
+});
+
 async function waitFor(cond: () => boolean, ms: number) {
   const until = Date.now() + ms;
   while (!cond()) {
