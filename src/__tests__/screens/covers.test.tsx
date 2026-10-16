@@ -12,6 +12,17 @@ jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
   launchImageLibraryAsync: jest.fn(),
 }));
+// Resizing is native too: it hands back what the test sets as the saved image.
+let mockSaved = '';
+jest.mock('expo-image-manipulator', () => ({
+  SaveFormat: { JPEG: 'jpeg' },
+  ImageManipulator: {
+    manipulate: () => ({
+      resize: () => undefined,
+      renderAsync: async () => ({ saveAsync: async () => ({ uri: 'file:///resized.jpg', width: 800, height: 1200, base64: mockSaved }) }),
+    }),
+  },
+}));
 const pick = ImagePicker.launchImageLibraryAsync as jest.Mock;
 const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
@@ -33,7 +44,8 @@ beforeAll(async () => {
 });
 
 it('explains why the cover is private before you pick, then shows yours with a note', async () => {
-  pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///cover.png', mimeType: 'image/png', base64: PNG_BASE64 }] });
+  mockSaved = PNG_BASE64;
+  pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///cover.png', mimeType: 'image/png' }] });
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
   await fireEvent.press(await screen.findByText('Use my own cover', {}, { timeout: 8000 }));
   expect(
@@ -53,6 +65,15 @@ it('you can go back to the usual cover', async () => {
   await waitFor(() => expect(screen.queryByText('Only you see this cover')).toBeNull(), { timeout: 8000 });
   const { data } = await supabase.from('custom_covers').select('path').eq('story_id', mineId).maybeSingle().throwOnError();
   expect(data).toBeNull();
+});
+
+it('an image still too big after resizing gets a clear message', async () => {
+  mockSaved = 'A'.repeat(7 * 1024 * 1024); // ~5.25 MB once decoded
+  pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///huge.jpg', mimeType: 'image/jpeg' }] });
+  await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
+  await fireEvent.press(await screen.findByText('Use my own cover', {}, { timeout: 8000 }));
+  await fireEvent.press(screen.getByText('Choose an image'));
+  expect(await screen.findByText('That image is too big. Try a smaller one.', {}, { timeout: 8000 })).toBeOnTheScreen();
 });
 
 it('cancelling the picker changes nothing', async () => {

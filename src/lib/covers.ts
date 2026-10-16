@@ -36,7 +36,11 @@ export async function uploadCover(storyId: string, bytes: ArrayBuffer, contentTy
     await supabase.storage.from(BUCKET).remove([path]); // don't leave an orphan file behind
     throw error;
   }
-  if (previous) await supabase.storage.from(BUCKET).remove([previous]);
+  if (previous) {
+    // The new cover is in place; if the old file can't be removed now it is only unused storage.
+    const { error: removeError } = await supabase.storage.from(BUCKET).remove([previous]);
+    if (removeError) console.warn('Could not remove the previous cover file', removeError.message);
+  }
   return path;
 }
 
@@ -53,8 +57,9 @@ export async function myCoverUrl(storyId: string): Promise<string | null> {
 export async function removeCover(storyId: string) {
   const path = await currentPath(storyId);
   if (!path) return;
-  const { error } = await supabase.from('custom_covers').delete().eq('story_id', storyId);
-  if (error) throw error;
+  // The file first: if that fails nothing changed and the reader can try again.
   const { error: removeError } = await supabase.storage.from(BUCKET).remove([path]);
   if (removeError) throw removeError;
+  const { error } = await supabase.from('custom_covers').delete().eq('story_id', storyId);
+  if (error) throw error;
 }

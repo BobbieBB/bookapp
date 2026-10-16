@@ -1,3 +1,4 @@
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
@@ -6,6 +7,9 @@ import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { myCoverUrl, removeCover, uploadCover } from '@/lib/covers';
 import { space } from '@/theme';
+
+const COVER_WIDTH = 1200;
+const MAX_COVER_BYTES = 5 * 1024 * 1024; // the covers bucket's limit
 
 function decodeBase64(data: string): ArrayBuffer {
   const binary = atob(data);
@@ -72,13 +76,22 @@ export function useCustomCover(storyId: string, enabled: boolean) {
           mediaTypes: ['images'],
           allowsEditing: true,
           aspect: [2, 3],
-          quality: 0.8,
-          base64: true,
+          quality: 1,
         });
         const asset = result.canceled ? null : result.assets[0];
         if (!asset) return;
-        if (!asset.base64) throw new Error('The picker returned no image data.');
-        await uploadCover(storyId, decodeBase64(asset.base64), asset.mimeType ?? 'image/jpeg');
+        // A cover never needs more than ~1200 px: resize and re-encode as JPEG before uploading.
+        const context = ImageManipulator.manipulate(asset.uri);
+        context.resize({ width: COVER_WIDTH });
+        const image = await context.renderAsync();
+        const resized = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+        if (!resized.base64) throw new Error('The resized image has no data.');
+        const bytes = decodeBase64(resized.base64);
+        if (bytes.byteLength > MAX_COVER_BYTES) {
+          if (alive.current) setError(t('covers.tooLarge'));
+          return;
+        }
+        await uploadCover(storyId, bytes, 'image/jpeg');
         const link = await myCoverUrl(storyId);
         if (alive.current) setUrl(link);
       }, t('covers.uploadFailed')),

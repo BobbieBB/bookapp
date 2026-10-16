@@ -1,6 +1,7 @@
 import type { Translation } from '../types';
 
 export const en = {
+  'covers.tooLarge': 'That image is too big. Try a smaller one.',
   'covers.use': 'Use my own cover',
   'covers.explain':
     'A cover just for you. Only you will see this cover. We never share it or show it to other readers, because the art belongs to the person who made it.',
@@ -16,6 +17,7 @@ export const en = {
 } as const;
 
 export const bg: Translation<typeof en> = {
+  'covers.tooLarge': 'Тази картинка е твърде голяма. Опитай с по-малка.',
   'covers.use': 'Моя собствена корица',
   'covers.explain':
     'Корица само за теб. Само ти ще виждаш тази корица. Никога не я споделяме и не я показваме на други читатели, защото изкуството принадлежи на човека, който го е създал.',

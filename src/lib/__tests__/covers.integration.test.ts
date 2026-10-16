@@ -65,6 +65,29 @@ it('nobody else can see it, list it or overwrite it', async () => {
   expect(error).not.toBeNull();
 });
 
+it('the bucket itself refuses non-images, stray names and stories you do not have', async () => {
+  await as(owner);
+  const html = new TextEncoder().encode('<script>alert(1)</script>').buffer;
+  const direct = (name: string, body: ArrayBuffer, contentType: string) =>
+    supabase.storage.from('covers').upload(`${owner.id}/${name}`, body, { contentType });
+  expect((await direct(`${storyId}-x.html`, html, 'text/html')).error).not.toBeNull();
+  expect((await direct(`${storyId}-x.svg`, html, 'image/svg+xml')).error).not.toBeNull();
+  expect((await direct('anything.png', PNG.buffer, 'image/png')).error).not.toBeNull();
+  const notMine = (await createManualBook({ title: 'Not in my library', author: 'x', chapters: 1, language: 'en' })).id;
+  expect((await direct(`${notMine}-x.png`, PNG.buffer, 'image/png')).error).not.toBeNull();
+});
+
+it('covers are never public, and nobody else can delete yours', async () => {
+  await as(owner);
+  const { data } = supabase.storage.from('covers').getPublicUrl(path);
+  expect((await fetch(data.publicUrl)).status).not.toBe(200);
+  await as(other);
+  await supabase.storage.from('covers').remove([path]);
+  await as(owner);
+  const { data: still } = await supabase.storage.from('covers').download(path);
+  expect(still).not.toBeNull();
+});
+
 it('only images', async () => {
   await as(owner);
   await expect(uploadCover(storyId, new TextEncoder().encode('<script>').buffer, 'text/html')).rejects.toThrow('image');

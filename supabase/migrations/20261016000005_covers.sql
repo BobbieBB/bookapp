@@ -31,15 +31,23 @@ begin
       create policy covers_owner_read on storage.objects for select to authenticated
         using (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text)
     $p$;
+    -- Uploads only as "<your id>/<story id>-<suffix>.<jpg|png|webp>" for a story in your library,
+    -- by an active account: the bucket is not a general file host.
     execute $p$
       create policy covers_owner_insert on storage.objects for insert to authenticated
-        with check (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text)
+        with check (
+          bucket_id = 'covers'
+          and (storage.foldername(name))[1] = auth.uid()::text
+          and array_length(storage.foldername(name), 1) = 1
+          and storage.filename(name) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[a-z0-9]{1,20}\.(jpg|png|webp)$'
+          and public.is_active_user()
+          and exists (
+            select 1 from public.library_entries le
+            where le.user_id = auth.uid() and le.story_id::text = left(storage.filename(name), 36)
+          )
+        )
     $p$;
-    execute $p$
-      create policy covers_owner_update on storage.objects for update to authenticated
-        using (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text)
-        with check (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text)
-    $p$;
+    -- Files are never changed in place: a new cover is a new file.
     execute $p$
       create policy covers_owner_delete on storage.objects for delete to authenticated
         using (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text)
