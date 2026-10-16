@@ -1,13 +1,17 @@
-import { Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
 
 import { T } from '@/components/ui';
 import { progressLine, sectionTotal } from '@/lib/library';
 import type { LibraryEntry } from '@/lib/types';
-import { STATUS_LABEL } from '@/lib/types';
-import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
+import { STATUS_KEY } from '@/lib/types';
+import { useT } from '@/i18n';
+import { coverColor, softShadow, space, useTheme } from '@/theme';
 
-export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatus?: boolean }) {
+export function StoryRow({ entry, showStatus, hint }: { entry: LibraryEntry; showStatus?: boolean; hint?: string }) {
   const t = useTheme();
+  const tr = useT();
+  const { fonts } = t;
   const { c } = t;
   const s = entry.story;
   const total = sectionTotal(entry);
@@ -18,11 +22,16 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
   const cover = coverColor(s.id, t.isDark);
 
   return (
-    <View style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}>
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={s.title}
+      onPress={() => router.push({ pathname: '/story/[id]', params: { id: s.id } })}
+      style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
+    >
       {/* Typographic cover: fics never have covers (fanart is someone else's work). */}
       <View
         accessible
-        accessibilityLabel={`${s.title} cover`}
+        accessibilityLabel={tr('library.coverLabel', { title: s.title })}
         style={{
           width: 64,
           height: 92,
@@ -48,9 +57,10 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
           {subtitle}
         </T>
         <T v="label">
-          {showStatus ? `${STATUS_LABEL[entry.status]} · ` : ''}
-          {progressLine(entry)}
+          {showStatus ? `${tr(STATUS_KEY[entry.status])} · ` : ''}
+          {progressLine(entry, tr)}
         </T>
+        {hint ? <T v="muted">{hint}</T> : null}
         <View
           style={{
             height: 6,
@@ -63,6 +73,6 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
           <View style={{ height: '100%', borderRadius: 999, width: `${pct}%`, backgroundColor: s.kind === 'fanfic' ? c.secondary : c.primary }} />
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
