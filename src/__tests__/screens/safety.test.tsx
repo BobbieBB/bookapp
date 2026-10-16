@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import Authors from '../../../app/authors';
@@ -7,6 +7,7 @@ import Feedback from '../../../app/feedback';
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
+import { block } from '../../lib/safety';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -62,10 +63,12 @@ describe('in a discussion', () => {
     await as(me);
     await renderScreen('en', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
     const card = await screen.findByTestId(`comment-${trollCommentId}`, {}, { timeout: 8000 });
-    await fireEvent.press(within(card).getByText('Report'));
+    await fireEvent.press(within(card).getByLabelText(`Report comment by ${troll.username}`));
     await fireEvent.press(screen.getByText('Harassment'));
     await fireEvent.press(screen.getByText('Send report'));
     expect(await screen.findByText('Thanks. A moderator will take a look.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(within(card).queryByText('Report')).toBeNull(); // reported once is enough
+    expect(screen.queryByLabelText(`Report comment by ${troll.username}`)).toBeNull();
     expect((await rows('reports', 'reporter_id')).map((r) => [r.comment_id, r.reason])).toEqual([[trollCommentId, 'harassment']]);
   });
 
@@ -76,7 +79,7 @@ describe('in a discussion', () => {
     await fireEvent.press(within(card).getByText(`Block ${troll.username}`));
     await fireEvent.press(await screen.findByText('Block', {}, { timeout: 8000 }));
     await screen.findByText('Blocked. You won’t see their comments any more.', {}, { timeout: 8000 });
-    expect(screen.queryByText('You all have bad taste')).toBeNull();
+    await waitFor(() => expect(screen.queryByText('You all have bad taste')).toBeNull(), { timeout: 8000 });
   });
 
   it('your own comments have no report or block actions', async () => {
@@ -92,6 +95,7 @@ describe('in a discussion', () => {
 describe('blocked readers', () => {
   it('are listed in Profile and can be unblocked', async () => {
     await as(me);
+    await block(troll.id);
     await renderScreen('en', { blocked: Blocked }, '/blocked');
     expect(await screen.findByText(troll.username, {}, { timeout: 8000 })).toBeOnTheScreen();
     await fireEvent.press(screen.getByLabelText(`Unblock ${troll.username}`));
@@ -121,6 +125,7 @@ describe('Authors are welcome', () => {
     await fireEvent.press(screen.getByText('Ask us to hide it'));
     expect(await screen.findByText('That doesn’t look like an AO3 work link.', {}, { timeout: 8000 })).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Link to your fic on AO3'), 'https://archiveofourown.org/works/777777');
+    await fireEvent.changeText(screen.getByLabelText('How can we reach you?'), 'author@example.test');
     await fireEvent.press(screen.getByText('Ask us to hide it'));
     expect(await screen.findByText('Thanks. We’ll hide it as soon as we can.', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await rows('removal_requests', 'requester_id')).map((r) => r.story_url)).toEqual(['https://archiveofourown.org/works/777777']);

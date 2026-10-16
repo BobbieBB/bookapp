@@ -23,13 +23,15 @@ export async function sendFeedback(kind: FeedbackKind, body: string) {
 export async function requestRemoval(r: { storyUrl: string; contact: string; message: string }) {
   const link = normaliseAo3Link(r.storyUrl);
   if (!link) throw new Error('That doesn’t look like an AO3 work link.');
+  // An admin checks the request with the author before hiding the fic.
+  if (r.contact.trim().length < 3) throw new Error('Tell us how we can reach you.');
   const { data: story, error } = await supabase.from('stories').select('id').eq('source_url', link).maybeSingle();
   if (error) throw error;
   await check(
     supabase.from('removal_requests').insert({
       story_id: story?.id ?? null,
       story_url: link,
-      contact: r.contact.trim() || null,
+      contact: r.contact.trim(),
       message: r.message.trim() || null,
     }),
   );

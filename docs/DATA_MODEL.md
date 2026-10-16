@@ -82,7 +82,15 @@ reaction's key would reveal who reacted to what in a locked room.
 ## Blocking
 
 When A blocks B, A no longer sees B's comments or reviews, neither can reply to or react to the
-other, and neither gets notifications from the other.
+other, and neither gets notifications from the other. A no longer sees B's reactions or notifications from B either.
+
+## Reports, removal requests, rate limits
+
+- You can report a comment or review only if you can see it, never your own, and only once per
+  comment, review or reader.
+- A removal request needs an AO3 work link and a way to reach the author, so an admin can check
+  with them before hiding the fic.
+- Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day.
 
 ## Functions the app calls
 

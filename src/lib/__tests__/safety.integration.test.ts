@@ -1,4 +1,6 @@
 import { block, blockedReaders, reportComment, reportUser, requestRemoval, sendFeedback, unblock } from '../safety';
+import { openRoom, postComment } from '../discussions';
+import { addToLibrary, createManualBook } from '../stories';
 import { supabase } from '../supabase';
 
 // Report, block, feedback and author opt-out (docs/DECISIONS.md: Fandom etiquette, MVP scope).
@@ -54,9 +56,10 @@ it('an author asks for their fic to be removed by its AO3 link', async () => {
   expect(data).toEqual({ story_url: 'https://archiveofourown.org/works/424242', contact: 'me@example.test', status: 'open' });
 });
 
-it('a removal request needs an AO3 work link', async () => {
+it('a removal request needs an AO3 work link and a way to reach the author', async () => {
   await as(me);
-  await expect(requestRemoval({ storyUrl: 'https://example.com/x', contact: '', message: '' })).rejects.toThrow('AO3');
+  await expect(requestRemoval({ storyUrl: 'https://example.com/x', contact: 'me@example.test', message: '' })).rejects.toThrow('AO3');
+  await expect(requestRemoval({ storyUrl: 'https://archiveofourown.org/works/1', contact: '  ', message: '' })).rejects.toThrow('reach you');
 });
 
 it('reporting a reader', async () => {
@@ -66,12 +69,18 @@ it('reporting a reader', async () => {
   expect(data).toEqual({ reported_user_id: other.id, reason: 'harassment' });
 });
 
-it('reporting a comment you cannot see fails', async () => {
+it('reporting a comment you cannot see (a room you have not unlocked) fails', async () => {
+  await as(other);
+  const book = await createManualBook({ title: 'Locked', author: 'x', chapters: 2, language: 'en' });
+  await addToLibrary(book.id, 'finished');
+  const secret = await postComment((await openRoom(book.id, 'chapter', 2)).id, 'chapter 2 secret');
   await as(me);
-  await expect(reportComment('00000000-0000-0000-0000-000000000000', 'spoiler')).rejects.toBeTruthy();
+  await expect(reportComment(secret.id, 'spoiler')).rejects.toThrow('That comment is not available.');
 });
 
 it('block, list and unblock', async () => {
+  await as(me);
+  await unblock(other.id);
   await as(me);
   await block(other.id);
   await block(other.id); // twice is still once

@@ -23,10 +23,10 @@ function useShortTime() {
   };
 }
 
-function QuietAction({ label, onPress }: { label: string; onPress: () => void }) {
+function QuietAction({ label, onPress, accessibilityLabel }: { label: string; onPress: () => void; accessibilityLabel?: string }) {
   const { fonts, c } = useTheme();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={{ minHeight: 44, justifyContent: 'center', paddingRight: space.m }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={{ minHeight: 44, justifyContent: 'center', paddingRight: space.m }}>
       <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.muted }}>{label}</Text>
     </Pressable>
   );
@@ -168,7 +168,13 @@ export function CommentCard({
             {mine ? <QuietAction label={t('room.delete')} onPress={onDelete} /> : null}
             {canModerate ? (
               <>
-                <QuietAction label={t('safety.report')} onPress={() => setPanel('report')} />
+                {reported ? null : (
+                  <QuietAction
+                    label={t('safety.report')}
+                    accessibilityLabel={t('safety.reportLabel', { name: comment.author.username })}
+                    onPress={() => setPanel('report')}
+                  />
+                )}
                 <QuietAction label={t('safety.block', { name: comment.author.username })} onPress={() => setPanel('block')} />
               </>
             ) : null}

@@ -17,13 +17,17 @@ export default function Authors() {
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [problem, setProblem] = useState<'link' | 'send' | null>(null);
+  const [problem, setProblem] = useState<'link' | 'contact' | 'send' | null>(null);
   const [sent, setSent] = useState(false);
 
   const send = async () => {
     setSent(false);
     if (!normaliseAo3Link(storyUrl)) {
       setProblem('link');
+      return;
+    }
+    if (contact.trim().length < 3) {
+      setProblem('contact');
       return;
     }
     setProblem(null);
@@ -60,7 +64,7 @@ export default function Authors() {
             <Field label={t('safety.removalLink')} value={storyUrl} onChangeText={setStoryUrl} autoCapitalize="none" autoCorrect={false} keyboardType="url" />
             <Field label={t('safety.removalContact')} value={contact} onChangeText={setContact} autoCapitalize="none" />
             <Field label={t('safety.removalMessage')} value={message} onChangeText={setMessage} multiline />
-            <ErrorText>{problem === 'link' ? t('safety.removalBadLink') : problem === 'send' ? t('safety.error') : null}</ErrorText>
+            <ErrorText>{problem === 'link' ? t('safety.removalBadLink') : problem === 'contact' ? t('safety.removalNeedsContact') : problem === 'send' ? t('safety.error') : null}</ErrorText>
             {sent ? (
               <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
                 {t('safety.removalSent')}
