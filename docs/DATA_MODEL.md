@@ -21,6 +21,8 @@ table. Anonymous users (`anon`) have no access at all.
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
 | `feedback` | In-app feedback | Author and admins |
+| `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
+| `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
@@ -94,6 +96,13 @@ other, and neither gets notifications from the other. A no longer sees B's react
 - A removal request needs an AO3 work link and a way to reach the author, so an admin can check
   with them before hiding the fic.
 - Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day.
+
+## Push notifications
+
+When a reply or @mention notification is created, `notifications_send_push` builds one Expo push per
+device of the recipient (`push_messages`): who, which story and which chapter, in the device's
+language, never the comment text, and a link to the room (which checks the spoiler wall again). It is
+sent with `pg_net` only when `push_settings.enabled` is on. Reactions don't send pushes.
 
 ## Functions the app calls
 
