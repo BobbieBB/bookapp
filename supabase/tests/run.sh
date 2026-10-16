@@ -8,3 +8,4 @@ psql -q -d postgres -c "drop database if exists $DB" -c "create database $DB"
 psql -q -v ON_ERROR_STOP=1 -d $DB -f tests/auth_stub.sql
 for f in migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -d $DB -f "$f"; done
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/spoiler_rules.test.sql
+bash tests/bump_race.test.sh

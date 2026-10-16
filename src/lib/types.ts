@@ -1,4 +1,5 @@
 // Shapes of the rows the app reads. They mirror supabase/migrations.
+import type { MessageKey } from '../i18n/en';
 
 export type StoryKind = 'book' | 'fanfic';
 export type LibraryStatus = 'currently_reading' | 'want_to_read' | 'finished' | 'dnf' | 'on_hold';
@@ -36,10 +37,11 @@ export type LibraryEntry = {
   story: Story;
 };
 
-export const STATUS_LABEL: Record<LibraryStatus, string> = {
-  currently_reading: 'Currently Reading',
-  want_to_read: 'Want to Read',
-  finished: 'Finished',
-  dnf: 'DNF',
-  on_hold: 'On Hold',
-};
+/** The translation key of each status's name (shown on chips and rows). */
+export const STATUS_KEY = {
+  currently_reading: 'library.status.currently_reading',
+  want_to_read: 'library.status.want_to_read',
+  finished: 'library.status.finished',
+  dnf: 'library.status.dnf',
+  on_hold: 'library.status.on_hold',
+} as const satisfies Record<LibraryStatus, MessageKey>;
