@@ -2,6 +2,23 @@
 // docs/DECISIONS.md): an AO3 link is only normalised and looked up in our own database.
 // Books come from Open Library's public search API.
 
+import { APP_NAME, APP_VERSION, openLibraryUrl, PROJECT_URL } from './config';
+import type { BookLanguage } from './stories';
+
+// Search starts at 3 characters, after a pause in typing (docs/DECISIONS.md, "Search-as-you-type").
+const MIN_CHARS = 3;
+const DEBOUNCE_MS = 350;
+
+/** How long to wait before searching for this text: null = don't search, 0 = a pasted ISBN. */
+export function searchDelay(query: string): number | null {
+  const q = query.trim();
+  if (q.length < MIN_CHARS) return null;
+  return isbnOf(q) ? 0 : DEBOUNCE_MS;
+}
+
+/** The edition language to suggest for a title: Cyrillic means Bulgarian. */
+export const guessLanguage = (title: string): BookLanguage => (/[А-Яа-яЁё]/.test(title) ? 'bg' : 'en');
+
 /** Canonical AO3 work link, or null if the text isn't an AO3 work link. */
 export function normaliseAo3Link(input: string): string | null {
   const m = input
@@ -48,7 +65,11 @@ export async function searchBooks(query: string, signal?: AbortSignal): Promise<
   if (isbn) params.set('isbn', isbn);
   else params.set('q', query.trim());
 
-  const res = await fetch(`https://openlibrary.org/search.json?${params}`, { signal });
+  // Open Library asks apps to identify themselves so they can get in touch (docs/DECISIONS.md).
+  const res = await fetch(`${openLibraryUrl()}/search.json?${params}`, {
+    signal,
+    headers: { 'User-Agent': `${APP_NAME}/${APP_VERSION} (${PROJECT_URL})` },
+  });
   if (!res.ok) throw new Error(`Open Library search failed (${res.status})`);
   const body = (await res.json()) as { docs?: OpenLibraryDoc[] };
 

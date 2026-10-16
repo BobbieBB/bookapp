@@ -36,6 +36,7 @@ jobs:
         with:
           version: 2.121.0
       - run: npm ci
+      - run: npm run lint
       - name: Start local Supabase
         run: |
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector

@@ -53,7 +53,7 @@ export default function Home() {
 
         <T v="overline">REPLIES TO YOU</T>
         <Card tone="band">
-          <T v="muted">When someone replies to you or mentions you, you'll see it here.</T>
+          <T v="muted">When someone replies to you or mentions you, you’ll see it here.</T>
         </Card>
       </ScrollView>
     </SafeAreaView>

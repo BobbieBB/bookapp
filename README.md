@@ -121,6 +121,11 @@ Jest with `jest-expo` and React Native Testing Library. Tests live next to the c
 themselves. `jest.setup.ts` refuses to run against any URL that is not `127.0.0.1` / `localhost`, so
 the tests can never touch the live project. `test/network.ts` can hold one request back to force
 an order of replies (a slow, stale response); every reply still comes from the real server.
+Open Library is never called from tests: `EXPO_PUBLIC_OPEN_LIBRARY_URL` points the search at a
+small local stand-in server inside the test.
+
+Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
+no warnings allowed); CI runs all three.
 
 ## Applying to Supabase
 

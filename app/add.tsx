@@ -1,12 +1,13 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { isbnOf, normaliseAo3Link, searchBooks, type BookResult } from '@/lib/sources';
+import { useLookup } from '@/lib/useLookup';
+import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult } from '@/lib/sources';
 import {
   AO3_RATINGS,
   AO3_WARNINGS,
@@ -19,10 +20,6 @@ import {
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
 import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
-
-// Search starts at 3 characters, after a pause in typing (docs/DECISIONS.md).
-const MIN_CHARS = 3;
-const DEBOUNCE_MS = 350;
 
 // Short labels for AO3's archive warnings (the stored value stays AO3's wording).
 const WARNING_LABEL: Record<string, string> = {
@@ -77,8 +74,6 @@ function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s:
   );
 }
 
-const guessLanguage = (title: string): BookLanguage => (/[А-Яа-яЁё]/.test(title) ? 'bg' : 'en');
-
 /** Which edition the reader has: discussions are separate per language (PO, 15 Oct 2026). */
 function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l: BookLanguage) => void }) {
   return (
@@ -110,42 +105,16 @@ function friendly(e: unknown) {
 
 function AddBook() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<BookResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [error, setError] = useState('');
   const [picked, setPicked] = useState<BookResult | null>(null);
   const [manual, setManual] = useState(false);
 
-  useEffect(() => {
-    const q = query.trim();
-    const immediate = !!isbnOf(q); // a pasted ISBN searches right away
-    if (q.length < MIN_CHARS) {
-      setResults([]);
-      setSearched(false);
-      return;
-    }
-    const ctrl = new AbortController();
-    const timer = setTimeout(
-      async () => {
-        setSearching(true);
-        setError('');
-        try {
-          setResults(await searchBooks(q, ctrl.signal));
-          setSearched(true);
-        } catch (e) {
-          if (!ctrl.signal.aborted) setError(friendly(e));
-        } finally {
-          if (!ctrl.signal.aborted) setSearching(false);
-        }
-      },
-      immediate ? 0 : DEBOUNCE_MS,
-    );
-    return () => {
-      clearTimeout(timer);
-      ctrl.abort(); // each keystroke cancels the previous search
-    };
-  }, [query]);
+  // Each keystroke cancels the previous search; a pasted ISBN searches right away.
+  const q = query.trim();
+  const delay = searchDelay(q);
+  const search = useLookup(delay === null ? null : q, (signal) => searchBooks(q, signal), delay ?? 0);
+  const results = search.data ?? [];
+  const searched = search.data !== undefined;
+  const error = search.error ? friendly(search.error) : '';
 
   if (picked) return <ConfirmBook book={picked} onCancel={() => setPicked(null)} />;
   if (manual) return <ManualBook initialTitle={query} onCancel={() => setManual(false)} />;
@@ -161,12 +130,12 @@ function AddBook() {
         returnKeyType="search"
       />
       <T v="muted" style={{ fontSize: 12 }}>Book details from Open Library</T>
-      {searching && <ActivityIndicator />}
+      {search.loading && <ActivityIndicator />}
       <ErrorText>{error}</ErrorText>
       {results.map((b) => (
         <BookRow key={b.key} book={b} onPick={setPicked} />
       ))}
-      {searched && !searching && (
+      {searched && (
         results.length ? (
           <CantFind onPress={() => setManual(true)} />
         ) : (
@@ -229,22 +198,15 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
  */
 function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => void }) {
   const [language, setLanguage] = useState<BookLanguage>(guessLanguage(book.title));
-  const [existing, setExisting] = useState<Story | null | undefined>(undefined); // undefined = checking
   const [chapters, setChapters] = useState('');
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [saveError, setError] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    setExisting(undefined);
-    findStory({ openLibraryKey: book.key, language })
-      .then((s) => live && setExisting(s))
-      .catch((e) => live && (setExisting(null), setError(friendly(e))));
-    return () => {
-      live = false;
-    };
-  }, [book.key, language]);
+  const found = useLookup(`${book.key}#${language}`, () => findStory({ openLibraryKey: book.key, language }));
+  // undefined = still checking; null = new to Fictionally (or the check failed: we'll create it)
+  const existing: Story | null | undefined = found.loading ? undefined : (found.data ?? null);
+  const error = saveError || (found.error ? friendly(found.error) : '');
 
   async function save() {
     const n = Number(chapters);
@@ -336,8 +298,6 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
 function AddFic() {
   const { c } = useTheme();
   const [link, setLink] = useState('');
-  const [existing, setExisting] = useState<Story | null>(null);
-  const [checking, setChecking] = useState(false);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [fandom, setFandom] = useState('');
@@ -349,25 +309,14 @@ function AddFic() {
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const lookup = useRef(0);
 
   const canonical = normaliseAo3Link(link);
   const badLink = link.trim().length > 0 && !canonical;
 
-  useEffect(() => {
-    const id = ++lookup.current;
-    setExisting(null);
-    if (!canonical) return;
-    setChecking(true);
-    findStory({ ao3Link: canonical })
-      .then((s) => {
-        if (id === lookup.current) setExisting(s);
-      })
-      .catch(() => {}) // not found or offline: the reader fills in the form
-      .finally(() => {
-        if (id === lookup.current) setChecking(false);
-      });
-  }, [canonical]);
+  // Not found or offline: the reader fills in the form (a duplicate insert then joins the existing story).
+  const found = useLookup(canonical, () => findStory({ ao3Link: canonical! }));
+  const existing = found.data ?? null;
+  const checking = found.loading;
 
   function toggleWarning(w: string) {
     setWarnings((cur) => (cur.includes(w) ? cur.filter((x) => x !== w) : [...cur, w]));
