@@ -2,14 +2,15 @@ import Feather from '@expo/vector-icons/Feather';
 import { Tabs } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { fonts, useTheme } from '@/theme';
+import { useT } from '@/i18n';
+import { useTheme } from '@/theme';
 
 type IconName = 'home' | 'book-open' | 'user';
 
 // Modern tab bar (design 15 Oct 2026): the active tab is a pink pill with icon + label,
 // the others show only their icon (their label stays available to VoiceOver).
 function TabIcon({ name, label, focused }: { name: IconName; label: string; focused: boolean }) {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   if (!focused) return <Feather name={name} size={22} color={c.muted} />;
   return (
     <View
@@ -31,6 +32,7 @@ function TabIcon({ name, label, focused }: { name: IconName; label: string; focu
 
 export default function TabsLayout() {
   const { c } = useTheme();
+  const t = useT();
   const tab = (label: string, icon: IconName) => ({
     title: label,
     tabBarAccessibilityLabel: label,
@@ -55,9 +57,9 @@ export default function TabsLayout() {
         tabBarIconStyle: { width: 'auto', height: 48 },
       }}
     >
-      <Tabs.Screen name="index" options={tab('Home', 'home')} />
-      <Tabs.Screen name="library" options={tab('Library', 'book-open')} />
-      <Tabs.Screen name="profile" options={tab('Profile', 'user')} />
+      <Tabs.Screen name="index" options={tab(t('common.home'), 'home')} />
+      <Tabs.Screen name="library" options={tab(t('common.library'), 'book-open')} />
+      <Tabs.Screen name="profile" options={tab(t('common.profile'), 'user')} />
     </Tabs>
   );
 }
