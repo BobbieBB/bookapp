@@ -19,29 +19,11 @@ import {
   type BookLanguage,
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
+import { RATING_LABEL, WARNING_LABEL } from '@/lib/ao3Labels';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
 import { useT } from '@/i18n';
-import type { MessageKey } from '@/i18n/en';
 
 type Translate = ReturnType<typeof useT>;
-
-// Short labels for AO3's archive warnings and ratings: what is shown, never what is stored (that stays AO3's wording).
-const WARNING_LABEL: Record<(typeof AO3_WARNINGS)[number], MessageKey> = {
-  'No Archive Warnings Apply': 'add.warnNone',
-  'Creator Chose Not To Use Archive Warnings': 'add.warnUnchosen',
-  'Graphic Depictions Of Violence': 'add.warnViolence',
-  'Major Character Death': 'add.warnDeath',
-  'Rape/Non-Con': 'add.warnNonCon',
-  'Underage Sex': 'add.warnUnderage',
-};
-
-const RATING_LABEL: Record<(typeof AO3_RATINGS)[number], MessageKey> = {
-  'General Audiences': 'add.ratingGeneral',
-  'Teen And Up Audiences': 'add.ratingTeen',
-  Mature: 'add.ratingMature',
-  Explicit: 'add.ratingExplicit',
-  'Not Rated': 'add.ratingNotRated',
-};
 
 export default function AddStory() {
   const { c } = useTheme();

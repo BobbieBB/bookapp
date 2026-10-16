@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
 
 import { T } from '@/components/ui';
 import { progressLine, sectionTotal } from '@/lib/library';
@@ -21,7 +22,12 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
   const cover = coverColor(s.id, t.isDark);
 
   return (
-    <View style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}>
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={s.title}
+      onPress={() => router.push({ pathname: '/story/[id]', params: { id: s.id } })}
+      style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
+    >
       {/* Typographic cover: fics never have covers (fanart is someone else's work). */}
       <View
         accessible
@@ -66,6 +72,6 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
           <View style={{ height: '100%', borderRadius: 999, width: `${pct}%`, backgroundColor: s.kind === 'fanfic' ? c.secondary : c.primary }} />
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }

@@ -57,6 +57,7 @@ function RootStack() {
       <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="story/[id]" />
       </Stack.Protected>
     </Stack>
   );
