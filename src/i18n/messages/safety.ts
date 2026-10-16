@@ -36,7 +36,7 @@ export const en = {
   'safety.authorsBody1':
     'We never host, scrape or sell fanfiction. We keep only a link to your fic and the details readers type in themselves.',
   'safety.authorsBody2':
-    'We send readers to AO3 to leave kudos and comments, and there are no public star ratings for fics. Everything is behind a login and kept out of search engines.',
+    'We send readers to AO3 to leave kudos, comments and recs, and fics are never rated in the app. Everything is behind a login and kept out of search engines.',
   'safety.authorsBody3': 'If you’d rather your fic wasn’t listed, ask us to hide it at any time. It is hidden everywhere in the app.',
   'safety.removalTitle': 'Ask us to hide your fic',
   'safety.removalLink': 'Link to your fic on AO3',
@@ -64,7 +64,7 @@ export const bg: Translation<typeof en> = {
   'safety.blockConfirm': 'Да блокираме ли {name}? Повече няма да виждаш коментарите му.',
   'safety.blockButton': 'Блокирай',
   'safety.cancel': 'Отказ',
-  'safety.blocked': 'Блокиран. Повече няма да виждаш коментарите му.',
+  'safety.blocked': 'Готово. Повече няма да виждаш коментарите на този читател.',
   'safety.error': 'Нещо се обърка. Опитай пак след малко.',
   'safety.blockedTitle': 'Блокирани читатели',
   'safety.blockedEmpty': 'Още не си блокирал никого.',
@@ -84,7 +84,7 @@ export const bg: Translation<typeof en> = {
   'safety.authorsBody1':
     'Никога не хостваме, не копираме и не продаваме фенфикшън. Пазим само връзка към твоя фик и данните, които читателите сами въвеждат.',
   'safety.authorsBody2':
-    'Пращаме читателите в AO3, за да оставят kudos и коментари, а публични звездни оценки за фиковете няма. Всичко е зад вход и скрито от търсачките.',
+    'Пращаме читателите в AO3, за да оставят kudos, коментари и препоръки, а фиковете никога не се оценяват в приложението. Всичко е зад вход и скрито от търсачките.',
   'safety.authorsBody3': 'Ако предпочиташ фикът ти да не е в списъка, помоли ни да го скрием по всяко време. Скрива се навсякъде в приложението.',
   'safety.removalTitle': 'Помоли ни да скрием фика ти',
   'safety.removalLink': 'Връзка към твоя фик в AO3',
