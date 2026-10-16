@@ -12,7 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { fonts, radius, softShadow, space, useTheme } from '@/theme';
+import { radius, softShadow, space, useTheme } from '@/theme';
 
 export function Button({
   title,
@@ -27,7 +27,7 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
 }) {
-  const { c, isDark } = useTheme();
+  const { c, isDark, fonts } = useTheme();
   const base: ViewStyle = { minHeight: 52, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.l };
   const style: ViewStyle =
     variant === 'primary'
@@ -63,7 +63,7 @@ export function Button({
 }
 
 export function Field({ label, ...props }: TextInputProps & { label: string }) {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   return (
     <View style={{ gap: space.xs }}>
       <Text style={{ fontSize: 14, fontFamily: fonts.bodyBold, color: c.inkSoft }}>{label}</Text>
@@ -88,7 +88,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
 }
 
 export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
       <Text style={{ fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
@@ -105,7 +105,7 @@ export function Card({ children, tone = 'surface', style }: { children: ReactNod
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   if (!children) return null;
   return <Text style={{ color: c.danger, fontSize: 14, lineHeight: 20, fontFamily: fonts.bodyBold }}>{children}</Text>;
 }
@@ -122,7 +122,7 @@ export function T({
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
 }) {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   const styles: Record<string, TextStyle> = {
     h1: { fontFamily: fonts.display, fontSize: 32, letterSpacing: -0.8, color: c.ink },
     h2: { fontFamily: fonts.display, fontSize: 19, letterSpacing: -0.3, color: c.ink },
@@ -140,7 +140,7 @@ export function T({
 }
 
 export function Chip({ label, active, onPress, big }: { label: string; active: boolean; onPress: () => void; big?: boolean }) {
-  const { c, isDark } = useTheme();
+  const { c, isDark, fonts } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
