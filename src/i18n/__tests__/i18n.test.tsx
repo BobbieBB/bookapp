@@ -37,7 +37,7 @@ describe('dictionaries', () => {
 
 describe('translate', () => {
   it('fills in {placeholders}', () => {
-    expect(translate('en', 'library.progressChapter', { n: 3, total: 10 })).toBe('Chapter 3 of 10');
+    expect(translate('en', 'library.finishedChapterOf', { n: 3, total: 10 })).toBe('Finished chapter 3 of 10');
   });
 
   it('picks the plural form for each language', () => {
@@ -48,7 +48,7 @@ describe('translate', () => {
   });
 
   it('leaves an unknown placeholder visible rather than printing "undefined"', () => {
-    expect(translate('en', 'library.progressChapter', { n: 3 })).toBe('Chapter 3 of {total}');
+    expect(translate('en', 'library.finishedChapterOf', { n: 3 })).toBe('Finished chapter 3 of {total}');
   });
 });
 
