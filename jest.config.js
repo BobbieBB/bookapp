@@ -9,4 +9,6 @@ module.exports = {
   testEnvironment: '<rootDir>/test/environment.js',
   setupFiles: ['<rootDir>/jest.setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/supabase/'],
+  // App tests talk to a real local Supabase stack, so give them more than the 5 s default.
+  testTimeout: 30_000,
 };

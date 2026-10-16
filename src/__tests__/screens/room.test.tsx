@@ -1,12 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
-import type { ReactElement } from 'react';
 
 import RoomScreen from '../../../app/room/[storyId]/[room]';
-import { languageWrapper } from '../../../test/i18n';
+import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
 import type { Language } from '../../i18n';
-import { AuthProvider } from '../../lib/auth';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -53,19 +50,13 @@ beforeAll(async () => {
   await supabase.from('library_entries').update({ progress_section: 2 }).eq('story_id', storyId).eq('user_id', reader.id).throwOnError();
 });
 
+afterAll(async () => {
+  await supabase.removeAllChannels();
+  await supabase.auth.signOut();
+});
+
 async function open(language: Language, room: string) {
-  const InLanguage = await languageWrapper(language);
-  await renderRouter(
-    { 'room/[storyId]/[room]': RoomScreen },
-    {
-      initialUrl: `/room/${storyId}/${room}`,
-      wrapper: ({ children }: { children: ReactElement }) => (
-        <InLanguage>
-          <AuthProvider>{children}</AuthProvider>
-        </InLanguage>
-      ),
-    },
-  );
+  await renderScreen(language, { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/${room}`);
   await screen.findByTestId('room-title', {}, { timeout: 8000 });
 }
 
