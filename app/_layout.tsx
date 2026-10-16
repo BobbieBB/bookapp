@@ -15,7 +15,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Button, T } from '@/components/ui';
-import { LanguageProvider } from '@/i18n';
+import { LanguageProvider, useT } from '@/i18n';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { space, useTheme } from '@/theme';
 
@@ -28,15 +28,16 @@ function Loading() {
   );
 }
 
-function ProfileError() {
+export function ProfileError() {
   const { c } = useTheme();
+  const t = useT();
   const { refreshProfile, signOut } = useAuth();
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: space.xl, gap: space.l, backgroundColor: c.ground }}>
-      <T v="h2">We couldn’t load your profile</T>
-      <T v="muted">Check your connection and try again.</T>
-      <Button title="Try again" onPress={refreshProfile} />
-      <Button variant="link" title="Sign out" onPress={signOut} />
+      <T v="h2">{t('auth.profileLoadFailed')}</T>
+      <T v="muted">{t('auth.profileLoadHint')}</T>
+      <Button title={t('common.tryAgain')} onPress={refreshProfile} />
+      <Button variant="link" title={t('common.signOut')} onPress={signOut} />
     </View>
   );
 }
