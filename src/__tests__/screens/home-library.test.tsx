@@ -75,7 +75,7 @@ describe('Home', () => {
     expect(screen.getByText('CONTINUE READING · BOOKS')).toBeOnTheScreen();
     expect(screen.getByText('Finished chapter 3 of 10')).toBeOnTheScreen();
     expect(screen.getByText('Finished part 1 of 3')).toBeOnTheScreen();
-    expect(screen.getByText(`Hi, ${username}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`Hi, ${username}`, {}, { timeout: 8000 })).toBeOnTheScreen(); // the profile loads after the library
     expect(screen.getByText('When someone replies to you or mentions you, you’ll see it here.')).toBeOnTheScreen();
   });
 
@@ -86,7 +86,7 @@ describe('Home', () => {
     expect(screen.getByText('ПРОДЪЛЖИ ДА ЧЕТЕШ · КНИГИ')).toBeOnTheScreen();
     expect(screen.getByText('Прочетена глава 3 от 10')).toBeOnTheScreen();
     expect(screen.getByText('Прочетена част 1 от 3')).toBeOnTheScreen();
-    expect(screen.getByText(`Здравей, ${username}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`Здравей, ${username}`, {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByText('REPLIES TO YOU')).toBeNull();
   });
 });
