@@ -8,7 +8,7 @@ import { STATUS_KEY } from '@/lib/types';
 import { useT } from '@/i18n';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
 
-export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatus?: boolean }) {
+export function StoryRow({ entry, showStatus, hint }: { entry: LibraryEntry; showStatus?: boolean; hint?: string }) {
   const t = useTheme();
   const tr = useT();
   const { fonts } = t;
@@ -60,6 +60,7 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
           {showStatus ? `${tr(STATUS_KEY[entry.status])} · ` : ''}
           {progressLine(entry, tr)}
         </T>
+        {hint ? <T v="muted">{hint}</T> : null}
         <View
           style={{
             height: 6,
