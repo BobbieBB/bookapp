@@ -12,9 +12,24 @@ the whole story.
 
 ## Status
 
-Pre-MVP, sprint 1. Done: database with spoiler rules and tests, live on Supabase; app foundation
-(sign up / sign in, onboarding, Home, My Library, Profile). Next: adding stories, reading progress and
-chapter discussions. Planning lives on the Trello board *Book club app*.
+MVP v1 feature-complete in code (PRs #3–#13, each building on the one before), pending review and
+merge. In the app:
+- **Basics:** sign up, onboarding and the English/Bulgarian UI.
+- **Stories:** adding books (Open Library) and fics (AO3 link), and the story page with reading
+  progress and WIP chapters.
+- **Discussions:** chapter discussions and The Epilogue with replies, reactions and live updates.
+- **After reading:** "You finished it!", book ratings and reviews.
+- **Home and Discover:** Home with replies and @mentions, notifications, and Discover by fandom.
+- **Safety:** report, block, feedback and "Authors are welcome".
+- **Extras:** private custom covers, push notifications and first-party analytics.
+
+Before launch:
+- **Hosted database:** apply the migrations to the hosted Supabase in order.
+- **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
+  (see PR #13).
+- **Copy:** a native read of the Bulgarian copy.
+
+Planning lives on the Trello board *Book club app*.
 
 ## Stack
 
