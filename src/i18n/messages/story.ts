@@ -32,7 +32,7 @@ export const bg: Translation<typeof en> = {
   'story.finishChapter': 'Прочетох глава {n}',
   'story.chapterOut': 'Излезе глава {n}: прочетох я',
   'story.changeChapter': 'Смени главата',
-  'story.chapterPicker': 'Последната глава, която си прочел',
+  'story.chapterPicker': 'Последна прочетена глава',
   'story.chapterOption': 'Глава {n}',
   'story.page': 'На страница съм',
   'story.savePage': 'Запази страницата',

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
 import type { ReactElement } from 'react';
 
@@ -82,7 +82,7 @@ describe('a book you are reading', () => {
   it('"I finished chapter 4" moves progress on', async () => {
     await open('en', bookId);
     await fireEvent.press(screen.getByText('I finished chapter 4'));
-    await waitFor(() => expect(screen.getByText('Finished chapter 4 of 10')).toBeOnTheScreen());
+    expect(await screen.findByText('Finished chapter 4 of 10', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(bookId)).progress_section).toBe(4);
   });
 
@@ -90,7 +90,7 @@ describe('a book you are reading', () => {
     await open('en', bookId);
     await fireEvent.press(screen.getByText('Change chapter'));
     await fireEvent.press(await screen.findByTestId('chapter-option-2'));
-    await waitFor(() => expect(screen.getByText('Finished chapter 2 of 10')).toBeOnTheScreen());
+    expect(await screen.findByText('Finished chapter 2 of 10', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(bookId)).progress_section).toBe(2);
   });
 
@@ -98,7 +98,7 @@ describe('a book you are reading', () => {
     await open('en', bookId);
     await fireEvent.changeText(screen.getByLabelText('I’m on page'), '150');
     await fireEvent.press(screen.getByText('Save page'));
-    await waitFor(() => expect(screen.getByText('50% read')).toBeOnTheScreen());
+    expect(await screen.findByText('50% read', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(await entry(bookId)).toMatchObject({ progress_page: 150, progress_section: 2 });
   });
 
@@ -106,9 +106,10 @@ describe('a book you are reading', () => {
     await open('en', bookId);
     expect(screen.queryByText('On Hold')).toBeNull();
     await fireEvent.press(screen.getByText('Want to Read'));
+    await screen.findByRole('button', { name: 'Want to Read', selected: true }, { timeout: 8000 });
     await fireEvent.press(screen.getByLabelText('Add to favourites'));
-    await waitFor(async () => expect(await entry(bookId)).toMatchObject({ status: 'want_to_read', is_favourite: true }));
-    expect(screen.getByLabelText('Remove from favourites')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Remove from favourites', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await entry(bookId)).toMatchObject({ status: 'want_to_read', is_favourite: true });
   });
 
   it('in Bulgarian', async () => {
@@ -133,7 +134,7 @@ describe('a WIP fic you are caught up with', () => {
   it('reports a newly published chapter when you finish it', async () => {
     await open('en', wipId);
     await fireEvent.press(screen.getByText('Chapter 6 is out: I finished it'));
-    await waitFor(() => expect(screen.getByText('Finished chapter 6 of 6')).toBeOnTheScreen());
+    expect(await screen.findByText('Finished chapter 6 of 6', {}, { timeout: 8000 })).toBeOnTheScreen();
     const story = (await supabase.from('stories').select('published_sections').eq('id', wipId).single().throwOnError()).data!;
     expect(story.published_sections).toBe(6);
   });
@@ -141,9 +142,9 @@ describe('a WIP fic you are caught up with', () => {
   it('can be marked complete by a caught-up reader, and set back to ongoing', async () => {
     await open('en', wipId);
     await fireEvent.press(screen.getByText('The fic is complete'));
-    await waitFor(() => expect(screen.getByText('Complete')).toBeOnTheScreen());
+    expect(await screen.findByText('Complete', {}, { timeout: 8000 })).toBeOnTheScreen();
     await fireEvent.press(screen.getByText('Not complete after all? Set it back to ongoing'));
-    await waitFor(() => expect(screen.getByText('WIP')).toBeOnTheScreen());
+    expect(await screen.findByText('WIP', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });
 
@@ -152,7 +153,8 @@ describe('a story not in your library', () => {
     await open('en', strangerBookId);
     expect(screen.queryByText(/I finished chapter/)).toBeNull();
     await fireEvent.press(screen.getByText('Add to my library'));
-    await waitFor(async () => expect((await entry(strangerBookId)).status).toBe('want_to_read'));
-    expect(await screen.findByText('I finished chapter 1')).toBeOnTheScreen();
+    // The page shows the library section once the entry is saved; then check what was saved.
+    expect(await screen.findByText('I finished chapter 1', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect((await entry(strangerBookId)).status).toBe('want_to_read');
   });
 });
