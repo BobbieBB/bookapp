@@ -1,3 +1,5 @@
+import app from '../../app.json';
+
 // Public connection settings for Supabase.
 // The publishable key is meant to ship inside the app: what each user can see is
 // decided by the Row Level Security rules in supabase/migrations, not by this key.
@@ -13,3 +15,8 @@ export const SUPABASE_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_KEY ?? 'sb_publishable_1p5aIfgobmFhCK4j9AZu_Q_5YRjPlt-';
 
 export const APP_NAME = 'Fictionally'; // working name, see docs/DECISIONS.md
+export const APP_VERSION = app.expo.version;
+export const PROJECT_URL = 'https://github.com/BobbieBB/bookapp';
+
+/** Open Library's base URL; tests point it at a local stand-in so they never call the real API. */
+export const openLibraryUrl = () => process.env.EXPO_PUBLIC_OPEN_LIBRARY_URL ?? 'https://openlibrary.org';

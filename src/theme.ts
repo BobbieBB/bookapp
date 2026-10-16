@@ -4,14 +4,15 @@
 // components ask for a role (e.g. `c.mine` for your own posts), never a hex.
 import { useColorScheme } from 'react-native';
 
+import { useOptionalLanguage, type Language } from '@/i18n';
+
 const light = {
   ground: '#F6F8F7',
   surface: '#FFFFFF',
   band: '#BFEBD8', // header band
-  ink: '#1E1328', // text and outlines
+  ink: '#1E1328', // text
   inkSoft: '#3B2F45',
   muted: '#4E4459',
-  outline: '#1E1328',
   hairline: '#E0D9E5', // input borders, dividers
   shadow: '#1E1328', // soft shadow colour (used at low opacity)
   primary: '#FF4F84', // hot pink
@@ -33,7 +34,6 @@ const dark: typeof light = {
   ink: '#F7EEF3',
   inkSoft: '#EDE2EA',
   muted: '#B4A6BD',
-  outline: '#3A2F44',
   hairline: '#3A2F44',
   shadow: '#000000',
   primary: '#FF6B97', // rose
@@ -77,14 +77,29 @@ export function coverColor(storyId: string, isDark: boolean) {
   return set[h % set.length]!;
 }
 
-// Font family names as registered in app/_layout.tsx.
-export const fonts = {
-  display: 'BricolageGrotesque_800ExtraBold', // UI headings
-  displaySemi: 'BricolageGrotesque_600SemiBold',
-  moment: 'CormorantGaramond_700Bold_Italic', // emotional moments: The Epilogue, chapter titles
-  body: 'AtkinsonHyperlegible_400Regular', // reading text
-  bodyBold: 'AtkinsonHyperlegible_700Bold',
-};
+// Font family names as registered in app/_layout.tsx. The brand fonts have no Cyrillic, so the
+// Bulgarian UI uses Onest, a grotesque made for Cyrillic screens (docs/DECISIONS.md, Dev defaults).
+// Cormorant Garamond has Cyrillic and stays for "moments" in both languages.
+const fontSets = {
+  en: {
+    display: 'BricolageGrotesque_800ExtraBold', // UI headings
+    displaySemi: 'BricolageGrotesque_600SemiBold',
+    moment: 'CormorantGaramond_700Bold_Italic', // emotional moments: The Epilogue, chapter titles
+    body: 'AtkinsonHyperlegible_400Regular', // reading text
+    bodyBold: 'AtkinsonHyperlegible_700Bold',
+  },
+  bg: {
+    display: 'Onest_800ExtraBold',
+    displaySemi: 'Onest_600SemiBold',
+    moment: 'CormorantGaramond_700Bold_Italic',
+    body: 'Onest_400Regular',
+    bodyBold: 'Onest_700Bold',
+  },
+} satisfies Record<Language, Record<string, string>>;
+
+export type Fonts = (typeof fontSets)['en'];
+
+export const fontsFor = (language: Language): Fonts => fontSets[language];
 
 export const radius = { s: 14, m: 20, l: 22, pill: 999 };
 export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
@@ -108,6 +123,7 @@ export function useTheme() {
   return {
     isDark,
     c,
+    fonts: fontsFor(useOptionalLanguage() ?? 'en'),
     // Modern card: no outline, soft shadow, generous corners.
     card: {
       backgroundColor: c.surface,
