@@ -33,20 +33,16 @@ export const searchFandoms = async (query: string) =>
 export const lively = async (fandoms: string[]) =>
   (await rpc<LivelyStory[]>('lively_in_fandoms', { p_fandoms: fandoms })).map((s) => ({ ...s, activity: Number(s.activity) }));
 
-async function updateFavourites(change: (current: string[]) => string[]) {
+/** Every fandom you picked (Profile shows them all; Discover's chips show at most 6). */
+export async function favouriteFandoms(): Promise<string[]> {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Not signed in.');
   const { data, error } = await supabase.from('profiles').select('favourite_fandoms').eq('id', auth.user.id).single();
   if (error) throw error;
-  const { error: saveError } = await supabase
-    .from('profiles')
-    .update({ favourite_fandoms: change(data.favourite_fandoms as string[]) })
-    .eq('id', auth.user.id);
-  if (saveError) throw saveError;
+  return data.favourite_fandoms as string[];
 }
 
-/** Profile > Your fandoms: one tap on a suggested (dashed "+") chip adds it. */
-export const addFavouriteFandom = (fandom: string) =>
-  updateFavourites((current) => (current.includes(fandom) ? current : [...current, fandom]));
+/** Profile > Your fandoms: one tap on a suggested (dashed "+") chip adds it. Atomic in the database. */
+export const addFavouriteFandom = (fandom: string) => rpc<void>('add_favourite_fandom', { p_fandom: fandom });
 
-export const removeFavouriteFandom = (fandom: string) => updateFavourites((current) => current.filter((f) => f !== fandom));
+export const removeFavouriteFandom = (fandom: string) => rpc<void>('remove_favourite_fandom', { p_fandom: fandom });

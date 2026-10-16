@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Chip, ErrorText, T } from '@/components/ui';
 import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { addFavouriteFandom, myFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
+import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
 
@@ -19,8 +19,8 @@ function YourFandoms() {
   const [version, setVersion] = useState(0);
   const [failed, setFailed] = useState(false);
   const { data, error, previous } = useLookup(`fandoms-${version}`, async () => {
-    const [mine, suggested] = await Promise.all([myFandoms(), suggestedFandoms()]);
-    return { picked: mine.filter((f) => f.source === 'picked').map((f) => f.fandom), suggested };
+    const [picked, suggested] = await Promise.all([favouriteFandoms(), suggestedFandoms()]);
+    return { picked, suggested };
   });
   const shown = data ?? previous;
 

@@ -28,13 +28,21 @@ returns setof public.stories language sql stable security definer set search_pat
 $$;
 revoke execute on function public.visible_fics() from public, anon, authenticated;
 
--- Comments in a story's discussions since a time (activity only: no text, any room).
-create or replace function public.story_comments_since(p_story uuid, p_since timestamptz)
-returns bigint language sql stable security definer set search_path = public as $$
-  select count(*) from public.comments c join public.discussions d on d.id = c.discussion_id
-  where d.story_id = p_story and c.created_at >= p_since and c.deleted_at is null and not c.is_hidden
+-- Comments per story since a time, in one pass (activity only: no text, any room).
+create or replace function public.comments_per_story_since(p_since timestamptz)
+returns table (story_id uuid, comments bigint) language sql stable security definer set search_path = public as $$
+  select d.story_id, count(*) from public.comments c join public.discussions d on d.id = c.discussion_id
+  where c.created_at >= p_since and c.deleted_at is null and not c.is_hidden
+  group by d.story_id
 $$;
-revoke execute on function public.story_comments_since(uuid, timestamptz) from public, anon, authenticated;
+revoke execute on function public.comments_per_story_since(timestamptz) from public, anon, authenticated;
+
+-- Readers per story (anonymous count).
+create or replace function public.readers_per_story()
+returns table (story_id uuid, readers bigint) language sql stable security definer set search_path = public as $$
+  select le.story_id, count(*) from public.library_entries le group by le.story_id
+$$;
+revoke execute on function public.readers_per_story() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- YOUR FANDOMS: picked ones first, then fandoms of fics in your library (most recent first),
@@ -85,15 +93,21 @@ $$;
 create or replace function public.search_fandoms(p_query text)
 returns table (fandom text, stories bigint, rank int)
 language sql stable security definer set search_path = public as $$
-  with fandoms as (
+  with q as (select lower(trim(coalesce(p_query, ''))) as text),
+  fandoms as (
     select f as fandom, s.id as story_id
-    from public.visible_fics() s, unnest(s.fandoms) as f
-    where strpos(lower(f), lower(trim(coalesce(p_query, '')))) > 0
-  ), scored as (
-    select fandom, count(distinct story_id) as stories,
-      sum(public.story_comments_since(story_id, now() - interval '7 days')) as week,
-      (select count(*) from public.library_entries le where le.story_id = any (array_agg(fandoms.story_id))) as readers
-    from fandoms group by fandom
+    from public.visible_fics() s, unnest(s.fandoms) as f, q
+    -- Empty text lists every fandom; otherwise search from 3 characters, like book search.
+    where q.text = '' or (char_length(q.text) >= 3 and strpos(lower(f), q.text) > 0)
+    group by f, s.id
+  ), week as (select * from public.comments_per_story_since(now() - interval '7 days')),
+  readers as (select * from public.readers_per_story()),
+  scored as (
+    select f.fandom, count(*) as stories, coalesce(sum(w.comments), 0) as week, coalesce(sum(r.readers), 0) as readers
+    from fandoms f
+    left join week w on w.story_id = f.story_id
+    left join readers r on r.story_id = f.story_id
+    group by f.fandom
   )
   select fandom, stories, (row_number() over (order by week desc, readers desc, fandom))::int
   from scored order by 3 limit 30
@@ -113,7 +127,7 @@ declare
   tiers text[] := array['week', 'month', 'readers', 'starter'];
   t text;
 begin
-  select count(*) >= 2 and avg((s.status = 'completed')::int) >= 0.8 into complete_first
+  select count(*) >= 2 and avg(coalesce((s.status = 'completed')::int, 0)) >= 0.8 into complete_first
   from public.library_entries le join public.stories s on s.id = le.story_id
   where le.user_id = auth.uid() and s.kind = 'fanfic';
 
@@ -124,16 +138,18 @@ begin
         where (case when t = 'starter' then s.fandoms && (select array_agg(fandom) from public.starter_fandoms)
                     else s.fandoms && p_fandoms end)
           and not exists (select 1 from public.library_entries le where le.story_id = s.id and le.user_id = auth.uid())
+      ), activity as (
+        select * from public.comments_per_story_since(now() - interval '7 days') where t = 'week'
+        union all
+        select * from public.comments_per_story_since(now() - interval '30 days') where t = 'month'
+        union all
+        select * from public.readers_per_story() where t in ('readers', 'starter')
       ), scored as (
-        select c.*, case t
-            when 'week' then public.story_comments_since(c.id, now() - interval '7 days')
-            when 'month' then public.story_comments_since(c.id, now() - interval '30 days')
-            else (select count(*) from public.library_entries le where le.story_id = c.id)
-          end as activity
-        from candidates c
+        select c.*, coalesce(a.comments, 0) as activity
+        from candidates c left join activity a on a.story_id = c.id
       )
       select s.id, s.title, s.author_name, s.fandoms, s.status, s.published_sections, t, s.activity,
-        (row_number() over (order by (complete_first and s.status = 'completed') desc, s.activity desc, s.created_at desc))::int
+        (row_number() over (order by (complete_first and s.status = 'completed') desc, s.activity desc, s.created_at desc, s.id))::int
       from scored s
       where s.activity > 0 or t = 'starter'
       order by 9
@@ -144,10 +160,30 @@ begin
   end loop;
 end $$;
 
+-- Profile > Your fandoms: add or remove one in place, so two quick taps (or two devices) never
+-- overwrite each other.
+create or replace function public.add_favourite_fandom(p_fandom text)
+returns void language plpgsql security invoker set search_path = public as $$
+begin
+  if char_length(trim(coalesce(p_fandom, ''))) not between 1 and 200 then
+    raise exception 'a fandom needs a name';
+  end if;
+  update public.profiles set favourite_fandoms = array_append(favourite_fandoms, trim(p_fandom))
+  where id = auth.uid() and not trim(p_fandom) = any (favourite_fandoms);
+end $$;
+
+create or replace function public.remove_favourite_fandom(p_fandom text)
+returns void language sql security invoker set search_path = public as $$
+  update public.profiles set favourite_fandoms = array_remove(favourite_fandoms, p_fandom) where id = auth.uid()
+$$;
+
+revoke execute on function public.add_favourite_fandom(text), public.remove_favourite_fandom(text) from public, anon;
+grant execute on function public.add_favourite_fandom(text), public.remove_favourite_fandom(text) to authenticated;
+
 revoke execute on function public.my_fandoms(), public.suggested_fandoms(), public.search_fandoms(text),
   public.lively_in_fandoms(text[]) from public, anon;
 grant execute on function public.my_fandoms(), public.suggested_fandoms(), public.search_fandoms(text),
   public.lively_in_fandoms(text[]) to authenticated;
 
--- Activity lookups by time.
-create index comments_created_idx on public.comments (created_at);
+-- Activity per story: discussions by story (the existing indexes are partial per room kind).
+create index discussions_story_idx on public.discussions (story_id);

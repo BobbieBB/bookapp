@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
@@ -70,7 +70,8 @@ function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
   const t = useT();
   const [query, setQuery] = useState('');
   const trimmed = query.trim();
-  const { loading, data, error } = useLookup(trimmed ? trimmed : null, () => searchFandoms(trimmed), SEARCH_DELAY_MS);
+  // Like book search: from 3 characters, after a pause in typing.
+  const { loading, data, error } = useLookup(trimmed.length >= 3 ? trimmed : null, () => searchFandoms(trimmed), SEARCH_DELAY_MS);
   return (
     <View style={{ gap: space.s }}>
       <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} />
@@ -100,14 +101,17 @@ export default function Discover() {
   const { profile } = useAuth();
   const [selected, setSelected] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const mine = useLookup('mine', () => myFandoms());
+  // Tabs stay mounted: reload whenever Discover comes back into view (fandoms or library may have changed).
+  const [version, setVersion] = useState(0);
+  useFocusEffect(useCallback(() => setVersion((v) => v + 1), []));
+  const mine = useLookup(`mine-${version}`, () => myFandoms());
   // The profile default is reads_fanfic = false, so a reader who has picked a fandom or shelved a fic
   // is a fanfiction reader whatever the flag says; only a reader with neither is told it is not for them.
   const fanficReader = profile?.reads_fanfic !== false || (mine.data ?? []).some((f) => f.source !== 'starter');
   const chips = (mine.data ?? []).slice(0, MAX_CHIPS).map((f) => f.fandom);
   const shownChips = selected && !chips.includes(selected) ? [selected, ...chips.slice(0, MAX_CHIPS - 1)] : chips;
   const scope = selected ? [selected] : chips;
-  const feed = useLookup(mine.data ? JSON.stringify(scope) : null, () => lively(scope));
+  const feed = useLookup(mine.data ? `${version}:${JSON.stringify(scope)}` : null, () => lively(scope));
 
   function pick(fandom: string) {
     setSelected(fandom);

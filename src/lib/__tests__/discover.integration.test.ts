@@ -1,5 +1,6 @@
 import {
   addFavouriteFandom,
+  favouriteFandoms,
   lively,
   myFandoms,
   removeFavouriteFandom,
@@ -79,6 +80,16 @@ it('your fandoms: picked first, then from your library; others in your library a
   expect(await suggestedFandoms()).not.toContain(OTHER);
   await removeFavouriteFandom(FANDOM);
   expect((await myFandoms()).map((f) => f.fandom)).not.toContain(FANDOM);
+});
+
+it('two fandoms added at once both stay; Profile sees every picked fandom', async () => {
+  await as(reader);
+  const many = Array.from({ length: 7 }, (_, i) => `Many ${i} ${run}`);
+  await Promise.all(many.map((f) => addFavouriteFandom(f)));
+  const favourites = await favouriteFandoms();
+  for (const f of many) expect(favourites).toContain(f);
+  expect((await myFandoms()).length).toBeLessThanOrEqual(6);
+  await Promise.all(many.map((f) => removeFavouriteFandom(f)));
 });
 
 it('searches all fandoms in the app', async () => {

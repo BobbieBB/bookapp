@@ -21,7 +21,7 @@ insert into public.profiles (id, username, favourite_fandoms) values
 insert into public.stories (id, kind, title, author_name, fandoms, published_sections, total_sections, status, source, source_url, created_at) values
   ('f5000000-0000-0000-0000-000000000001', 'fanfic', 'GO busy WIP',      'w', '{"Good Omens"}', 3, null, 'ongoing',   'ao3', 'https://archiveofourown.org/works/7001', now() - interval '3 days'),
   ('f5000000-0000-0000-0000-000000000002', 'fanfic', 'GO quiet complete', 'w', '{"Good Omens"}', 5, 5,    'completed', 'ao3', 'https://archiveofourown.org/works/7002', now() - interval '2 days'),
-  ('f5000000-0000-0000-0000-000000000003', 'fanfic', 'Sherlock fic',      'w', '{"Sherlock (TV)"}', 2, 2, 'completed', 'ao3', 'https://archiveofourown.org/works/7003', now()),
+  ('f5000000-0000-0000-0000-000000000003', 'fanfic', 'Arcane fic',      'w', '{"Arcane (TV)"}', 2, 2, 'completed', 'ao3', 'https://archiveofourown.org/works/7003', now()),
   ('f5000000-0000-0000-0000-000000000004', 'fanfic', 'GO old talk',       'w', '{"Good Omens"}', 4, 4,    'completed', 'ao3', 'https://archiveofourown.org/works/7004', now() - interval '1 day'),
   ('f5000000-0000-0000-0000-000000000005', 'fanfic', 'Hidden GO',         'w', '{"Good Omens"}', 1, 1,    'completed', 'ao3', 'https://archiveofourown.org/works/7005', now());
 update public.stories set is_hidden = true where id = 'f5000000-0000-0000-0000-000000000005';
@@ -34,6 +34,12 @@ insert into public.library_entries (user_id, story_id, status, progress_section)
   ('00000000-0000-0000-0000-000000000f04', 'f5000000-0000-0000-0000-000000000002', 'finished', 5),
   ('00000000-0000-0000-0000-000000000f04', 'f5000000-0000-0000-0000-000000000003', 'finished', 2);
 
+-- Arcane is read more than Good Omens but nobody talks about it.
+insert into public.library_entries (user_id, story_id, status, progress_section) values
+  ('00000000-0000-0000-0000-000000000d01', 'f5000000-0000-0000-0000-000000000003', 'finished', 2),
+  ('00000000-0000-0000-0000-000000000d02', 'f5000000-0000-0000-0000-000000000003', 'finished', 2),
+  ('00000000-0000-0000-0000-000000000d03', 'f5000000-0000-0000-0000-000000000003', 'finished', 2);
+
 -- Flora talks about the busy WIP this week, and about "GO old talk" three weeks ago.
 insert into public.discussions (id, story_id, kind, section_number) values
   ('f6000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000001', 'chapter', 1),
@@ -45,19 +51,37 @@ insert into public.comments (discussion_id, author_id, body, created_at) values
 
 -- 1. Your fandoms --------------------------------------------------------------------
 select test.login('00000000-0000-0000-0000-000000000f01');
-select test.ok((select array_agg(fandom order by place) from public.my_fandoms()) = '{"Good Omens","Sherlock (TV)"}',
+select test.ok((select array_agg(fandom order by place) from public.my_fandoms()) = '{"Good Omens","Arcane (TV)"}',
   'your fandoms: the ones you picked, then the fandoms of fics in your library');
-select test.ok((select array_agg(fandom) from public.suggested_fandoms()) = '{"Sherlock (TV)"}',
+select test.ok((select array_agg(fandom) from public.suggested_fandoms()) = '{"Arcane (TV)"}',
   'a fandom from your library you have not picked is suggested');
 select test.login('00000000-0000-0000-0000-000000000f02');
 select test.ok((select count(*) from public.my_fandoms()) between 1 and 6 and (select bool_and(source = 'starter') from public.my_fandoms()),
   'someone who picked nothing gets the curated starter fandoms');
 
 -- 2. All fandoms: search over fandoms in the app, most active first ------------------
-select test.ok((select array_agg(fandom order by rank) from public.search_fandoms('')) = '{"Good Omens","Sherlock (TV)"}',
-  'all fandoms in the app, the one with discussion this week first; hidden stories do not count');
-select test.ok((select array_agg(fandom) from public.search_fandoms('sher')) = '{"Sherlock (TV)"}', 'search is by name, any case');
+select test.ok((select array_agg(fandom order by rank) from public.search_fandoms('')) = '{"Good Omens","Arcane (TV)"}',
+  'all fandoms in the app, the one with discussion this week first (even if read less); hidden stories do not count');
+select test.ok((select count(*) from public.search_fandoms('go')) = 0, 'search starts at 3 characters');
+select test.ok((select array_agg(fandom) from public.search_fandoms('arc')) = '{"Arcane (TV)"}', 'search is by name, any case');
 select test.ok((select count(*) from public.search_fandoms('%')) = 0, 'search text is not a pattern');
+
+-- At most 6 chips, however many fandoms you picked; picked fandoms come first.
+select test.logout();
+update public.profiles set favourite_fandoms = '{"F1","F2","F3","F4","F5","F6","F7","F8"}' where id = '00000000-0000-0000-0000-000000000f02';
+select test.login('00000000-0000-0000-0000-000000000f02');
+select test.ok((select array_agg(fandom order by place) from public.my_fandoms()) = '{"F1","F2","F3","F4","F5","F6"}', 'at most 6 of your fandoms');
+
+-- Adding and removing a favourite is atomic: two adds at once both stay.
+select public.add_favourite_fandom('F9');
+select public.add_favourite_fandom('F9');
+select public.remove_favourite_fandom('F1');
+select test.ok((select favourite_fandoms from public.profiles where id = auth.uid()) = '{"F2","F3","F4","F5","F6","F7","F8","F9"}',
+  'favourites are added once and removed in place');
+select test.ok(test.error_of($$select public.add_favourite_fandom('   ')$$) is not null, 'an empty fandom is refused');
+
+-- Internal helpers are not callable by readers.
+select test.ok(test.error_of($$select * from public.visible_fics()$$) like '%permission denied%', 'visible_fics is internal');
 
 -- 3. Lively in your fandoms ------------------------------------------------------------
 select test.login('00000000-0000-0000-0000-000000000f01');
