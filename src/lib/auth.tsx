@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { disablePush } from './pushDevice';
 import { supabase } from './supabase';
 import type { Profile } from './types';
 
@@ -80,6 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileState,
     refreshProfile: () => loadProfile(session?.user.id),
     signOut: async () => {
+      // This phone stops getting this reader's pushes; failing to say so must not keep them signed in.
+      await disablePush().catch(() => {
+        // Offline, say: the server drops the phone's token the next time that token is refused.
+      });
       await supabase.auth.signOut();
     },
   };

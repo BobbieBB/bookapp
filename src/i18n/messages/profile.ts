@@ -16,6 +16,12 @@ export const en = {
   'profile.removeFandom': 'Remove {fandom} from your fandoms',
   'profile.addFandom': 'Add {fandom} to your fandoms',
   'profile.fandomsError': 'Could not update your fandoms. Please try again.',
+  'profile.push': 'Notifications on this phone',
+  'profile.pushHint': 'Get a buzz when someone replies to you or mentions you. It never shows what they wrote.',
+  'profile.pushDenied': 'Turn on notifications for Fictionally in your phone’s settings.',
+  'profile.pushUnsupported': 'Push notifications need a phone.',
+  'profile.pushNotConfigured': 'Push notifications aren’t set up yet.',
+  'profile.pushError': 'Could not change notifications. Please try again.',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -33,4 +39,10 @@ export const bg: Translation<typeof en> = {
   'profile.removeFandom': 'Махни {fandom} от твоите фендъми',
   'profile.addFandom': 'Добави {fandom} към твоите фендъми',
   'profile.fandomsError': 'Не успяхме да обновим фендъмите ти. Опитай пак.',
+  'profile.push': 'Известия на този телефон',
+  'profile.pushHint': 'Получаваш известие, когато някой ти отговори или те спомене. То никога не показва какво е написал.',
+  'profile.pushDenied': 'Включи известията за Fictionally в настройките на телефона си.',
+  'profile.pushUnsupported': 'Известията се получават на телефон.',
+  'profile.pushNotConfigured': 'Известията още не са настроени.',
+  'profile.pushError': 'Не успяхме да променим известията. Опитай пак.',
 };
