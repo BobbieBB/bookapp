@@ -23,19 +23,24 @@ export default function SignIn() {
     if (password.length < 8) return setError('Your password needs at least 8 characters.');
 
     setBusy(true);
-    if (mode === 'sign-in') {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) setError(friendly(error.message));
-    } else {
-      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-      if (error) setError(friendly(error.message));
-      else if (!data.session) {
-        // Email confirmation is switched on in Supabase: the user must click the link first.
-        setNotice('Almost there! Check your inbox and confirm your email, then sign in here.');
-        setMode('sign-in');
+    try {
+      if (mode === 'sign-in') {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (error) setError(friendly(error.message));
+      } else {
+        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+        if (error) setError(friendly(error.message));
+        else if (!data.session) {
+          // Email confirmation is switched on in Supabase: the user must click the link first.
+          setNotice('Almost there! Check your inbox and confirm your email, then sign in here.');
+          setMode('sign-in');
+        }
       }
+    } catch {
+      setError('We couldn’t reach the server. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (
