@@ -122,15 +122,19 @@ it('new comments arrive live in a room you unlocked', async () => {
   const seen: string[] = [];
   const unsubscribe = await subscribeToRoom(ch2, () => seen.push('change'));
 
-  // Another reader on their own device posts.
+  // Another reader on their own device posts. A freshly started stack can take a few seconds before
+  // Realtime delivers its first change, so they post again every few seconds until one arrives.
   const other = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
   await other.auth.signInWithPassword({ email: ahead.email, password });
-  await other.from('comments').insert({ discussion_id: ch2, body: 'live one' }).throwOnError();
+  const until = Date.now() + 25_000;
+  while (seen.length === 0 && Date.now() < until) {
+    await other.from('comments').insert({ discussion_id: ch2, body: 'live one' }).throwOnError();
+    await waitFor(() => seen.length > 0, 4_000).catch(() => undefined);
+  }
   await other.auth.signOut();
-
-  await waitFor(() => seen.length > 0, 10_000);
   unsubscribe();
-}, 20_000);
+  expect(seen.length).toBeGreaterThan(0);
+}, 40_000);
 
 it('a reader who has not unlocked a room gets no live events from it, not even reactions', async () => {
   await as(behind);
