@@ -40,9 +40,11 @@ export async function bookStats(storyId: string): Promise<{ average: number; cou
 
 const REVIEW = 'id, body, contains_spoilers, created_at, author:profiles!reviews_user_id_fkey (id, username)';
 
-/** Reviews of a book, newest first (hidden ones and those by people you blocked are left out by RLS). */
+export const REVIEWS_SHOWN = 50;
+
+/** The newest {REVIEWS_SHOWN} reviews of a book, newest first (hidden ones and those by people you blocked are left out by RLS). */
 export async function loadReviews(storyId: string): Promise<Review[]> {
-  const { data, error } = await supabase.from('reviews').select(REVIEW).eq('story_id', storyId).order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('reviews').select(REVIEW).eq('story_id', storyId).order('created_at', { ascending: false }).limit(REVIEWS_SHOWN);
   if (error) throw error;
   return data as unknown as Review[];
 }

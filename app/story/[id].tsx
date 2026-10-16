@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BookReviews } from '@/components/BookReviews';
@@ -48,6 +48,7 @@ export default function StoryScreen() {
   const page = useLookup(userId && id ? `${id}:${version}` : null, () => loadStoryPage(id!, userId!));
   const shown = page.data ?? (page.previous?.story.id === id ? page.previous : undefined);
   const reload = () => setVersion((v) => v + 1);
+  useFocusEffect(useCallback(() => setVersion((v) => v + 1), []));
 
   return (
     <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l }}>
@@ -239,7 +240,7 @@ function StoryBody({
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
-              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' ? () => router.push(`/finished/${story.id}`) : undefined)} />
+              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' && entry.status !== 'finished' ? () => router.push(`/finished/${story.id}`) : undefined)} />
             ))}
           </View>
 

@@ -11,20 +11,23 @@ import { space, useTheme } from '@/theme';
 export function BookReviews({ storyId, version }: { storyId: string; version: number }) {
   const { c } = useTheme();
   const t = useT();
-  const found = useLookup(`${storyId}:${version}`, async () => {
-    const [stats, reviews] = await Promise.all([bookStats(storyId), loadReviews(storyId)]);
-    return { stats, reviews };
-  });
-  const shown = found.data ?? found.previous;
+  const stats = useLookup(`${storyId}:${version}`, () => bookStats(storyId));
+  const reviews = useLookup(`${storyId}:${version}`, () => loadReviews(storyId));
+  const shownStats = stats.data !== undefined ? stats.data : stats.previous;
+  const shownReviews = reviews.data ?? reviews.previous;
 
   return (
     <View style={{ gap: space.s }}>
-      {shown?.stats && shown.stats.count > 0 ? (
-        <T v="label">{t('finishing.ratings', { average: shown.stats.average.toFixed(1), count: shown.stats.count })}</T>
+      {shownStats && shownStats.count > 0 ? (
+        <T v="label">{t('finishing.ratings', { average: shownStats.average.toFixed(1), count: shownStats.count })}</T>
       ) : null}
       <T v="overline">{t('finishing.reviews')}</T>
-      {found.error ? <ErrorText>{t('finishing.reviewsFailed')}</ErrorText> : null}
-      {shown ? shown.reviews.map((r) => <ReviewCard key={r.id} review={r} />) : <ActivityIndicator color={c.primary} />}
+      {stats.error || reviews.error ? <ErrorText>{t('finishing.reviewsFailed')}</ErrorText> : null}
+      {shownReviews ? (
+        shownReviews.map((r) => <ReviewCard key={r.id} review={r} />)
+      ) : reviews.error ? null : (
+        <ActivityIndicator color={c.primary} />
+      )}
     </View>
   );
 }

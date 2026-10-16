@@ -9,10 +9,11 @@ import { isAo3Link } from '@/lib/links';
 import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/reviews';
 import { loadStoryPage, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
-import { space, useTheme } from '@/theme';
+import { radius, space, useTheme } from '@/theme';
 
 const STARS = [1, 2, 3, 4, 5];
-const STAR_SIZE = 48;
+const REVIEW_MAX = 10000;
+const TARGET = 44;
 
 export default function FinishedScreen() {
   const { c } = useTheme();
@@ -21,15 +22,16 @@ export default function FinishedScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const userId = session?.user.id;
   const page = useLookup(userId && id ? `${id}` : null, async () => {
-    const { story } = await loadStoryPage(id!, userId!);
-    const mine = story.kind === 'book' ? await Promise.all([myRating(id!), myReview(id!)]) : null;
-    return { story, mine };
+    const { story, entry } = await loadStoryPage(id!, userId!);
+    const finished = entry?.status === 'finished';
+    const mine = finished && story.kind === 'book' ? await Promise.all([myRating(id!), myReview(id!)]) : null;
+    return { story, finished, mine };
   });
 
   return (
     <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l }}>
       {page.data ? (
-        <Finished story={page.data.story} rating={page.data.mine?.[0] ?? null} review={page.data.mine?.[1] ?? null} />
+        <Finished story={page.data.story} finished={page.data.finished} rating={page.data.mine?.[0] ?? null} review={page.data.mine?.[1] ?? null} />
       ) : page.error ? (
         <ErrorText>{t('finishing.loadFailed')}</ErrorText>
       ) : (
@@ -41,10 +43,12 @@ export default function FinishedScreen() {
 
 function Finished({
   story,
+  finished,
   rating: savedRating,
   review: savedReview,
 }: {
   story: StoryDetails;
+  finished: boolean;
   rating: number | null;
   review: { body: string; contains_spoilers: boolean } | null;
 }) {
@@ -52,6 +56,16 @@ function Finished({
   const t = useT();
   const [error, setError] = useState('');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
+
+  if (!finished) {
+    return (
+      <View style={{ gap: space.m }}>
+        <T v="h2">{story.title}</T>
+        <T v="body">{t('finishing.notFinished')}</T>
+        <Button title={t('finishing.backToStory')} onPress={() => router.replace(`/story/${story.id}`)} />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -98,12 +112,18 @@ function BookRating({
   const [body, setBody] = useState(review?.body ?? '');
   const [spoilers, setSpoilers] = useState(review?.contains_spoilers ?? false);
   const [hadReview, setHadReview] = useState(!!review);
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed' | 'reviewFailed'>('idle');
+  const nothingToSave = rating === null && !body.trim() && !hadReview;
 
   async function save() {
+    if (nothingToSave) return;
     setStatus('saving');
+    let ratingSaved = false;
     try {
-      if (rating !== null) await rateBook(storyId, rating);
+      if (rating !== null) {
+        await rateBook(storyId, rating);
+        ratingSaved = true;
+      }
       if (body.trim()) {
         await saveReview(storyId, body, spoilers);
         setHadReview(true);
@@ -113,7 +133,7 @@ function BookRating({
       }
       setStatus('saved');
     } catch {
-      setStatus('failed');
+      setStatus(ratingSaved ? 'reviewFailed' : 'failed');
     }
   }
 
@@ -125,53 +145,59 @@ function BookRating({
   return (
     <View style={{ gap: space.m }}>
       <T v="overline">{t('finishing.yourRating')}</T>
-      <View style={{ flexDirection: 'row' }}>
-        {STARS.map((star) => (
-          <Star key={star} star={star} rating={rating} onRate={edit(setRating)} />
-        ))}
+      <View style={{ gap: space.xs }}>
+        <View style={{ flexDirection: 'row', gap: space.xs }}>
+          {STARS.map((value) => (
+            <RateButton key={value} value={value} rating={rating} onRate={edit(setRating)} />
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: space.xs }}>
+          {STARS.map((value) => (
+            <RateButton key={value} value={value - 0.5} rating={rating} onRate={edit(setRating)} />
+          ))}
+        </View>
       </View>
-      <Field label={t('finishing.reviewLabel')} value={body} onChangeText={edit(setBody)} multiline />
+      <Field label={t('finishing.reviewLabel')} value={body} onChangeText={edit(setBody)} multiline maxLength={REVIEW_MAX} />
       <Toggle label={t('finishing.spoilers')} value={spoilers} onChange={edit(setSpoilers)} />
-      <Button title={t('finishing.save')} onPress={save} loading={status === 'saving'} />
+      <Button title={t('finishing.save')} onPress={save} loading={status === 'saving'} disabled={nothingToSave} />
       {status === 'saved' ? (
         <Text accessibilityRole="alert" accessibilityLiveRegion="polite">
           <T v="label">{t('finishing.saved')}</T>
         </Text>
       ) : null}
       {status === 'failed' ? <ErrorText>{t('finishing.saveFailed')}</ErrorText> : null}
+      {status === 'reviewFailed' ? <ErrorText>{t('finishing.reviewNotSaved')}</ErrorText> : null}
     </View>
   );
 }
 
-/** One star made of two pressable halves: the left half rates star − 0.5, the right half rates star. */
-function Star({ star, rating, onRate }: { star: number; rating: number | null; onRate: (n: number) => void }) {
+/** A rating button: whole stars on the first row, the half steps below. Each is at least 44 x 44. */
+function RateButton({ value, rating, onRate }: { value: number; rating: number | null; onRate: (n: number) => void }) {
   const { c, fonts } = useTheme();
   const t = useT();
-  const fill = rating === null ? 0 : rating >= star ? 1 : rating >= star - 0.5 ? 0.5 : 0;
-  const glyph = { fontFamily: fonts.body, fontSize: 40, lineHeight: STAR_SIZE, textAlign: 'center' as const, width: STAR_SIZE };
-
+  const selected = rating === value;
+  const lit = rating !== null && rating >= value;
   return (
-    <View style={{ width: STAR_SIZE, height: STAR_SIZE }}>
-      <Text importantForAccessibility="no" style={[glyph, { color: c.hairline, position: 'absolute' }]}>
-        ★
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('finishing.rate', { count: value })}
+      accessibilityState={{ selected }}
+      onPress={() => onRate(value)}
+      style={{
+        minWidth: TARGET,
+        minHeight: TARGET,
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: radius.s,
+        borderWidth: 1.5,
+        borderColor: selected ? c.primary : c.hairline,
+        backgroundColor: lit ? c.primary : 'transparent',
+      }}
+    >
+      <Text importantForAccessibility="no" style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: lit ? c.surface : c.ink }}>
+        {`${value}★`}
       </Text>
-      <View pointerEvents="none" style={{ position: 'absolute', width: STAR_SIZE * fill, height: STAR_SIZE, overflow: 'hidden' }}>
-        <Text importantForAccessibility="no" style={[glyph, { color: c.primary }]}>
-          ★
-        </Text>
-      </View>
-      <View style={{ flexDirection: 'row', position: 'absolute', width: STAR_SIZE, height: STAR_SIZE }}>
-        {[star - 0.5, star].map((value) => (
-          <Pressable
-            key={value}
-            accessibilityRole="button"
-            accessibilityLabel={t('finishing.rate', { n: value })}
-            accessibilityState={{ selected: rating === value }}
-            onPress={() => onRate(value)}
-            style={{ flex: 1, height: STAR_SIZE }}
-          />
-        ))}
-      </View>
-    </View>
+    </Pressable>
   );
 }
