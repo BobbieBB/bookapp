@@ -3,7 +3,8 @@
 -- properties, written by the app and readable only by admins.
 create table public.analytics_events (
   id          bigint generated always as identity primary key,
-  user_id     uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  -- auth.users, not profiles: events like sign_up and the first app_open come before onboarding.
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
   name        text not null,
   props       jsonb not null default '{}',
   app_version text check (char_length(app_version) <= 20),
@@ -16,6 +17,7 @@ create table public.analytics_events (
   constraint analytics_props_small check (jsonb_typeof(props) = 'object' and char_length(props::text) <= 500)
 );
 create index analytics_events_name_time on public.analytics_events (name, created_at);
+create index analytics_events_user_time on public.analytics_events (user_id, created_at); -- the rate limit
 
 alter table public.analytics_events enable row level security;
 grant insert on public.analytics_events to authenticated;

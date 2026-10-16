@@ -8,6 +8,11 @@ select test.logout();
 insert into auth.users (id) values ('00000000-0000-0000-0000-000000000a01'), ('00000000-0000-0000-0000-000000000a02');
 insert into public.profiles (id, username) values ('00000000-0000-0000-0000-000000000a01', 'ana'), ('00000000-0000-0000-0000-000000000a02', 'ani');
 
+-- Before onboarding there is no profile yet, but sign_up and the first app_open still count.
+insert into auth.users (id) values ('00000000-0000-0000-0000-000000000a03');
+select test.login('00000000-0000-0000-0000-000000000a03');
+select test.ok(test.error_of($$insert into public.analytics_events (name) values ('sign_up')$$) is null, 'events before onboarding are kept');
+
 select test.login('00000000-0000-0000-0000-000000000a01');
 select test.ok(test.error_of($$insert into public.analytics_events (name, props, app_version, platform)
   values ('story_added', '{"kind": "fanfic"}', '0.1.0', 'ios')$$) is null, 'a known event with a small property');

@@ -191,4 +191,5 @@ Choices made during development where the decisions above don't say. Each one is
 - **Analytics (16 Oct 2026):** first-party only, no third-party SDK. The app records named events
   from a fixed list (app opened, story added, chapter finished, comment posted, …) with a few short
   properties such as `kind` or `language`, never titles, text or ids of other people. Stored in
-  `analytics_events`, readable by admins only. Swap for a hosted tool later if the PO wants dashboards.
+  `analytics_events` with the reader's id (so admins can see one reader's sequence of events), readable by
+  admins only and deleted with the account. Swap for a hosted tool later if the PO wants dashboards.
