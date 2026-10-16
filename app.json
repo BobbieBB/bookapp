@@ -8,7 +8,9 @@
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-font",
+      "expo-localization"
     ],
     "ios": {
       "supportsTablet": false
