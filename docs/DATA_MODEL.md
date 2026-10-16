@@ -21,6 +21,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
 | `feedback` | In-app feedback | Author and admins |
+| `analytics_events` | Which features get used: an event name from a fixed list and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
 

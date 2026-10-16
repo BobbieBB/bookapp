@@ -188,3 +188,7 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Analytics (16 Oct 2026):** first-party only, no third-party SDK. The app records named events
+  from a fixed list (app opened, story added, chapter finished, comment posted, …) with a few short
+  properties such as `kind` or `language`, never titles, text or ids of other people. Stored in
+  `analytics_events`, readable by admins only. Swap for a hosted tool later if the PO wants dashboards.
