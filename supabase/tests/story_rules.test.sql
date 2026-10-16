@@ -40,10 +40,10 @@ select test.ok(test.error_of($$insert into public.stories (kind, title, author_n
 
 -- 3. Ratings and reviews are for books only -------------------------------------
 select test.ok(test.error_of($$insert into public.ratings (story_id, rating)
-  select id, 4 from public.stories where source_url = 'https://archiveofourown.org/works/5004'$$) is not null,
+  select id, 4 from public.stories where source_url = 'https://archiveofourown.org/works/5004'$$) like '%row-level security%',
   'fanfiction cannot be rated, not even privately');
 select test.ok(test.error_of($$insert into public.reviews (story_id, body)
-  select id, 'A rec' from public.stories where source_url = 'https://archiveofourown.org/works/5004'$$) is not null,
+  select id, 'A rec' from public.stories where source_url = 'https://archiveofourown.org/works/5004'$$) like '%row-level security%',
   'no recs for fanfiction: they belong on AO3');
 select test.ok(test.error_of($$insert into public.ratings (story_id, rating)
   select id, 4.5 from public.stories where source_id = '/works/OL2W#bg'$$) is null,
@@ -51,9 +51,35 @@ select test.ok(test.error_of($$insert into public.ratings (story_id, rating)
 select test.ok(test.error_of($$insert into public.reviews (story_id, body)
   select id, 'Loved it' from public.stories where source_id = '/works/OL2W#bg'$$) is null,
   'books can be reviewed');
+select test.ok((select count(*) from public.ratings where user_id = auth.uid()) = 1, 'precondition: sally has one book rating');
 select test.ok(test.error_of($$update public.ratings set story_id = (select id from public.stories where source_url = 'https://archiveofourown.org/works/5004')
-  where user_id = auth.uid()$$) is not null,
+  where user_id = auth.uid()$$) like '%row-level security%',
   'a book rating cannot be moved onto a fic');
+
+-- 4. Normalising editions that existed before these rules (run by the migration) ----------------
+select test.logout();
+begin;
+alter table public.stories drop constraint language_supported, drop constraint books_have_language,
+  drop constraint open_library_edition_id;
+insert into public.stories (id, kind, language, title, author_name, total_sections, status, source, source_id) values
+  ('5a000000-0000-0000-0000-000000000001', 'book', null,        'Old', 'x', 1, 'completed', 'manual', null),
+  ('5a000000-0000-0000-0000-000000000002', 'book', 'English',   'Old', 'x', 1, 'completed', 'manual', null),
+  ('5a000000-0000-0000-0000-000000000003', 'book', 'Bulgarian', 'Old', 'x', 1, 'completed', 'open_library', '/works/OL9W'),
+  ('5a000000-0000-0000-0000-000000000004', 'book', 'bg',        'Old', 'x', 1, 'completed', 'open_library', '/works/OL8W#en'),
+  ('5a000000-0000-0000-0000-000000000005', 'book', 'fr',        'Old', 'x', 1, 'completed', 'manual', null);
+insert into public.stories (id, kind, language, title, author_name, published_sections, status, source, source_url) values
+  ('5a000000-0000-0000-0000-000000000006', 'fanfic', 'Deutsch', 'Old fic', 'w', 1, 'ongoing', 'ao3', 'https://archiveofourown.org/works/5099');
+select public.normalise_story_editions();
+alter table public.stories
+  add constraint language_supported check (language in ('en', 'bg')),
+  add constraint books_have_language check (kind <> 'book' or language is not null),
+  add constraint open_library_edition_id check (source <> 'open_library' or source_id is null or source_id like '%#' || language);
+select test.ok((select array_agg(language || ' ' || coalesce(source_id, '-') order by id) from public.stories where id::text like '5a000000%' and kind = 'book')
+  = '{"en -","en -","bg /works/OL9W#bg","bg /works/OL8W#bg","en -"}',
+  'old books get a supported edition language and an id that names it');
+select test.ok((select language is null from public.stories where id = '5a000000-0000-0000-0000-000000000006'),
+  'an old fic with an unsupported language just loses it');
+rollback;
 
 select test.logout();
 \o

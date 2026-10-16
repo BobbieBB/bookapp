@@ -5,9 +5,21 @@
 -- Books from before this rule are English (the app had no way to add other editions yet), and an
 -- Open Library story id names its edition: '<work key>#<language>'.
 -- ---------------------------------------------------------------------------
-update public.stories set language = 'en' where kind = 'book' and language is null;
-update public.stories set source_id = source_id || '#' || language
-  where source = 'open_library' and source_id is not null and source_id not like '%#%';
+-- `language` was free text: bring every row in line before the checks below. Unrecognised
+-- book languages become English; fics simply lose an unsupported language.
+create or replace function public.normalise_story_editions()
+returns void language sql security definer set search_path = public as $$
+  update public.stories set language = case
+      when lower(trim(language)) in ('bg', 'bul', 'bulgarian', 'български') then 'bg'
+      when lower(trim(language)) in ('en', 'eng', 'english', 'английски') then 'en'
+      when kind = 'book' then 'en'
+    end
+  where language is null and kind = 'book' or language is not null and language not in ('en', 'bg');
+  update public.stories set source_id = split_part(source_id, '#', 1) || '#' || language
+  where source = 'open_library' and source_id is not null and source_id is distinct from split_part(source_id, '#', 1) || '#' || language;
+$$;
+revoke execute on function public.normalise_story_editions() from public, anon, authenticated;
+select public.normalise_story_editions();
 
 alter table public.stories
   add constraint language_supported check (language in ('en', 'bg')),

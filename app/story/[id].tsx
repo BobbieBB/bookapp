@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
@@ -126,6 +126,7 @@ function StoryBody({
   const { c, isDark, fonts } = useTheme();
   const t = useT();
   const [busy, setBusy] = useState(false);
+  const running = useRef(false);
   const [error, setError] = useState('');
   const [picking, setPicking] = useState(false);
   const [pending, setPending] = useState<{ base: MyEntry | null; patch: Partial<MyEntry> }>({ base: null, patch: {} });
@@ -135,8 +136,13 @@ function StoryBody({
   const isFic = story.kind === 'fanfic';
   const count = chapterCount(story);
 
-  /** Runs one action, shows a failure instead of swallowing it, and reloads the page after. */
+  /**
+   * Runs one action at a time (a second tap while one is saving is ignored, so actions never
+   * finish out of order), shows a failure instead of swallowing it, and reloads the page after.
+   */
   async function act(action: () => Promise<void>) {
+    if (running.current) return;
+    running.current = true;
     setBusy(true);
     setError('');
     try {
@@ -144,6 +150,7 @@ function StoryBody({
     } catch {
       setError(t('story.actionFailed'));
     } finally {
+      running.current = false;
       setBusy(false);
       onChanged();
     }
@@ -208,7 +215,7 @@ function StoryBody({
             ))}
           </View>
           {link ? (
-            <Pressable accessibilityRole="link" onPress={() => Linking.openURL(link)} style={{ minHeight: 44, justifyContent: 'center' }}>
+            <Pressable accessibilityRole="link" onPress={() => Linking.openURL(link).catch(() => setError(t('story.linkFailed')))} style={{ minHeight: 44, justifyContent: 'center' }}>
               <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('story.allTags')}</Text>
             </Pressable>
           ) : null}

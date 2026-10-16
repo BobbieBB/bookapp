@@ -181,3 +181,6 @@ Choices made during development where the decisions above don't say. Each one is
   Cyrillic, so in the Bulgarian UI headings and reading text use **Onest** (a grotesque made for
   Cyrillic screens). Cormorant Garamond has Cyrillic and stays for "moments" in both languages.
   Cyrillic text inside the English UI (e.g. a Bulgarian book title) falls back to the system font.
+- **Old fic ratings and recs (16 Oct 2026):** from now on ratings and reviews can only be written
+  for books. Fic ratings or recs made before stay visible only as before and can be deleted, but not
+  edited. Nothing is deleted automatically.

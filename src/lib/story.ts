@@ -27,9 +27,11 @@ export function chapterCount(s: ProgressStory): number | null {
 export function nextChapter(s: ProgressStory, progress: number): { chapter: number; newlyPublished: boolean } | null {
   if (!s.has_chapters) return null;
   const chapter = progress + 1;
-  const count = chapterCount(s) ?? 0;
+  // On a WIP fic only the published chapters exist yet (as bump_published_sections counts them).
+  const count = (isWip(s) ? s.published_sections : chapterCount(s)) ?? 0;
   if (chapter <= count) return { chapter, newlyPublished: false };
-  return isWip(s) ? { chapter, newlyPublished: true } : null;
+  const beyondTotal = s.total_sections !== null && chapter > s.total_sections;
+  return isWip(s) && !beyondTotal ? { chapter, newlyPublished: true } : null;
 }
 
 /** Personal page progress as a whole percentage, or null when it can't be known. */
@@ -42,7 +44,7 @@ const caughtUp = (s: ProgressStory, progress: number) => progress >= (s.publishe
 
 /** Only a reader who has read every published chapter can mark a WIP fic complete. */
 export function canComplete(s: ProgressStory, progress: number): boolean {
-  return isWip(s) && caughtUp(s, progress);
+  return isWip(s) && s.published_sections !== null && caughtUp(s, progress);
 }
 
 /** A caught-up reader can undo a completion within 7 days, if no chapters were added since. */

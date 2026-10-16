@@ -39,6 +39,14 @@ describe('nextChapter: what "I finished chapter N" offers', () => {
     expect(nextChapter(wip({ published_sections: null }), 0)).toEqual({ chapter: 1, newlyPublished: true });
   });
 
+  it('never offers a WIP chapter past a known total (the database would refuse it)', () => {
+    expect(nextChapter(wip({ published_sections: 5, total_sections: 5 }), 5)).toBeNull();
+  });
+
+  it('a WIP fic with only a total and no published count starts at chapter 1', () => {
+    expect(nextChapter(wip({ published_sections: null, total_sections: 8 }), 0)).toEqual({ chapter: 1, newlyPublished: true });
+  });
+
   it('books without chapters (25-page parts) have no chapter button', () => {
     expect(nextChapter(book({ has_chapters: false, total_sections: null }), 0)).toBeNull();
   });
@@ -63,6 +71,10 @@ describe('pagePercent: personal page progress for books', () => {
 describe('canComplete: marking a WIP fic complete (caught-up readers only)', () => {
   it('a caught-up reader can mark an ongoing fic complete', () => {
     expect(canComplete(wip(), 5)).toBe(true);
+  });
+
+  it('not before any chapter count is known (nothing to complete with)', () => {
+    expect(canComplete(wip({ published_sections: null }), 0)).toBe(false);
   });
 
   it('a reader behind the published chapters cannot', () => {
