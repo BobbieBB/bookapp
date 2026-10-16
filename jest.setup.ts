@@ -1,3 +1,4 @@
+import { configure } from '@testing-library/react-native';
 import { networkFetch } from './test/network';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -29,3 +30,6 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+// Screens wait on the real local database: give findBy/waitFor more than RNTL's 1 s default.
+configure({ asyncUtilTimeout: 10_000 });
