@@ -1,12 +1,14 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
+import { isAo3Link } from '@/lib/links';
 import { progressLine } from '@/lib/library';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
 import {
@@ -35,17 +37,6 @@ const STATUSES: LibraryStatus[] = ['currently_reading', 'want_to_read', 'finishe
 const isRating = (v: string | null): v is (typeof AO3_RATINGS)[number] => AO3_RATINGS.some((r) => r === v);
 const isWarning = (v: string): v is (typeof AO3_WARNINGS)[number] => AO3_WARNINGS.some((w) => w === v);
 
-/** Only archive links leave the app, and only to AO3. */
-function isAo3Link(url: string | null): url is string {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    return u.protocol === 'https:' && u.hostname === 'archiveofourown.org';
-  } catch {
-    return false;
-  }
-}
-
 export default function StoryScreen() {
   const { c } = useTheme();
   const t = useT();
@@ -64,6 +55,7 @@ export default function StoryScreen() {
         <>
           <StoryBody story={shown.story} entry={shown.entry} userId={userId} onChanged={reload} />
           <StoryRooms storyId={shown.story.id} version={version} />
+          {shown.story.kind === 'book' ? <BookReviews storyId={shown.story.id} version={version} /> : null}
         </>
       ) : page.error ? (
         <View style={{ gap: space.m }}>
@@ -161,9 +153,10 @@ function StoryBody({
   }
 
   /** Once the change is saved it shows at once; the reload that follows replaces it with what the database holds. */
-  const saved = (patch: Partial<MyEntry>, action: () => Promise<void>) =>
+  const saved = (patch: Partial<MyEntry>, action: () => Promise<void>, afterSave?: () => void) =>
     act(async () => {
       await action();
+      afterSave?.();
       setPending((p) => ({ base: loaded, patch: { ...(p.base === loaded ? p.patch : {}), ...patch } }));
     });
 
@@ -246,7 +239,7 @@ function StoryBody({
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
-              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s))} />
+              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' ? () => router.push(`/finished/${story.id}`) : undefined)} />
             ))}
           </View>
 

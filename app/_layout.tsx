@@ -58,6 +58,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add" options={{ presentation: 'modal' }} />
         <Stack.Screen name="story/[id]" />
+        <Stack.Screen name="finished/[id]" />
         <Stack.Screen name="room/[storyId]/[room]" />
         <Stack.Screen name="blocked" />
         <Stack.Screen name="feedback" />
