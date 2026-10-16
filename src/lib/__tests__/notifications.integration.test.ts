@@ -1,5 +1,5 @@
 import { openRoom, postComment, toggleReaction } from '../discussions';
-import { continueReadingHints, markAllRead, myNotifications, repliesToYou, roomPath } from '../notifications';
+import { continueReadingHints, markReadUpTo, myNotifications, repliesToYou, roomPath } from '../notifications';
 import { addToLibrary, createManualBook } from '../stories';
 import { supabase } from '../supabase';
 
@@ -61,10 +61,20 @@ it('replies to you: replies and mentions, newest first, no comment text', async 
   expect((await myNotifications()).map((n) => n.type)).toContain('reaction');
 });
 
-it('marking all read', async () => {
+it('marking read up to the newest one you were shown', async () => {
   await as(me);
-  await markAllRead();
+  const shown = await myNotifications();
+  const reply = shown.find((n) => n.type === 'reply')!;
+  await markReadUpTo(reply.created_at);
+  const after = await myNotifications();
+  expect(after.find((n) => n.id === reply.id)?.read_at).not.toBeNull();
+  await markReadUpTo(shown[0].created_at);
   expect((await myNotifications()).every((n) => n.read_at !== null)).toBe(true);
+});
+
+it('Home asks only for replies and mentions, however many reactions there are', async () => {
+  await as(me);
+  expect((await repliesToYou(3)).every((n) => n.type !== 'reaction')).toBe(true);
 });
 
 it('new comments in your latest chapter since you last read it', async () => {

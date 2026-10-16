@@ -81,7 +81,7 @@ create trigger comments_notify_mentions after insert on public.comments
 -- Your notifications as the app shows them: who, which story and room, never the comment text,
 -- and only for rooms you can open now (moving progress back hides them again).
 -- ---------------------------------------------------------------------------
-create or replace function public.my_notifications(p_limit int default 50)
+create or replace function public.my_notifications(p_limit int default 50, p_types public.notification_type[] default null)
 returns table (
   id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
   actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
@@ -93,17 +93,36 @@ language sql stable security definer set search_path = public as $$
   join public.discussions d on d.id = n.discussion_id
   join public.stories s on s.id = d.story_id
   left join public.profiles a on a.id = n.actor_id
+  left join public.comments c on c.id = n.comment_id
   where n.user_id = auth.uid()
+    and (p_types is null or n.type = any (p_types))
     and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = n.actor_id)
+    -- nothing about a comment that was deleted or hidden by moderators
+    and (n.comment_id is null or (c.deleted_at is null and not c.is_hidden))
     and public.can_access_section(d.story_id, d.kind, d.section_number)
   order by n.created_at desc
   limit least(greatest(coalesce(p_limit, 50), 1), 200)
 $$;
 
-create or replace function public.mark_notifications_read()
+-- Marks read what you have seen: everything up to the newest notification you were shown.
+create or replace function public.mark_notifications_read(p_until timestamptz)
 returns void language sql security invoker set search_path = public as $$
-  update public.notifications set read_at = now() where user_id = auth.uid() and read_at is null
+  update public.notifications set read_at = now()
+  where user_id = auth.uid() and read_at is null and created_at <= p_until
 $$;
+
+-- The table itself follows the same rule as my_notifications: only rooms you can open now.
+drop policy notifications_own_read on public.notifications;
+create policy notifications_own_read on public.notifications for select to authenticated
+  using (
+    user_id = auth.uid()
+    and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = notifications.actor_id)
+    and public.can_access_discussion(discussion_id)
+  );
+
+-- A reader can post at most 30 comments in 10 minutes (and so mention at most 300 people).
+create constraint trigger comments_rate after insert on public.comments
+  for each row execute function public.limit_rate('author_id', '30', '10 minutes');
 
 -- ---------------------------------------------------------------------------
 -- Continue Reading: new comments in your latest finished chapter since you last read it (not your
@@ -126,5 +145,7 @@ language sql stable security definer set search_path = public as $$
   group by le.story_id, le.progress_section
 $$;
 
-revoke execute on function public.my_notifications(int), public.mark_notifications_read(), public.continue_reading_hints() from public, anon;
-grant execute on function public.my_notifications(int), public.mark_notifications_read(), public.continue_reading_hints() to authenticated;
+revoke execute on function public.my_notifications(int, public.notification_type[]), public.mark_notifications_read(timestamptz),
+  public.continue_reading_hints() from public, anon;
+grant execute on function public.my_notifications(int, public.notification_type[]), public.mark_notifications_read(timestamptz),
+  public.continue_reading_hints() to authenticated;

@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NotificationRow } from '@/components/NotificationRow';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
-import { markAllRead, myNotifications } from '@/lib/notifications';
+import { markReadUpTo, myNotifications } from '@/lib/notifications';
 import { useLookup } from '@/lib/useLookup';
 import { space, useTheme } from '@/theme';
 
@@ -16,11 +16,12 @@ export default function Notifications() {
   const router = useRouter();
   const { data, error } = useLookup('notifications', () => myNotifications());
 
-  const loaded = data !== undefined;
+  // Only what was shown is marked read (anything newer stays unread for next time).
+  const newestShownAt = data?.[0]?.created_at;
   useEffect(() => {
-    if (!loaded) return;
-    markAllRead().catch(() => undefined); // best effort: the dots simply stay until the next visit
-  }, [loaded]);
+    if (!newestShownAt) return;
+    markReadUpTo(newestShownAt).catch(() => undefined); // best effort: the dots simply stay until the next visit
+  }, [newestShownAt]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>

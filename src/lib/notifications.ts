@@ -19,19 +19,20 @@ export type Notification = {
 
 export type ReadingHint = { story_id: string; section_number: number; new_comments: number };
 
-export async function myNotifications(limit = 50): Promise<Notification[]> {
-  const { data, error } = await supabase.rpc('my_notifications', { p_limit: limit });
+export async function myNotifications(limit = 50, types?: Notification['type'][]): Promise<Notification[]> {
+  const { data, error } = await supabase.rpc('my_notifications', { p_limit: limit, p_types: types ?? null });
   if (error) throw error;
   return data as Notification[];
 }
 
 /** Home's "REPLIES TO YOU": replies and mentions only (reactions live on the notifications screen). */
 export async function repliesToYou(limit = 3): Promise<Notification[]> {
-  return (await myNotifications(50)).filter((n) => n.type !== 'reaction').slice(0, limit);
+  return myNotifications(limit, ['reply', 'mention']);
 }
 
-export async function markAllRead() {
-  const { error } = await supabase.rpc('mark_notifications_read');
+/** Marks read what the reader was shown: everything up to the newest notification on screen. */
+export async function markReadUpTo(newestShownAt: string) {
+  const { error } = await supabase.rpc('mark_notifications_read', { p_until: newestShownAt });
   if (error) throw error;
 }
 

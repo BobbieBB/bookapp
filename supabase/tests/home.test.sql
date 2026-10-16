@@ -43,6 +43,12 @@ insert into public.comments (discussion_id, body)
   select id, 'hey @Hana' from public.discussions
   where story_id = '77000000-0000-0000-0000-000000000001' and section_number = 2;
 
+-- Chapter 1 has talk too (hari is on chapter 1).
+select test.login('00000000-0000-0000-0000-000000000702');
+select public.open_discussion('77000000-0000-0000-0000-000000000001', 'chapter', 1);
+insert into public.comments (discussion_id, body)
+  select id, 'chapter 1 talk' from public.discussions where story_id = '77000000-0000-0000-0000-000000000001' and section_number = 1;
+
 -- 1. Mentions ----------------------------------------------------------------------
 select test.logout();
 select test.ok((select count(*) from public.notifications where user_id = '00000000-0000-0000-0000-000000000701' and type = 'reply') = 1,
@@ -67,10 +73,12 @@ select test.ok(not exists (
   'no comment text in notifications');
 update public.library_entries set progress_section = 1 where user_id = auth.uid() and story_id = '77000000-0000-0000-0000-000000000001';
 select test.ok((select count(*) from public.my_notifications(10)) = 0, 'moving progress back hides notifications from chapters you closed again');
+select test.ok((select count(*) from public.notifications) = 0, '… also when reading the table directly');
 update public.library_entries set progress_section = 2 where user_id = auth.uid() and story_id = '77000000-0000-0000-0000-000000000001';
 select test.ok((select count(*) from public.my_notifications(1)) = 1, 'a limit');
-select public.mark_notifications_read();
-select test.ok((select bool_and(read_at is not null) from public.notifications where user_id = auth.uid()), 'mark all read');
+select public.mark_notifications_read(now());
+select test.ok((select bool_and(read_at is not null) from public.notifications where user_id = auth.uid()), 'mark read up to what you saw');
+select test.ok((select count(*) from public.my_notifications(10, array['mention']::public.notification_type[])) = 1, 'filter by type');
 
 -- 3. "N new comments in chapter X" ---------------------------------------------------
 update public.discussion_follows set last_read_at = now() - interval '1 hour' where user_id = auth.uid();
@@ -78,8 +86,34 @@ select test.ok((select new_comments from public.continue_reading_hints() where s
   and (select section_number from public.continue_reading_hints() where story_id = '77000000-0000-0000-0000-000000000001') = 2,
   'new comments since you last read your latest chapter, not your own, not from people you blocked');
 select test.login('00000000-0000-0000-0000-000000000703');
-select test.ok((select new_comments from public.continue_reading_hints() where story_id = '77000000-0000-0000-0000-000000000001') = 0,
+select test.ok((select new_comments from public.continue_reading_hints() where story_id = '77000000-0000-0000-0000-000000000001') = 1,
   'your hint is about your latest chapter only (chapter 2 talk is not counted for someone on chapter 1)');
+select test.ok(test.error_of($$select public.user_can_access_section('00000000-0000-0000-0000-000000000701',
+  '77000000-0000-0000-0000-000000000001', 'chapter', 2)$$) like '%permission denied%', 'readers cannot ask about other people''s progress');
+
+-- 4. Mentions are capped and comments are rate-limited -------------------------------------
+select test.logout();
+insert into auth.users (id) select ('00000000-0000-0000-0000-0000000008' || lpad(n::text, 2, '0'))::uuid from generate_series(10, 21) n;
+insert into public.profiles (id, username) select ('00000000-0000-0000-0000-0000000008' || lpad(n::text, 2, '0'))::uuid, 'm' || n from generate_series(10, 21) n;
+insert into public.library_entries (user_id, story_id, status, progress_section)
+  select ('00000000-0000-0000-0000-0000000008' || lpad(n::text, 2, '0'))::uuid, '77000000-0000-0000-0000-000000000001', 'finished', 3 from generate_series(10, 21) n;
+select test.login('00000000-0000-0000-0000-000000000702');
+insert into public.comments (discussion_id, body)
+  select id, (select string_agg('@m' || n, ' ') from generate_series(10, 21) n) from public.discussions
+  where story_id = '77000000-0000-0000-0000-000000000001' and section_number = 2;
+select test.logout();
+select test.ok((select count(*) from public.notifications where type = 'mention' and user_id::text like '00000000-0000-0000-0000-0000000008%') = 10,
+  'at most 10 people are mentioned per comment');
+select test.login('00000000-0000-0000-0000-000000000702');
+select test.ok(test.error_of($$insert into public.comments (discussion_id, body)
+  select id, 'flood ' || n from public.discussions, generate_series(1, 31) n
+  where story_id = '77000000-0000-0000-0000-000000000001' and section_number = 2$$) like '%too many%', 'at most 30 comments in 10 minutes');
+
+-- 5. Notifications for comments that were deleted or hidden disappear -----------------------
+select test.login('00000000-0000-0000-0000-000000000702');
+update public.comments set deleted_at = now() where body = 'Loved it, @hana!';
+select test.login('00000000-0000-0000-0000-000000000701');
+select test.ok((select count(*) from public.my_notifications(10) where type = 'reply') = 0, 'no notification for a deleted reply');
 
 select test.logout();
 \o
