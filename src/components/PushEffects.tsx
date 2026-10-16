@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
+import { useRootNavigationState, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useLanguage } from '@/i18n';
@@ -10,8 +10,11 @@ import { syncPushLanguage } from '@/lib/pushDevice';
 export function PushEffects() {
   const router = useRouter();
   const { language } = useLanguage();
+  // A tap that launched the app arrives before navigation is mounted: wait until it is.
+  const navigationReady = !!useRootNavigationState()?.key;
 
   useEffect(() => {
+    if (!navigationReady) return;
     let live = true;
     const open = (response: Notifications.NotificationResponse) => {
       const url = pushTarget(response.notification.request.content.data);
@@ -34,7 +37,7 @@ export function PushEffects() {
       live = false;
       subscription.remove();
     };
-  }, [router]);
+  }, [router, navigationReady]);
 
   useEffect(() => {
     syncPushLanguage(language).catch(() => {
