@@ -1,12 +1,10 @@
 import { fireEvent, screen } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
-import type { ReactElement } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { Text } from 'react-native';
 
 import Discover from '../../../app/(tabs)/discover';
 import Profile from '../../../app/(tabs)/profile';
-import { languageWrapper } from '../../../test/i18n';
-import type { Language } from '../../i18n';
-import { AuthProvider } from '../../lib/auth';
+import { renderScreen } from '../../../test/router';
 import { addToLibrary, createFic } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -65,24 +63,16 @@ beforeAll(async () => {
   await addToLibrary((await fic('My own fic', FROM_LIBRARY, true)).id, 'currently_reading');
 });
 
-async function render(language: Language, routes: Record<string, () => ReactElement | null>, initialUrl: string) {
-  const InLanguage = await languageWrapper(language);
-  await renderRouter(routes, {
-    initialUrl,
-    wrapper: ({ children }: { children: ReactElement }) => (
-      <InLanguage>
-        <AuthProvider>{children}</AuthProvider>
-      </InLanguage>
-    ),
-  });
-}
 
-const StoryStub = () => null;
+function StoryStub() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <Text>{`story ${id}`}</Text>;
+}
 
 describe('Discover', () => {
   it('shows your fandoms and lively fics you do not read yet', async () => {
     await as(reader);
-    await render('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
+    await renderScreen('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
     expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText(PICKED)).toBeOnTheScreen();
     expect(screen.getByText(FROM_LIBRARY)).toBeOnTheScreen();
@@ -93,18 +83,18 @@ describe('Discover', () => {
 
   it('a fandom chip narrows the list; tapping a fic opens it', async () => {
     await as(reader);
-    await render('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
+    await renderScreen('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
     await fireEvent.press(await screen.findByText(FROM_LIBRARY, {}, { timeout: 8000 }));
     expect(await screen.findByText('Library Fandom Fic', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByText('Popular WIP')).toBeNull();
     await fireEvent.press(screen.getByText(FROM_LIBRARY)); // tap again: back to all your fandoms
     await fireEvent.press(await screen.findByText('Popular WIP', {}, { timeout: 8000 }));
-    expect(screen).toHavePathname(`/story/${popularId}`);
+    expect(await screen.findByText(`story ${popularId}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('All fandoms searches every fandom in the app', async () => {
     await as(reader);
-    await render('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
+    await renderScreen('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
     await fireEvent.press(await screen.findByText('All fandoms', {}, { timeout: 8000 }));
     await fireEvent.changeText(screen.getByLabelText('Search fandoms'), `library fandom ${run}`);
     await fireEvent.press(await screen.findByTestId(`fandom-hit-${FROM_LIBRARY}`, {}, { timeout: 8000 }));
@@ -113,13 +103,13 @@ describe('Discover', () => {
 
   it('in Bulgarian', async () => {
     await as(reader);
-    await render('bg', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
+    await renderScreen('bg', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
     expect(await screen.findByText('ТВОИТЕ ФЕНДЪМИ', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('readers who only read books are told Discover is for fanfiction for now', async () => {
     await as(bookReader);
-    await render('en', { discover: Discover }, '/discover');
+    await renderScreen('en', { discover: Discover }, '/discover');
     expect(await screen.findByText('Discover is for fanfiction for now.', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });
@@ -127,7 +117,7 @@ describe('Discover', () => {
 describe('Profile > Your fandoms', () => {
   it('shows picked fandoms and suggests ones from your library; one tap adds it', async () => {
     await as(reader);
-    await render('en', { profile: Profile }, '/profile');
+    await renderScreen('en', { profile: Profile }, '/profile');
     expect(await screen.findByText('Your fandoms', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText(PICKED)).toBeOnTheScreen();
     await fireEvent.press(await screen.findByLabelText(`Add ${FROM_LIBRARY} to your fandoms`, {}, { timeout: 8000 }));
