@@ -12,7 +12,4 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/supabase/'],
   // App tests talk to a real local Supabase stack, so give them more than the 5 s default.
   testTimeout: 30_000,
-  // expo-router's renderRouter switches to fake timers; let them also follow real time, so screens
-  // waiting on the real local database never get stuck behind a timer nobody advances.
-  fakeTimers: { advanceTimers: true },
 };
