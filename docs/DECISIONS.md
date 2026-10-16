@@ -156,6 +156,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
+## Add a story: details (15 Oct 2026, decided by the PO)
+- Book discussions are by chapter. A book new to Fictionally asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
+- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Fictionally (no silent default).
 ## Reading progress: chapters unlock, pages are personal (15 Oct 2026, PO: option B)
 - Discussions unlock only with "I finished chapter X" (and the chapter picker). That is the key to the rooms.
 - Book readers may also log a page ("I'm on page 143") to see a percentage. Pages never unlock anything: we don't know which page is in which chapter, and page numbers differ between editions.
@@ -167,3 +170,26 @@ fic auto-fill from AO3 (only with OTW permission).
 - Discussions are separate per edition language: a Bulgarian and an English reader of the same book are in different rooms. Translations can merge or split chapters, so "chapter 12" must mean the same thing for everyone in a room; it also keeps each room in one language.
 - Books: a story = Open Library work + language (`source_id` = `<work key>#<lang>`, `stories.language`). The reader picks the edition language when adding (guessed from the title's script).
 - Fics: AO3 translations are separate works with their own links, so they are separate stories already.
+
+## Dev defaults (pending PO review)
+Choices made during development where the decisions above don't say. Each one is easy to change.
+- **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
+  (`Fictionally/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
+  a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
+  reaches Open Library from the iOS and Android apps.
+- **Fonts for Bulgarian (16 Oct 2026):** Bricolage Grotesque and Atkinson Hyperlegible have no
+  Cyrillic, so in the Bulgarian UI headings and reading text use **Onest** (a grotesque made for
+  Cyrillic screens). Cormorant Garamond has Cyrillic and stays for "moments" in both languages.
+  Cyrillic text inside the English UI (e.g. a Bulgarian book title) falls back to the system font.
+- **Old fic ratings and recs (16 Oct 2026):** from now on ratings and reviews can only be written
+  for books. Fic ratings or recs made before stay visible only as before and can be deleted, but not
+  edited. Nothing is deleted automatically.
+- **Discover details (16 Oct 2026):** the starter list is eight big AO3 fandoms (Harry Potter, MCU,
+  Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
+  `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
+  means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Analytics (16 Oct 2026):** first-party only, no third-party SDK. The app records named events
+  from a fixed list (app opened, story added, chapter finished, comment posted, …) with a few short
+  properties such as `kind` or `language`, never titles, text or ids of other people. Stored in
+  `analytics_events` with the reader's id (so admins can see one reader's sequence of events), readable by
+  admins only and deleted with the account. Swap for a hosted tool later if the PO wants dashboards.
