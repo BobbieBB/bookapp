@@ -11,6 +11,8 @@ import type { Language } from '@/i18n';
 import { registerPushToken, unregisterPushToken } from './push';
 
 export const PUSH_TOKEN_KEY = 'fictionally.pushToken';
+/** A device turned off while the server couldn't be reached, still to be forgotten there. */
+export const PENDING_RELEASE_KEY = 'fictionally.pushTokenPendingRelease';
 
 export type PushStatus = 'enabled' | 'denied' | 'unsupported' | 'not-configured';
 
@@ -53,8 +55,18 @@ export async function pushIsOn(): Promise<boolean> {
 export async function disablePush(): Promise<void> {
   const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
   if (!token) return;
-  await unregisterPushToken(token);
+  // Off on this phone at once; the server is told now, or on the next start if it can't be reached.
+  await AsyncStorage.multiSet([[PENDING_RELEASE_KEY, token]]);
   await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+  await releasePendingPushToken();
+}
+
+/** Tells the server to forget a device that was turned off while offline (call on every start). */
+export async function releasePendingPushToken(): Promise<void> {
+  const pending = await AsyncStorage.getItem(PENDING_RELEASE_KEY);
+  if (!pending) return;
+  await unregisterPushToken(pending);
+  await AsyncStorage.removeItem(PENDING_RELEASE_KEY);
 }
 
 /** When pushes are on, tells the database the reader's language so pushes arrive in it. */

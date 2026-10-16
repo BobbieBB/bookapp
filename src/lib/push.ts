@@ -19,8 +19,8 @@ export async function registerPushToken(token: string, language: Language, platf
   if (error) throw error;
 }
 
-/** Forgets this device (on sign-out, or when the reader turns pushes off). */
+/** Forgets this device (on sign-out, or when pushes are turned off). Works signed out too. */
 export async function unregisterPushToken(token: string) {
-  const { error } = await supabase.from('push_tokens').delete().eq('token', token);
+  const { error } = await supabase.rpc('release_push_token', { p_token: token });
   if (error) throw error;
 }

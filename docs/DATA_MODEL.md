@@ -102,7 +102,11 @@ other, and neither gets notifications from the other. A no longer sees B's react
 When a reply or @mention notification is created, `notifications_send_push` builds one Expo push per
 device of the recipient (`push_messages`): who, which story and which chapter, in the device's
 language, never the comment text, and a link to the room (which checks the spoiler wall again). It is
-sent with `pg_net` only when `push_settings.enabled` is on. Reactions don't send pushes.
+sent with `pg_net` (in batches of 100) only when `push_settings.enabled` is on, and a failed send never
+loses the comment. Pushes only go out for rooms the reader can still open. Reactions don't send pushes.
+Devices are added only through `claim_push_token` (at most 10 per reader) and forgotten with
+`release_push_token`, which also works from a signed-out phone. Only migrations or the service role can
+change `push_settings`.
 
 ## Functions the app calls
 

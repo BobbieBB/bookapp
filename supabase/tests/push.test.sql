@@ -13,17 +13,24 @@ insert into public.library_entries (user_id, story_id, status, progress_section)
   ('00000000-0000-0000-0000-000000000901', '99000000-0000-0000-0000-000000000001', 'finished', 3),
   ('00000000-0000-0000-0000-000000000902', '99000000-0000-0000-0000-000000000001', 'finished', 3);
 
--- 1. Device tokens are yours alone -----------------------------------------------------------
+-- 1. Device tokens are yours alone, registered only through claim_push_token -------------------
 select test.login('00000000-0000-0000-0000-000000000901');
-insert into public.push_tokens (token, language, platform) values ('ExponentPushToken[pia-phone]', 'bg', 'ios');
-select test.ok(test.error_of($$insert into public.push_tokens (token, language, platform) values ('not a token', 'en', 'ios')$$)
+select public.claim_push_token('ExponentPushToken[pia-phone]', 'bg', 'ios');
+select test.ok(test.error_of($$select public.claim_push_token('not a token', 'en', 'ios')$$)
   like '%push_token_format%', 'only Expo push tokens');
+select test.ok(test.error_of($$insert into public.push_tokens (token, language, platform) values ('ExponentPushToken[direct]', 'en', 'ios')$$)
+  like '%permission denied%', 'no direct inserts: devices are registered through claim_push_token');
 select test.login('00000000-0000-0000-0000-000000000902');
-insert into public.push_tokens (token, language, platform) values ('ExponentPushToken[pavel-phone]', 'en', 'android');
+select public.claim_push_token('ExponentPushToken[pavel-phone]', 'en', 'android');
 select test.ok((select count(*) from public.push_tokens) = 1, 'you only see your own devices');
-select test.ok(test.error_of($$insert into public.push_tokens (user_id, token, language, platform)
-  values ('00000000-0000-0000-0000-000000000901', 'ExponentPushToken[sneaky]', 'en', 'ios')$$) like '%row-level security%',
-  'you cannot register a device for someone else');
+select public.claim_push_token('ExponentPushToken[pavel-' || n || ']', 'en', 'android') from generate_series(1, 12) n;
+select test.ok((select count(*) from public.push_tokens) = 10, 'at most 10 devices per reader (the oldest are forgotten)');
+select test.logout();
+select test.ok(test.error_of($$set role anon; select public.release_push_token('ExponentPushToken[pavel-12]')$$) is null,
+  'a signed-out phone can still forget its own device');
+reset role;
+select test.ok(not exists (select 1 from public.push_tokens where token = 'ExponentPushToken[pavel-12]'), 'and it is gone');
+select test.login('00000000-0000-0000-0000-000000000902');
 
 -- A phone changes hands: the device follows whoever signs in on it now.
 select test.login('00000000-0000-0000-0000-000000000901');
@@ -60,14 +67,44 @@ select test.ok((select messages::text not like '%butler%' from pushes where type
 select test.ok((select messages->0->'data'->>'url' from pushes where type = 'reply') = '/room/99000000-0000-0000-0000-000000000001/2',
   'opens the room (which checks the spoiler wall again)');
 select test.ok((select jsonb_array_length(messages) from pushes where type = 'reaction') = 0, 'reactions don''t buzz your phone');
+update public.library_entries set status = 'currently_reading', progress_section = 1
+  where user_id = '00000000-0000-0000-0000-000000000901' and story_id = '99000000-0000-0000-0000-000000000001';
+select test.ok((select bool_and(jsonb_array_length(public.push_messages(n.id)) = 0) from public.notifications n
+  where n.user_id = '00000000-0000-0000-0000-000000000901'), 'no push about a room the reader has closed again');
+update public.library_entries set status = 'finished', progress_section = 3
+  where user_id = '00000000-0000-0000-0000-000000000901' and story_id = '99000000-0000-0000-0000-000000000001';
+update public.stories set is_hidden = true where id = '99000000-0000-0000-0000-000000000001';
+select test.ok((select bool_and(jsonb_array_length(public.push_messages(n.id)) = 0) from public.notifications n
+  where n.user_id = '00000000-0000-0000-0000-000000000901'), 'no push about a hidden story');
+update public.stories set is_hidden = false where id = '99000000-0000-0000-0000-000000000001';
 
 -- 3. Sending is off until switched on, and the settings are admin-only -----------------------------
 select test.ok((select not enabled from public.push_settings), 'push sending starts switched off');
 select test.login('00000000-0000-0000-0000-000000000901');
 select test.ok((select count(*) from public.push_settings) = 0, 'readers cannot see push settings');
-select test.error_of($$update public.push_settings set enabled = true$$);
 select test.logout();
-select test.ok((select not enabled from public.push_settings), 'readers cannot switch push on');
+update public.profiles set is_admin = true where id = '00000000-0000-0000-0000-000000000901';
+select test.login('00000000-0000-0000-0000-000000000901');
+select test.ok(test.error_of($$update public.push_settings set url = 'https://attacker.example/'$$) like '%permission denied%',
+  'not even app admins can change where pushes go (only migrations / the service role)');
+select test.logout();
+update public.profiles set is_admin = false where id = '00000000-0000-0000-0000-000000000901';
+select test.ok(test.error_of($$update public.push_settings set url = 'https://'$$) like '%push_settings_url%', 'the push address must be a real https URL');
+
+-- 4. A failing send never loses the comment ---------------------------------------------------------
+create schema if not exists net;
+create function net.http_post(url text, body jsonb, headers jsonb) returns bigint language plpgsql as $f$
+begin raise exception 'push service unreachable'; end $f$;
+update public.push_settings set enabled = true;
+select test.login('00000000-0000-0000-0000-000000000902');
+select test.ok(test.error_of($$insert into public.comments (discussion_id, parent_id, body)
+  select id, '99100000-0000-0000-0000-000000000001', 'still posted' from public.discussions
+  where story_id = '99000000-0000-0000-0000-000000000001' and section_number = 2$$) is null,
+  'a reply is saved even when sending its push fails');
+select test.logout();
+update public.push_settings set enabled = false;
+drop function net.http_post(text, jsonb, jsonb);
+drop schema net;
 
 select test.logout();
 \o
