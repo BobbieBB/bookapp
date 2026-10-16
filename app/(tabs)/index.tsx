@@ -11,6 +11,12 @@ export default function Home() {
   const { c } = useTheme();
   const { session, profile } = useAuth();
   const { entries, loading, error } = useMyLibrary(session?.user.id, 'currently_reading');
+  // Fanfiction and books are never mixed in one list (fandom etiquette), and Home shows only
+  // what the reader said they read. Everything stays reachable in My Library.
+  const groups = (['fanfic', 'book'] as const)
+    .filter((kind) => (kind === 'book' ? profile?.reads_books : profile?.reads_fanfic) !== false)
+    .map((kind) => ({ kind, items: entries.filter((e) => e.story.kind === kind) }))
+    .filter((g) => g.items.length);
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
@@ -22,20 +28,15 @@ export default function Home() {
 
         {loading ? (
           <ActivityIndicator color={c.primary} />
-        ) : entries.length ? (
-          // Fanfiction and books are never mixed in one list (fandom etiquette).
-          (['fanfic', 'book'] as const).map((kind) => {
-            const group = entries.filter((e) => e.story.kind === kind);
-            if (!group.length) return null;
-            return (
-              <View key={kind} style={{ gap: space.m }}>
-                <T v="overline">CONTINUE READING · {kind === 'fanfic' ? 'FANFICTION' : 'BOOKS'}</T>
-                {group.map((e) => (
-                  <StoryRow key={e.story_id} entry={e} />
-                ))}
-              </View>
-            );
-          })
+        ) : groups.length ? (
+          groups.map(({ kind, items }) => (
+            <View key={kind} style={{ gap: space.m }}>
+              <T v="overline">CONTINUE READING · {kind === 'fanfic' ? 'FANFICTION' : 'BOOKS'}</T>
+              {items.map((e) => (
+                <StoryRow key={e.story_id} entry={e} />
+              ))}
+            </View>
+          ))
         ) : (
           <Card>
             <T v="h2">Nothing on the go yet</T>

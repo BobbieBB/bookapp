@@ -22,14 +22,20 @@ export default function Library() {
   const shown = entries.filter((e) => e.story.kind === kind && (filter === 'all' || e.status === filter));
   const filters = FILTERS.filter((f) => kind === 'fanfic' || f !== 'on_hold');
 
+  function switchKind(next: StoryKind) {
+    setKind(next);
+    // On Hold exists only for fanfiction: don't leave an invisible filter selected.
+    if (next === 'book' && filter === 'on_hold') setFilter('all');
+  }
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
         <T v="h1">My Library</T>
 
         <View style={{ flexDirection: 'row', gap: space.s }}>
-          <Chip label="Books" active={kind === 'book'} onPress={() => setKind('book')} big />
-          <Chip label="Fanfiction" active={kind === 'fanfic'} onPress={() => setKind('fanfic')} big />
+          <Chip label="Books" active={kind === 'book'} onPress={() => switchKind('book')} big />
+          <Chip label="Fanfiction" active={kind === 'fanfic'} onPress={() => switchKind('fanfic')} big />
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.s }}>
