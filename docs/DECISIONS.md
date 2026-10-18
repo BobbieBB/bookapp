@@ -154,7 +154,7 @@ fic auto-fill from AO3 (only with OTW permission).
 - No outlines; soft shadows (0 1px 2px + 0 12px 28px, low opacity); radii 14–22 px; round icon buttons.
 - Tab bar: white, active tab = pink pill with icon + label, others icon only.
 - Dark mode: ground #120C17, cards #1F1726, pink #FF6B97, mint #4FD1A6, same shapes.
-- Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
+- Fonts: see "Fonts: Unbounded + Sofia Sans" (18 Oct 2026).
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
 ## Add a story: details (15 Oct 2026, decided by the PO)
@@ -182,3 +182,13 @@ fic auto-fill from AO3 (only with OTW permission).
   "we respect creators" promise the app is built on.
 - Next: ask Biblioman for their bibliographic data (no covers); look into bookstore affiliate feeds (legal covers + a "Buy" link);
   revisit Google Books only if readers often type in books Google has.
+
+## Fonts: Unbounded + Sofia Sans, the same in both languages (18 Oct 2026, PO)
+- Replaces Bricolage Grotesque and Atkinson Hyperlegible, which have no Cyrillic: Bulgarian titles and comments would fall back
+  to the system font, even inside the English UI.
+- **Unbounded** (600/700) for headings, book titles and the big moments of the UI: bold, wide, matches the bold colours.
+  Short text only; it is too wide for paragraphs.
+- **Sofia Sans** (400/700/800) for everything else: comments, buttons, labels. Made by a Bulgarian designer; reads well in both
+  scripts. It is narrow, so body text is 15 px rather than 14.
+- **Cormorant Garamond** italic stays for "moments" (The Epilogue, typographic covers); it has Cyrillic.
+- One font set for both languages: no per-language switch. Replaces the "Fonts for Bulgarian" dev default (Onest) from PR #4.
