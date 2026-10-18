@@ -1,6 +1,7 @@
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddButton } from '@/components/AddButton';
 import { StoryRow } from '@/components/StoryRow';
 import { Card, ErrorText, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -21,9 +22,12 @@ export default function Home() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <View style={{ gap: space.xs }}>
-          <T v="overline">{greeting()}</T>
-          <T v="h1">Hi, {profile?.username}</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ gap: space.xs, flex: 1 }}>
+            <T v="overline">{greeting()}</T>
+            <T v="h1">Hi, {profile?.username}</T>
+          </View>
+          <AddButton />
         </View>
 
         {loading ? (
@@ -41,8 +45,7 @@ export default function Home() {
           <Card>
             <T v="h2">Nothing on the go yet</T>
             <T v="muted">
-              Adding books and fics comes in the next update. Then the chapters you finish will unlock their
-              discussions here.
+              Tap + to add a book or a fic. The chapters you finish unlock their discussions.
             </T>
           </Card>
         )}

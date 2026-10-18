@@ -156,6 +156,9 @@ fic auto-fill from AO3 (only with OTW permission).
 - Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
+## Add a story: details (15 Oct 2026, decided by the PO)
+- Book discussions are by chapter. A book new to Fictionally asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
+- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Fictionally (no silent default).
 ## Reading progress: chapters unlock, pages are personal (15 Oct 2026, PO: option B)
 - Discussions unlock only with "I finished chapter X" (and the chapter picker). That is the key to the rooms.
 - Book readers may also log a page ("I'm on page 143") to see a percentage. Pages never unlock anything: we don't know which page is in which chapter, and page numbers differ between editions.
