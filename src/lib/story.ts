@@ -123,9 +123,6 @@ export const setPage = (storyId: string, userId: string, page: number | null) =>
 export const setStatus = (storyId: string, userId: string, status: LibraryStatus) =>
   updateEntry(storyId, userId, { status });
 
-export const setFavourite = (storyId: string, userId: string, isFavourite: boolean) =>
-  updateEntry(storyId, userId, { is_favourite: isFavourite });
-
 /** A caught-up reader marks a WIP fic complete; its count becomes the published chapters. */
 export async function markComplete(storyId: string) {
   const { error } = await supabase.rpc('complete_story', { p_story: storyId });
