@@ -5,8 +5,10 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 
 ## Naming and wording
 
-- **Working name:** Fictionally. Final name still open (fictionally.com is taken; check trademarks
-  before launch).
+- **Name: Livami** (18 Oct 2026, PO). Domain **livami.app** (Porkbun, owned by Boryana). Replaces the working name
+  Fictionally (a plain English word: hard to find in search, .com taken). Checks: no app or book/reading business uses the
+  name; the only registered "livami" mark (DPMA, class 9) covers phone cases and screen protectors only. Readfellow was
+  dropped: readfellow.com is an active book blog for the same readers. Not registering a trademark for now.
 - **Finished** instead of "Read" — clearer about what unlocks discussions.
 - **Chapter Discussion** instead of "Chapter Chat".
 - **The Epilogue** for the whole-story room, one name for books and fics, always shown with the
@@ -116,7 +118,7 @@ fic auto-fill from AO3 (only with OTW permission).
 
 ## Add a fic: what happens when you paste an AO3 link (14 Oct 2026)
 - We do NOT fetch anything from AO3 (no scraping, see above). The link is looked up in OUR database only.
-- Found (someone already added it): fields are filled in from our record, with a line "Already on Fictionally, so we filled in the details. Check they look right." The person joins the same story, so no duplicate rooms.
+- Found (someone already added it): fields are filled in from our record, with a line "Already on Livami, so we filled in the details. Check they look right." The person joins the same story, so no duplicate rooms.
 - Not found: fields stay empty for manual entry; the work id is taken from the link so the same fic can't be added twice.
 - Loading state: the lookup is one fast query (<0.5 s). Show a small spinner inside the link field with "Checking…"; the other fields stay usable. No full-screen loader.
 - Invalid link: inline error under the field: "That doesn't look like an AO3 work link."
@@ -158,8 +160,8 @@ fic auto-fill from AO3 (only with OTW permission).
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
 ## Add a story: details (15 Oct 2026, decided by the PO)
-- Book discussions are by chapter. A book new to Fictionally asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
-- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Fictionally (no silent default).
+- Book discussions are by chapter. A book new to Livami asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
+- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Livami (no silent default).
 ## Reading progress: chapters unlock, pages are personal (15 Oct 2026, PO: option B)
 - Discussions unlock only with "I finished chapter X" (and the chapter picker). That is the key to the rooms.
 - Book readers may also log a page ("I'm on page 143") to see a percentage. Pages never unlock anything: we don't know which page is in which chapter, and page numbers differ between editions.
