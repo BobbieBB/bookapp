@@ -66,10 +66,11 @@ export async function shouldOfferPush(now = Date.now()): Promise<boolean> {
   return permission.granted || permission.canAskAgain !== false;
 }
 
-/** "Yes" on the offer: turn pushes on (the OS asks now) and never offer again. */
+/** "Yes" on the offer: turn pushes on (the OS asks now) and never offer again, unless it failed. */
 export async function acceptPushOffer(language: Language): Promise<PushStatus> {
+  const status = await enablePush(language);
   await AsyncStorage.setItem(PUSH_OFFER_KEY, 'yes');
-  return enablePush(language);
+  return status;
 }
 
 /** "Not now" on the offer: ask again in 30 days. */

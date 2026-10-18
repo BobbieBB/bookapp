@@ -134,6 +134,44 @@ select public.send_held_pushes();
 select test.ok((select count(*) from test.sent) = 2, 'each reply is pushed once');
 select test.ok((select jsonb_array_length(public.push_messages(n.id, 3)) from public.notifications n
   where n.user_id = '00000000-0000-0000-0000-000000000901' limit 1) = 1, 'a bundle goes to each device once');
+
+-- A reply never jumps ahead of replies still waiting.
+create function pg_temp.reply(body text) returns void language sql as $$
+  insert into public.comments (discussion_id, parent_id, body)
+  select id, '99100000-0000-0000-0000-000000000001', body from public.discussions
+  where story_id = '99000000-0000-0000-0000-000000000001' and section_number = 2 $$;
+create function pg_temp.minutes_pass(n int) returns void language sql as $$
+  update public.notifications set pushed_at = pushed_at - make_interval(mins => n), created_at = created_at - make_interval(mins => n)
+  where user_id = '00000000-0000-0000-0000-000000000901' $$;
+select pg_temp.minutes_pass(11);
+delete from test.sent;
+select test.login('00000000-0000-0000-0000-000000000902');
+select pg_temp.reply('e'); -- buzzes at once
+select pg_temp.reply('f'); -- waits
+select test.logout();
+select pg_temp.minutes_pass(11);
+select test.login('00000000-0000-0000-0000-000000000902');
+select pg_temp.reply('g');
+select test.logout();
+select test.ok((select count(*) from test.sent) = 1, 'a reply waits while an earlier one is still waiting');
+select public.send_held_pushes();
+select test.ok((select body->>'body' from test.sent order by ctid desc limit 1) = '2 нови отговора в Push Book · Глава 2',
+  'and they go out together');
+
+-- Replies that waited too long are dropped without blocking the next one.
+select pg_temp.minutes_pass(11);
+delete from test.sent;
+select test.login('00000000-0000-0000-0000-000000000902');
+select pg_temp.reply('h');
+select pg_temp.reply('i');
+select test.logout();
+select pg_temp.minutes_pass(31);
+select public.send_held_pushes();
+select test.ok((select count(*) from test.sent) = 1, 'a reply held for over 30 minutes is not pushed');
+select test.login('00000000-0000-0000-0000-000000000902');
+select pg_temp.reply('j');
+select test.logout();
+select test.ok((select count(*) from test.sent) = 2, 'and the next reply still buzzes at once');
 update public.push_settings set enabled = false;
 drop function net.http_post(text, jsonb, jsonb);
 drop schema net;

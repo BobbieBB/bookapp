@@ -115,7 +115,8 @@ end $$;
 revoke execute on function public.send_push_messages(text, jsonb) from public, anon, authenticated;
 
 -- A reply or mention buzzes at once, unless the reader got a push of the same kind about the same room
--- in the last 10 minutes: then it waits for send_held_pushes, which bundles it with the others.
+-- in the last 10 minutes or some are already waiting: then it waits for send_held_pushes, which
+-- bundles it with the others.
 create or replace function public.notifications_send_push()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
@@ -125,10 +126,12 @@ begin
   if new.type not in ('reply', 'mention') or not coalesce(settings.enabled, false) or to_regproc('net.http_post') is null then
     return new;
   end if;
+  -- One at a time per reader, room and kind, so two replies posted together can't both buzz at once.
+  perform pg_advisory_xact_lock(hashtextextended(new.user_id::text || new.discussion_id::text || new.type, 0));
   if exists (select 1 from public.notifications n
-             where n.user_id = new.user_id and n.discussion_id = new.discussion_id and n.type = new.type
-               and n.pushed_at > now() - interval '10 minutes') then
-    return new;
+             where n.user_id = new.user_id and n.discussion_id = new.discussion_id and n.type = new.type and n.id <> new.id
+               and (n.pushed_at > now() - interval '10 minutes' or n.pushed_at is null)) then
+    return new; -- a recent push, or replies still waiting: this one waits with them
   end if;
   update public.notifications set pushed_at = now() where id = new.id;
   -- A failure to send must never lose the comment.
@@ -142,7 +145,8 @@ end $$;
 
 -- Every minute (pg_cron): replies and mentions that waited go out as one push per reader, room and
 -- kind once 10 minutes have passed since that room's last push. Ones older than 30 minutes (sending
--- was off, or pg_cron was down) are marked as sent without a push, so turning sending on never floods.
+-- was off, or pg_cron was down) are dropped without a push, so turning sending on never floods; they are
+-- stamped with their own time, so they don't hold back the next reply.
 create or replace function public.send_held_pushes()
 returns void language plpgsql security definer set search_path = public as $$
 declare
@@ -150,7 +154,7 @@ declare
   g record;
 begin
   select * into settings from public.push_settings;
-  update public.notifications set pushed_at = now()
+  update public.notifications set pushed_at = created_at
   where pushed_at is null and type in ('reply', 'mention') and created_at < now() - interval '30 minutes';
   if not coalesce(settings.enabled, false) or to_regproc('net.http_post') is null then
     return;

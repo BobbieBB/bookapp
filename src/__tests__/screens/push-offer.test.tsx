@@ -100,6 +100,17 @@ it('"Not now" never shows the phone\'s prompt and waits 30 days before asking ag
   expect(await screen.findByText(ASK.en, {}, { timeout: 8000 })).toBeOnTheScreen();
 });
 
+it('if turning pushes on fails (no connection), it asks again after the next comment', async () => {
+  notifications.getExpoPushTokenAsync.mockRejectedValue(new Error('offline'));
+  await postIn('en');
+  await fireEvent.press(await screen.findByText('Yes', {}, { timeout: 8000 }));
+  await waitFor(() => expect(notifications.getExpoPushTokenAsync).toHaveBeenCalled(), { timeout: 8000 });
+  await screen.unmount();
+  notifications.getPermissionsAsync.mockResolvedValue({ granted: true, canAskAgain: true } as never);
+  await postIn('en');
+  expect(await screen.findByText(ASK.en, {}, { timeout: 8000 })).toBeOnTheScreen();
+});
+
 it('not asked when the phone already said no for good', async () => {
   notifications.getPermissionsAsync.mockResolvedValue({ granted: false, canAskAgain: false } as never);
   await postIn('en');
