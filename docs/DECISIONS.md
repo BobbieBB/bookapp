@@ -234,3 +234,11 @@ Choices made during development where the decisions above don't say. Each one is
   tagline say the same thing.)
 - Colours: mint #3DBE95, pink #FF4F84, ink #1E1328 (dark: #4FD1A6, #FF6B97, #F7EEF3). Design file: "Logo: final".
 - Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
+
+## Calm theme (18 Oct 2026, design; v1 inclusion still open)
+- A muted theme for people sensitive to bright colours, next to Light and Dark. Feedback from a tester: pink and green
+  swapping places between cards (pink cover + green progress, then the reverse) is confusing.
+- Rule: **one warm beige family only, no pink/green.** Ground #F3F1EC, cards #FBFAF7, ink #2F2A35, covers in sand tones
+  (#E3D5C0, #D8C7AE, #CBB9A3), buttons #D8C7AE with ink text, accent text #7A5F45.
+- **Every progress bar looks the same:** taupe #8A7258 on a sand track #EAE6DE, never coloured per story.
+- Contrast stays WCAG AA or better (body text 13:1, buttons 8:1).
