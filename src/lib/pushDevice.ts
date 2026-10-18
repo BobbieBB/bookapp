@@ -10,11 +10,11 @@ import type { Language } from '@/i18n';
 
 import { registerPushToken, unregisterPushToken } from './push';
 
-export const PUSH_TOKEN_KEY = 'fictionally.pushToken';
+export const PUSH_TOKEN_KEY = 'livami.pushToken';
 /** A device turned off while the server couldn't be reached, still to be forgotten there. */
-export const PENDING_RELEASE_KEY = 'fictionally.pushTokenPendingRelease';
+export const PENDING_RELEASE_KEY = 'livami.pushTokenPendingRelease';
 /** The answer to "Want to know when someone replies?": 'yes', or when the reader said "Not now" (ms). */
-export const PUSH_OFFER_KEY = 'fictionally.pushOffer';
+export const PUSH_OFFER_KEY = 'livami.pushOffer';
 const OFFER_PAUSE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type PushStatus = 'enabled' | 'denied' | 'unsupported' | 'not-configured';
@@ -38,7 +38,7 @@ export async function enablePush(language: Language): Promise<PushStatus> {
 
   if (platform === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Fictionally',
+      name: 'Livami',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }

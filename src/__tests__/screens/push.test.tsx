@@ -92,12 +92,12 @@ describe('Profile when pushes cannot be turned on', () => {
 
   it('says so when the reader refuses', async () => {
     notifications.requestPermissionsAsync.mockResolvedValue({ granted: false } as never);
-    await press('Turn on notifications for Fictionally in your phone’s settings.');
+    await press('Turn on notifications for Livami in your phone’s settings.');
   });
 
   it('says so in Bulgarian', async () => {
     notifications.requestPermissionsAsync.mockResolvedValue({ granted: false } as never);
-    await press('Включи известията за Fictionally в настройките на телефона си.', 'bg');
+    await press('Включи известията за Livami в настройките на телефона си.', 'bg');
   });
 
   it('says so when the token cannot be fetched', async () => {

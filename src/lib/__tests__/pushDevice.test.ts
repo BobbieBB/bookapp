@@ -76,7 +76,7 @@ describe('enablePush', () => {
   it('creates the default channel first on Android', async () => {
     Platform.OS = 'android';
     expect(await enablePush('en')).toBe('enabled');
-    expect(notifications.setNotificationChannelAsync).toHaveBeenCalledWith('default', expect.objectContaining({ importance: 3 }));
+    expect(notifications.setNotificationChannelAsync).toHaveBeenCalledWith('default', expect.objectContaining({ name: 'Livami', importance: 3 }));
     expect((await language())?.platform).toBe('android');
   });
 

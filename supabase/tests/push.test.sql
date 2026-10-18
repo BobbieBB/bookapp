@@ -61,6 +61,7 @@ create temp table pushes as
   where n.user_id = '00000000-0000-0000-0000-000000000901';
 select test.ok((select jsonb_array_length(messages) from pushes where type = 'reply') = 1, 'one message per device of the recipient');
 select test.ok((select messages->0->>'to' from pushes where type = 'reply') = 'ExponentPushToken[pia-phone]', 'sent to the recipient''s device');
+select test.ok((select messages->0->>'title' from pushes where type = 'reply') = 'Livami', 'titled with the app name');
 select test.ok((select messages->0->>'body' from pushes where type = 'reply') = 'pavel ти отговори в Push Book · Глава 2',
   'in the language of the device, with who, which story and which chapter');
 select test.ok((select messages::text not like '%butler%' from pushes where type = 'reply'), 'never the comment text');

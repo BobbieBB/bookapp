@@ -67,7 +67,7 @@ create or replace function public.push_messages(p_notification uuid, p_count int
 returns jsonb language sql stable security definer set search_path = public as $$
   select coalesce(jsonb_agg(jsonb_build_object(
       'to', t.token,
-      'title', 'Fictionally',
+      'title', 'Livami',
       'body', format(
         case
           when p_count > 1 and n.type = 'reply' and t.language = 'bg' then '%s нови отговора в %s · %s'
