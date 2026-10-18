@@ -42,8 +42,8 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 
 1. A reader can open the discussion for chapter *N* only after fully finishing chapter *N*.
    Progress means *the last fully finished chapter*.
-2. Books without chapters are split into **25-page ranges**; range *N* covers pages
-   `25(N-1)+1 … 25N`.
+2. Discussions are by chapter only (15 Oct 2026). The schema can still split a book into page
+   ranges, but the app doesn't offer it in v1.
 3. The Epilogue opens only when the story is marked **Finished**.
 4. There is **no manual unlock** and no "show spoilers anyway" switch.
 5. Direct links and notifications follow the same rule. Notifications never contain comment text.
@@ -68,9 +68,10 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 ## Scope of MVP v1
 
 In: sign up and onboarding, add a story (book search / manual fanfic), full library with statuses
-(Currently Reading, Want to Read, Finished, DNF, On Hold for fics), favourites, reading progress,
-chapter discussions with replies and reactions, The Epilogue, ratings and reviews/recs, basic
+(Currently Reading, Want to Read, Finished, DNF, On Hold for fics), reading progress,
+chapter discussions with replies and reactions, The Epilogue, ratings and reviews for books, basic
 discover, home screen, push notifications, report and block, feedback, analytics.
+(Updated 18 Oct 2026: no Favourites in v1; no fic ratings or recs, see "Finishing a fic".)
 
 Later (v1.1+): an in-app reader for the user's own EPUB/PDF files, friends and private groups,
 fic auto-fill from AO3 (only with OTW permission).
@@ -170,3 +171,14 @@ fic auto-fill from AO3 (only with OTW permission).
 - Discussions are separate per edition language: a Bulgarian and an English reader of the same book are in different rooms. Translations can merge or split chapters, so "chapter 12" must mean the same thing for everyone in a room; it also keeps each room in one language.
 - Books: a story = Open Library work + language (`source_id` = `<work key>#<lang>`, `stories.language`). The reader picks the edition language when adding (guessed from the title's script).
 - Fics: AO3 translations are separate works with their own links, so they are separate stories already.
+
+## Bulgarian books: where the data comes from (18 Oct 2026, PO)
+- Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:
+  Open Library found only Harry Potter; Google Books refuses every request without our own API key, and where it has Bulgarian
+  editions they are old, without covers and duplicated; Biblioman has some and not others.
+- v1: search Open Library; **adding by hand is the main path for Bulgarian books**, not a fallback. A book added by hand shows up
+  in search for every later reader, so the catalogue grows from readers and nobody ends up in a duplicate room.
+- No data or covers from pirate sites or scraped shops: covers belong to illustrators and publishers, and it would break the
+  "we respect creators" promise the app is built on.
+- Next: ask Biblioman for their bibliographic data (no covers); look into bookstore affiliate feeds (legal covers + a "Buy" link);
+  revisit Google Books only if readers often type in books Google has.
