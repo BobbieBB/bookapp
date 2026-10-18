@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import { renderScreen } from '../../../test/router';
+import * as analytics from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
 
 // Profile > "Help us improve the app" (docs/DECISIONS.md, "Analytics: first-party, with an opt-out"):
@@ -40,4 +41,15 @@ it('in Bulgarian', async () => {
   await renderScreen('bg', { profile: Profile }, '/profile');
   expect(await screen.findByLabelText('Помогни ни да подобрим приложението', {}, { timeout: 8000 })).toBeOnTheScreen();
   expect(screen.getByText('Броим кои функции се използват. Никога какво четеш или пишеш.')).toBeOnTheScreen();
+});
+
+it('while the choice cannot be read, the switch is disabled rather than shown on', async () => {
+  const lookup = jest.spyOn(analytics, 'analyticsOptOut').mockRejectedValue(new Error('offline'));
+  try {
+    await renderScreen('en', { profile: Profile }, '/profile');
+    expect(await screen.findByText('Could not save this choice. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Help us improve the app')).toBeDisabled();
+  } finally {
+    lookup.mockRestore();
+  }
 });

@@ -90,12 +90,12 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
   );
 }
 
-export function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
       <Text style={{ fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
+      <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
     </View>
   );
 }

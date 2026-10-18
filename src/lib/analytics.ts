@@ -39,7 +39,9 @@ export function cleanProps(props: Record<string, Value>): Record<string, Value> 
 const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web' ? Platform.OS : null;
 
 // The signed-in reader's "Help us improve the app" choice, read once per account and kept up to date by
-// setAnalyticsOptOut, so track() needn't ask the database before every event.
+// setAnalyticsOptOut, so track() needn't ask the database before every event. A change made on another
+// device reaches this one at the next start; until then an opt-out made elsewhere is still enforced by
+// the database (analytics_insert_own), so nothing is recorded against the reader's wish.
 let optOut: { userId: string; value: boolean } | null = null;
 
 async function signedInUserId(): Promise<string | null> {
