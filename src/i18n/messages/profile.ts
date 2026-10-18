@@ -22,6 +22,9 @@ export const en = {
   'profile.pushUnsupported': 'Push notifications need a phone.',
   'profile.pushNotConfigured': 'Push notifications aren’t set up yet.',
   'profile.pushError': 'Could not change notifications. Please try again.',
+  'profile.analytics': 'Help us improve the app',
+  'profile.analyticsHint': 'We count which features get used. Never what you read or write.',
+  'profile.analyticsError': 'Could not save this choice. Please try again.',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -45,4 +48,7 @@ export const bg: Translation<typeof en> = {
   'profile.pushUnsupported': 'Известията се получават на телефон.',
   'profile.pushNotConfigured': 'Известията още не са настроени.',
   'profile.pushError': 'Не успяхме да променим известията. Опитай пак.',
+  'profile.analytics': 'Помогни ни да подобрим приложението',
+  'profile.analyticsHint': 'Броим кои функции се използват. Никога какво четеш или пишеш.',
+  'profile.analyticsError': 'Не успяхме да запазим избора ти. Опитай пак.',
 };

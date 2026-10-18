@@ -25,6 +25,20 @@ select test.ok(test.error_of($$insert into public.analytics_events (name, props)
 select test.ok(test.error_of($$insert into public.analytics_events (user_id, name) values ('00000000-0000-0000-0000-000000000a02', 'app_open')$$)
   like '%row-level security%', 'you can only record your own events');
 select test.ok((select count(*) from public.analytics_events) = 0, 'readers cannot read events back, not even their own');
+-- The opt-out (PO, 18 Oct 2026): a reader who switches "Help us improve the app" off records nothing.
+select test.ok(test.error_of($$insert into public.analytics_opt_outs default values$$) is null, 'a reader can opt out');
+select test.ok(test.error_of($$insert into public.analytics_events (name) values ('app_open')$$) like '%row-level security%',
+  'nothing is recorded while opted out');
+select test.ok((select count(*) from public.analytics_opt_outs) = 1, 'you can see your own opt-out');
+select test.login('00000000-0000-0000-0000-000000000a02');
+select test.ok((select count(*) from public.analytics_opt_outs) = 0, 'nobody else can see that you opted out');
+select test.ok(test.error_of($$insert into public.analytics_opt_outs (user_id) values ('00000000-0000-0000-0000-000000000a01')$$)
+  like '%row-level security%', 'you cannot opt someone else out');
+select test.ok(test.error_of($$insert into public.analytics_events (name) values ('app_open')$$) is null, 'other readers still count');
+select test.login('00000000-0000-0000-0000-000000000a01');
+delete from public.analytics_opt_outs;
+select test.ok(test.error_of($$insert into public.analytics_events (name) values ('app_open')$$) is null, 'opting back in records again');
+
 select test.ok(test.error_of($$insert into public.analytics_events (name) select 'app_open' from generate_series(1, 301)$$) like '%too many%',
   'at most 300 events an hour per reader');
 
