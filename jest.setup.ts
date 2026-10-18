@@ -1,3 +1,5 @@
+import { networkFetch } from './test/network';
+
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(url)) {
   throw new Error(
@@ -16,12 +18,14 @@ for (const name of ['Headers', 'Request', 'Response']) {
 }
 
 Object.defineProperty(globalThis, 'fetch', {
-  value: require('./test/network').networkFetch,
+  value: networkFetch,
   writable: true,
   configurable: true,
 });
 
 // AsyncStorage is a native module, so Node needs its in-memory stand-in from the package itself.
+// jest.mock factories are hoisted above imports, so they can only load modules with require().
 jest.mock('@react-native-async-storage/async-storage', () =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
