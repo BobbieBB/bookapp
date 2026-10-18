@@ -16,7 +16,7 @@ const isCyrillic = (s = '') => /[А-Яа-яЁё]/.test(s);
 
 async function openLibrary(q) {
   const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=10&fields=title,author_name,language,cover_i`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'FictionallyCoverageTest/0.1' } });
+  const res = await fetch(url, { headers: { 'User-Agent': 'LivamiCoverageTest/0.1' } });
   const body = await res.json();
   return {
     total: body.numFound ?? 0,
