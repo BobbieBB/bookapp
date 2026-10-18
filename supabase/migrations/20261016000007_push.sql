@@ -57,20 +57,29 @@ grant select on public.push_settings to authenticated;
 create policy push_settings_admin_read on public.push_settings for select to authenticated
   using (public.is_admin());
 
+-- When a push went out, so replies close together can wait and go out as one (PO, 18 Oct 2026).
+alter table public.notifications add column pushed_at timestamptz;
+create index notifications_push_group on public.notifications (user_id, discussion_id, type, pushed_at);
+
 -- The Expo push messages for one notification: one per device of the recipient. Never comment text.
-create or replace function public.push_messages(p_notification uuid)
+-- With p_count > 1 it stands for that many replies (or mentions) in the same room: "3 new replies in …".
+create or replace function public.push_messages(p_notification uuid, p_count int default 1)
 returns jsonb language sql stable security definer set search_path = public as $$
   select coalesce(jsonb_agg(jsonb_build_object(
       'to', t.token,
       'title', 'Fictionally',
       'body', format(
         case
+          when p_count > 1 and n.type = 'reply' and t.language = 'bg' then '%s нови отговора в %s · %s'
+          when p_count > 1 and n.type = 'reply' then '%s new replies in %s · %s'
+          when p_count > 1 and t.language = 'bg' then '%s нови споменавания в %s · %s'
+          when p_count > 1 then '%s new mentions in %s · %s'
           when n.type = 'reply' and t.language = 'bg' then '%s ти отговори в %s · %s'
           when n.type = 'reply' then '%s replied to you in %s · %s'
           when t.language = 'bg' then '%s те спомена в %s · %s'
           else '%s mentioned you in %s · %s'
         end,
-        coalesce(a.username, '…'), s.title,
+        case when p_count > 1 then p_count::text else coalesce(a.username, '…') end, s.title,
         case
           when d.kind = 'epilogue' and t.language = 'bg' then 'Епилогът'
           when d.kind = 'epilogue' then 'The Epilogue'
@@ -89,42 +98,95 @@ returns jsonb language sql stable security definer set search_path = public as $
     -- only rooms the reader can open now (they may have moved their progress back since)
     and public.user_can_access_section(n.user_id, d.story_id, d.kind, d.section_number)
 $$;
-revoke execute on function public.push_messages(uuid) from public, anon, authenticated;
+revoke execute on function public.push_messages(uuid, int) from public, anon, authenticated;
 
--- Send as soon as a notification is created (only when switched on and pg_net is available).
+-- Hand messages to Expo (at most 100 per request). pg_net sends after the transaction commits.
+create or replace function public.send_push_messages(p_url text, p_messages jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  for i in 0 .. (jsonb_array_length(p_messages) - 1) / 100 loop
+    exit when jsonb_array_length(p_messages) = 0;
+    execute 'select net.http_post(url := $1, body := $2, headers := $3)'
+      using p_url,
+            (select jsonb_agg(m) from jsonb_array_elements(p_messages) with ordinality as e(m, k) where k > i * 100 and k <= (i + 1) * 100),
+            '{"Content-Type": "application/json", "Accept": "application/json"}'::jsonb;
+  end loop;
+end $$;
+revoke execute on function public.send_push_messages(text, jsonb) from public, anon, authenticated;
+
+-- A reply or mention buzzes at once, unless the reader got a push of the same kind about the same room
+-- in the last 10 minutes: then it waits for send_held_pushes, which bundles it with the others.
 create or replace function public.notifications_send_push()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
   settings public.push_settings;
-  messages jsonb;
 begin
   select * into settings from public.push_settings;
-  if not coalesce(settings.enabled, false) or to_regproc('net.http_post') is null then
+  if new.type not in ('reply', 'mention') or not coalesce(settings.enabled, false) or to_regproc('net.http_post') is null then
     return new;
   end if;
-  messages := public.push_messages(new.id);
-  -- Expo takes at most 100 messages per request. A failure to send must never lose the comment.
+  if exists (select 1 from public.notifications n
+             where n.user_id = new.user_id and n.discussion_id = new.discussion_id and n.type = new.type
+               and n.pushed_at > now() - interval '10 minutes') then
+    return new;
+  end if;
+  update public.notifications set pushed_at = now() where id = new.id;
+  -- A failure to send must never lose the comment.
   begin
-    for i in 0 .. (jsonb_array_length(messages) - 1) / 100 loop
-      exit when jsonb_array_length(messages) = 0;
-      execute 'select net.http_post(url := $1, body := $2, headers := $3)'
-        using settings.url,
-              (select jsonb_agg(m) from jsonb_array_elements(messages) with ordinality as e(m, k) where k > i * 100 and k <= (i + 1) * 100),
-              '{"Content-Type": "application/json", "Accept": "application/json"}'::jsonb;
-    end loop;
+    perform public.send_push_messages(settings.url, public.push_messages(new.id));
   exception when others then
     raise warning 'push for notification % not sent: %', new.id, sqlerrm;
   end;
   return new;
 end $$;
 
+-- Every minute (pg_cron): replies and mentions that waited go out as one push per reader, room and
+-- kind once 10 minutes have passed since that room's last push. Ones older than 30 minutes (sending
+-- was off, or pg_cron was down) are marked as sent without a push, so turning sending on never floods.
+create or replace function public.send_held_pushes()
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  settings public.push_settings;
+  g record;
+begin
+  select * into settings from public.push_settings;
+  update public.notifications set pushed_at = now()
+  where pushed_at is null and type in ('reply', 'mention') and created_at < now() - interval '30 minutes';
+  if not coalesce(settings.enabled, false) or to_regproc('net.http_post') is null then
+    return;
+  end if;
+  for g in
+    select n.user_id, n.discussion_id, n.type, count(*)::int as held,
+           (array_agg(n.id order by n.created_at desc, n.id))[1] as latest
+    from public.notifications n
+    where n.pushed_at is null and n.type in ('reply', 'mention')
+      and not exists (select 1 from public.notifications p
+                      where p.user_id = n.user_id and p.discussion_id = n.discussion_id and p.type = n.type
+                        and p.pushed_at > now() - interval '10 minutes')
+    group by n.user_id, n.discussion_id, n.type
+  loop
+    update public.notifications set pushed_at = now()
+    where user_id = g.user_id and discussion_id = g.discussion_id and type = g.type and pushed_at is null;
+    begin
+      perform public.send_push_messages(settings.url, public.push_messages(g.latest, g.held));
+    exception when others then
+      raise warning 'bundled push for notification % not sent: %', g.latest, sqlerrm;
+    end;
+  end loop;
+end $$;
+revoke execute on function public.send_held_pushes() from public, anon, authenticated;
+
 create trigger notifications_send_push after insert on public.notifications
   for each row execute function public.notifications_send_push();
 
--- pg_net makes the HTTP call after the transaction commits (Supabase only).
+-- pg_net makes the HTTP call after the transaction commits; pg_cron sends the bundles (Supabase only).
 do $$
 begin
   if exists (select 1 from pg_available_extensions where name = 'pg_net') then
     create extension if not exists pg_net;
+  end if;
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron;
+    perform cron.schedule('send-held-pushes', '* * * * *', 'select public.send_held_pushes()');
   end if;
 end $$;

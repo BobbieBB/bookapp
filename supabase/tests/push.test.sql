@@ -106,6 +106,39 @@ update public.push_settings set enabled = false;
 drop function net.http_post(text, jsonb, jsonb);
 drop schema net;
 
+-- 5. Replies close together become one push (PO, 18 Oct 2026) ---------------------------------------
+create table test.sent (body jsonb);
+create schema if not exists net;
+create function net.http_post(url text, body jsonb, headers jsonb) returns bigint language plpgsql as $f$
+begin insert into test.sent select m from jsonb_array_elements(body) m; return 1; end $f$;
+delete from public.notifications where user_id = '00000000-0000-0000-0000-000000000901';
+update public.push_settings set enabled = true;
+select test.login('00000000-0000-0000-0000-000000000902');
+insert into public.comments (discussion_id, parent_id, body)
+  select id, '99100000-0000-0000-0000-000000000001', 'reply ' || n from public.discussions, generate_series(1, 3) n
+  where story_id = '99000000-0000-0000-0000-000000000001' and section_number = 2;
+select test.logout();
+select test.ok((select count(*) from test.sent) = 1, 'the first reply buzzes at once');
+select test.ok((select body->>'body' from test.sent) = 'pavel ти отговори в Push Book · Глава 2', 'saying who replied');
+select public.send_held_pushes();
+select test.ok((select count(*) from test.sent) = 1, 'more replies in the next 10 minutes wait');
+update public.notifications set pushed_at = pushed_at - interval '11 minutes'
+  where user_id = '00000000-0000-0000-0000-000000000901' and pushed_at is not null;
+select public.send_held_pushes();
+select test.ok((select count(*) from test.sent) = 2, 'then they go out together');
+select test.ok((select body->>'body' from test.sent where body->>'body' <> 'pavel ти отговори в Push Book · Глава 2')
+  = '2 нови отговора в Push Book · Глава 2', 'as one push with how many');
+select test.ok((select body->'data'->>'url' from test.sent where body->>'body' like '2 %') = '/room/99000000-0000-0000-0000-000000000001/2',
+  'that opens the room');
+select public.send_held_pushes();
+select test.ok((select count(*) from test.sent) = 2, 'each reply is pushed once');
+select test.ok((select jsonb_array_length(public.push_messages(n.id, 3)) from public.notifications n
+  where n.user_id = '00000000-0000-0000-0000-000000000901' limit 1) = 1, 'a bundle goes to each device once');
+update public.push_settings set enabled = false;
+drop function net.http_post(text, jsonb, jsonb);
+drop schema net;
+drop table test.sent;
+
 select test.logout();
 \o
 \echo 'PUSH RULES PASSED'

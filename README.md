@@ -26,7 +26,8 @@ merge. In the app:
 Before launch:
 - **Hosted database:** apply the migrations to the hosted Supabase in order.
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
-  (see PR #13).
+  (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
+  `send-held-pushes` job shows up under Integrations → Cron.
 - **Copy:** a native read of the Bulgarian copy.
 
 Planning lives on the Trello board *Book club app*.

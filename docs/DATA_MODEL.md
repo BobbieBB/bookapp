@@ -105,6 +105,11 @@ device of the recipient (`push_messages`): who, which story and which chapter, i
 language, never the comment text, and a link to the room (which checks the spoiler wall again). It is
 sent with `pg_net` (in batches of 100) only when `push_settings.enabled` is on, and a failed send never
 loses the comment. Pushes only go out for rooms the reader can still open. Reactions don't send pushes.
+Replies close together become one push (PO, 18 Oct 2026): if the reader got a push of the same kind
+about the same room in the last 10 minutes, the notification waits (`notifications.pushed_at` stays
+empty), and `send_held_pushes`, run every minute by `pg_cron`, sends what waited as one push
+("3 new replies in <story> · Chapter 12") once those 10 minutes are up. Anything still waiting after
+30 minutes is dropped without a push, so switching sending on never floods anyone.
 Devices are added only through `claim_push_token` (at most 10 per reader) and forgotten with
 `release_push_token`, which also works from a signed-out phone. Only migrations or the service role can
 change `push_settings`.
