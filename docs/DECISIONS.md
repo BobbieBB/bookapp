@@ -42,8 +42,8 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 
 1. A reader can open the discussion for chapter *N* only after fully finishing chapter *N*.
    Progress means *the last fully finished chapter*.
-2. Books without chapters are split into **25-page ranges**; range *N* covers pages
-   `25(N-1)+1 … 25N`.
+2. Discussions are by chapter only (15 Oct 2026). The schema can still split a book into page
+   ranges, but the app doesn't offer it in v1.
 3. The Epilogue opens only when the story is marked **Finished**.
 4. There is **no manual unlock** and no "show spoilers anyway" switch.
 5. Direct links and notifications follow the same rule. Notifications never contain comment text.
@@ -68,9 +68,10 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 ## Scope of MVP v1
 
 In: sign up and onboarding, add a story (book search / manual fanfic), full library with statuses
-(Currently Reading, Want to Read, Finished, DNF, On Hold for fics), favourites, reading progress,
-chapter discussions with replies and reactions, The Epilogue, ratings and reviews/recs, basic
+(Currently Reading, Want to Read, Finished, DNF, On Hold for fics), reading progress,
+chapter discussions with replies and reactions, The Epilogue, ratings and reviews for books, basic
 discover, home screen, push notifications, report and block, feedback, analytics.
+(Updated 18 Oct 2026: no Favourites in v1; no fic ratings or recs, see "Finishing a fic".)
 
 Later (v1.1+): an in-app reader for the user's own EPUB/PDF files, friends and private groups,
 fic auto-fill from AO3 (only with OTW permission).
@@ -153,7 +154,7 @@ fic auto-fill from AO3 (only with OTW permission).
 - No outlines; soft shadows (0 1px 2px + 0 12px 28px, low opacity); radii 14–22 px; round icon buttons.
 - Tab bar: white, active tab = pink pill with icon + label, others icon only.
 - Dark mode: ground #120C17, cards #1F1726, pink #FF6B97, mint #4FD1A6, same shapes.
-- Fonts unchanged (Bricolage Grotesque, Atkinson Hyperlegible, Cormorant Garamond italic for covers and "moments").
+- Fonts: see "Fonts: Unbounded + Sofia Sans" (18 Oct 2026).
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
 ## Add a story: details (15 Oct 2026, decided by the PO)
@@ -177,7 +178,40 @@ Choices made during development where the decisions above don't say. Each one is
   (`Fictionally/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
   reaches Open Library from the iOS and Android apps.
-- **Fonts for Bulgarian (16 Oct 2026):** Bricolage Grotesque and Atkinson Hyperlegible have no
-  Cyrillic, so in the Bulgarian UI headings and reading text use **Onest** (a grotesque made for
-  Cyrillic screens). Cormorant Garamond has Cyrillic and stays for "moments" in both languages.
-  Cyrillic text inside the English UI (e.g. a Bulgarian book title) falls back to the system font.
+
+## Bulgarian books: where the data comes from (18 Oct 2026, PO)
+- Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:
+  Open Library found only Harry Potter; Google Books refuses every request without our own API key, and where it has Bulgarian
+  editions they are old, without covers and duplicated; Biblioman has some and not others.
+- v1: search Open Library; **adding by hand is the main path for Bulgarian books**, not a fallback. A book added by hand shows up
+  in search for every later reader, so the catalogue grows from readers and nobody ends up in a duplicate room.
+- No data or covers from pirate sites or scraped shops: covers belong to illustrators and publishers, and it would break the
+  "we respect creators" promise the app is built on.
+- Next: ask Biblioman for their bibliographic data (no covers); look into bookstore affiliate feeds (legal covers + a "Buy" link);
+  revisit Google Books only if readers often type in books Google has.
+
+## Fonts: Unbounded + Sofia Sans, the same in both languages (18 Oct 2026, PO)
+- Replaces Bricolage Grotesque and Atkinson Hyperlegible, which have no Cyrillic: Bulgarian titles and comments would fall back
+  to the system font, even inside the English UI.
+- **Unbounded** (600/700) for headings, book titles and the big moments of the UI: bold, wide, matches the bold colours.
+  Short text only; it is too wide for paragraphs.
+- **Sofia Sans** (400/700/800) for everything else: comments, buttons, labels. Made by a Bulgarian designer; reads well in both
+  scripts. It is narrow, so body text is 15 px rather than 14.
+- **Cormorant Garamond** italic stays for "moments" (The Epilogue, typographic covers); it has Cyrillic.
+- One font set for both languages: no per-language switch. Replaces the "Fonts for Bulgarian" dev default (Onest) from PR #4.
+
+## Analytics: first-party, with an opt-out (18 Oct 2026, PO)
+- Confirms the PR #12 approach: our own `analytics_events` table, a fixed list of events, short non-content properties, never
+  titles, comment text or other people's ids. Linked to the account so we can see whether people come back; deleted with it.
+- Add a Profile switch "Help us improve the app" (on by default). When off, the app records nothing. GDPR: readers can object.
+- The PO gets a small dashboard with 4–5 key numbers (weekly active readers, week-1 return, readers who reach a discussion,
+  stories added by hand vs search, BG vs EN), so no SQL is needed.
+- Revisit a hosted tool (e.g. PostHog EU) only if the dashboard isn't enough once there are real readers.
+
+## Push notifications (18 Oct 2026, PO)
+- v1 sends a push only for **replies to you and @mentions** (as in PR #13). Never comment text: "Maria replied in <story>, chapter 12".
+- No push for new chapters of a WIP (we only learn about them when another reader marks them, so it would be late and unreliable;
+  readers subscribe on AO3 instead) and none for new comments in your rooms (Home shows "N new comments").
+- Ask for permission at a moment that makes sense: right after the reader posts their first comment ("Want to know when someone
+  replies?" [Yes] [Not now]). The Profile switch stays. If they say "Not now", don't ask again for 30 days.
+- Bundle: several replies within 10 minutes become one push ("3 new replies in chapter 12").
