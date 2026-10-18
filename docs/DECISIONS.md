@@ -208,3 +208,10 @@ fic auto-fill from AO3 (only with OTW permission).
 - Ask for permission at a moment that makes sense: right after the reader posts their first comment ("Want to know when someone
   replies?" [Yes] [Not now]). The Profile switch stays. If they say "Not now", don't ask again for 30 days.
 - Bundle: several replies within 10 minutes become one push ("3 new replies in chapter 12").
+
+## Bulgarian copy style (18 Oct 2026, PO)
+- Address the reader as "ти". **Gender-neutral**: rephrase so no gendered form is needed ("За първи път ли си тук?", "Никой още не
+  е добавял това издание", "добави я ръчно"), never masculine-by-default and no "сам/а" slashes.
+- Use the words readers actually use, even loanwords: фенфикшън, фик, kudos, **Ship**, **WIP**, **DNF**, линк (not "връзка").
+- AO3 ratings and archive warnings stay **in English, exactly as on AO3**, so readers match them at a glance; only the headings are
+  Bulgarian ("Рейтинг в AO3", "Предупреждения в AO3").
