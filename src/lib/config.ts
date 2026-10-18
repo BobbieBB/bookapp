@@ -14,7 +14,7 @@ export const SUPABASE_URL =
 export const SUPABASE_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_KEY ?? 'sb_publishable_1p5aIfgobmFhCK4j9AZu_Q_5YRjPlt-';
 
-export const APP_NAME = 'Fictionally'; // working name, see docs/DECISIONS.md
+export const APP_NAME = 'Livami'; // see docs/DECISIONS.md, "Name"
 export const APP_VERSION = app.expo.version;
 export const PROJECT_URL = 'https://github.com/BobbieBB/bookapp';
 
