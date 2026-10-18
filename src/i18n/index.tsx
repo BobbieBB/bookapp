@@ -75,11 +75,6 @@ export function useLanguage(): LanguageState {
   return state;
 }
 
-/** The UI language, or null outside a LanguageProvider (e.g. a component rendered on its own). */
-export function useOptionalLanguage(): Language | null {
-  return use(LanguageContext)?.language ?? null;
-}
-
 /** `t(key, params)` in the current UI language. */
 export function useT() {
   const { language } = useLanguage();
