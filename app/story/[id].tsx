@@ -20,7 +20,6 @@ import {
   pagePercent,
   reopen,
   setChapter,
-  setFavourite,
   setPage,
   setStatus,
   type MyEntry,
@@ -230,19 +229,7 @@ function StoryBody({
 
       {entry && libraryEntry ? (
         <Card style={{ gap: space.m }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <T v="overline">{t('story.yourLibrary').toUpperCase()}</T>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={entry.is_favourite ? t('story.removeFavourite') : t('story.addFavourite')}
-              accessibilityState={{ selected: entry.is_favourite }}
-             
-              onPress={() => saved({ is_favourite: !entry.is_favourite }, () => setFavourite(story.id, userId, !entry.is_favourite))}
-              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: entry.is_favourite ? c.mine : c.ground }}
-            >
-              <Text style={{ fontSize: 22, color: entry.is_favourite ? c.primary : c.muted }}>{entry.is_favourite ? '♥' : '♡'}</Text>
-            </Pressable>
-          </View>
+          <T v="overline">{t('story.yourLibrary').toUpperCase()}</T>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
