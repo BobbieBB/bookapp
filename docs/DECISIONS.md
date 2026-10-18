@@ -21,7 +21,7 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 - **Ink & Bloom**: light mode "Fresh Ink" (hot pink + fresh mint, night-violet ink outlines and hard
   "sticker" shadows), dark mode "Midnight Bloom" (neon rose + electric mint on violet night).
   Same colour roles in both; tokens live in `src/theme.ts`. Design file: claude.ai artifact
-  "Fictionally — Style Directions".
+  "Livami — Style Directions".
 - Type: Bricolage Grotesque (UI headings), Cormorant Garamond italic (moments: chapter titles,
   The Epilogue), Atkinson Hyperlegible (reading text).
 - The discussion comes first: "I finished chapter N+1" is a small pill in the header plus a quiet
