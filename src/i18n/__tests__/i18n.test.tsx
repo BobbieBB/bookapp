@@ -33,6 +33,12 @@ describe('dictionaries', () => {
       expect(`${String(key)} ${placeholders(bg[key])}`).toBe(`${String(key)} ${placeholders(en[key])}`);
     }
   });
+
+  it('the app is called Livami (docs/DECISIONS.md, "Name"), never by its working name', () => {
+    expect(JSON.stringify([en, bg])).not.toMatch(/fictionally/i);
+    expect(en['add.alreadyHere']).toBe('Already on Livami');
+    expect(bg['add.alreadyHere']).toBe('Вече е в Livami');
+  });
 });
 
 describe('translate', () => {
