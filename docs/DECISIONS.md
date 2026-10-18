@@ -224,3 +224,13 @@ Choices made during development where the decisions above don't say. Each one is
 - Use the words readers actually use, even loanwords: фенфикшън, фик, kudos, **Ship**, **WIP**, **DNF**, линк (not "връзка").
 - AO3 ratings and archive warnings stay **in English, exactly as on AO3**, so readers match them at a glance; only the headings are
   Bulgarian ("Рейтинг в AO3", "Предупреждения в AO3").
+
+## Logo and tagline (18 Oct 2026, PO)
+- **Mark ("I1"):** an open book (outline, ink, with short lines of text on the pages) and two overlapping readers above it,
+  mint and pink; the overlap is in ink: two people, one shared story. The app icon is the mark alone.
+- **Wordmark:** "Livami" in Cormorant Garamond italic 700 (warm, literary), with the dots of the two i's in mint and pink.
+  Stacked (splash, App Store, website, social) and horizontal (header, email signature) versions.
+- **Tagline:** "Read it. Find your people. Scream about it!" Kept in English in both UIs. (ami = friend: the name and the
+  tagline say the same thing.)
+- Colours: mint #3DBE95, pink #FF4F84, ink #1E1328 (dark: #4FD1A6, #FF6B97, #F7EEF3). Design file: "Logo: final".
+- Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
