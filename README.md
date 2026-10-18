@@ -69,7 +69,7 @@ git clone https://github.com/BobbieBB/bookapp.git
 cd bookapp
 npm install
 npx expo install --fix     # aligns package versions with the installed Expo SDK
-npx expo install expo-font @expo-google-fonts/bricolage-grotesque @expo-google-fonts/cormorant-garamond @expo-google-fonts/atkinson-hyperlegible   # once, if missing
+npx expo install expo-font @expo-google-fonts/unbounded @expo-google-fonts/sofia-sans @expo-google-fonts/cormorant-garamond   # once, if missing
 npx expo start
 ```
 
