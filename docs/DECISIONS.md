@@ -235,11 +235,11 @@ Choices made during development where the decisions above don't say. Each one is
 - Colours: mint #3DBE95, pink #FF4F84, ink #1E1328 (dark: #4FD1A6, #FF6B97, #F7EEF3). Design file: "Logo: final".
 - Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
 
-## Calm theme: parchment (18 Oct 2026, design; v1 inclusion still open)
+## Calm theme (18 Oct 2026, design; v1 inclusion still open)
 - A muted theme for people sensitive to bright colours, next to Light and Dark. Feedback from a tester: pink and green
   swapping places between cards (pink cover + green progress, then the reverse) is confusing.
-- Rule: **one parchment family only, no pink/green**, so the app feels like the pages of a paper book. Ground #F4ECD8,
-  cards #FAF5E9, sepia ink #3B3026, secondary text #6B5A48, covers in aged-paper/leather tones (#D9C4A0, #C9A97A, #B8946A),
-  buttons #C9A97A with ink text, accent text #8B5E3C.
-- **Every progress bar looks the same:** sepia #7A5A3A on #EADFC6, never coloured per story.
-- Contrast stays WCAG AA or better (body text 11:1, secondary 5.6:1, buttons 5.8:1).
+- Rule: **one warm beige family only, no pink/green.** Ground #F3F1EC, cards #FBFAF7, ink #2F2A35, covers in sand tones
+  (#E3D5C0, #D8C7AE, #CBB9A3), buttons #D8C7AE with ink text, accent text #7A5F45.
+- **Every progress bar looks the same:** taupe #8A7258 on a sand track #EAE6DE, never coloured per story.
+- Contrast stays WCAG AA or better (body text 13:1, buttons 8:1).
+- (A parchment variant was tried the same day and dropped: the PO preferred this beige.)
