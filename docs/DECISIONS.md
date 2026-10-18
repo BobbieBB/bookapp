@@ -192,3 +192,11 @@ fic auto-fill from AO3 (only with OTW permission).
   scripts. It is narrow, so body text is 15 px rather than 14.
 - **Cormorant Garamond** italic stays for "moments" (The Epilogue, typographic covers); it has Cyrillic.
 - One font set for both languages: no per-language switch. Replaces the "Fonts for Bulgarian" dev default (Onest) from PR #4.
+
+## Analytics: first-party, with an opt-out (18 Oct 2026, PO)
+- Confirms the PR #12 approach: our own `analytics_events` table, a fixed list of events, short non-content properties, never
+  titles, comment text or other people's ids. Linked to the account so we can see whether people come back; deleted with it.
+- Add a Profile switch "Help us improve the app" (on by default). When off, the app records nothing. GDPR: readers can object.
+- The PO gets a small dashboard with 4–5 key numbers (weekly active readers, week-1 return, readers who reach a discussion,
+  stories added by hand vs search, BG vs EN), so no SQL is needed.
+- Revisit a hosted tool (e.g. PostHog EU) only if the dashboard isn't enough once there are real readers.
