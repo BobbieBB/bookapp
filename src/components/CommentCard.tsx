@@ -27,7 +27,7 @@ function QuietAction({ label, onPress, accessibilityLabel }: { label: string; on
   const { fonts, c } = useTheme();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={{ minHeight: 44, justifyContent: 'center', paddingRight: space.m }}>
-      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.muted }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.muted }}>{label}</Text>
     </Pressable>
   );
 }
@@ -194,7 +194,7 @@ export function CommentCard({
             />
           ) : null}
           {reported ? (
-            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
               {t('safety.reported')}
             </Text>
           ) : null}
