@@ -200,3 +200,11 @@ fic auto-fill from AO3 (only with OTW permission).
 - The PO gets a small dashboard with 4–5 key numbers (weekly active readers, week-1 return, readers who reach a discussion,
   stories added by hand vs search, BG vs EN), so no SQL is needed.
 - Revisit a hosted tool (e.g. PostHog EU) only if the dashboard isn't enough once there are real readers.
+
+## Push notifications (18 Oct 2026, PO)
+- v1 sends a push only for **replies to you and @mentions** (as in PR #13). Never comment text: "Maria replied in <story>, chapter 12".
+- No push for new chapters of a WIP (we only learn about them when another reader marks them, so it would be late and unreliable;
+  readers subscribe on AO3 instead) and none for new comments in your rooms (Home shows "N new comments").
+- Ask for permission at a moment that makes sense: right after the reader posts their first comment ("Want to know when someone
+  replies?" [Yes] [Not now]). The Profile switch stays. If they say "Not now", don't ask again for 30 days.
+- Bundle: several replies within 10 minutes become one push ("3 new replies in chapter 12").
