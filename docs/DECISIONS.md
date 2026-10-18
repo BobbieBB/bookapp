@@ -236,6 +236,7 @@ Choices made during development where the decisions above don't say. Each one is
 - Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
 
 ## Calm theme (18 Oct 2026, design; v1 inclusion still open)
+- **Name: "Calm" / „Спокойна“** (PO). Profile → Appearance: Auto · Light · Dark · Calm. Not "Easy mode": it should feel calmer, not simpler.
 - A muted theme for people sensitive to bright colours, next to Light and Dark. Feedback from a tester: pink and green
   swapping places between cards (pink cover + green progress, then the reverse) is confusing.
 - Rule: **one warm beige family only, no pink/green.** Ground #F3F1EC, cards #FBFAF7, ink #2F2A35, covers in sand tones
