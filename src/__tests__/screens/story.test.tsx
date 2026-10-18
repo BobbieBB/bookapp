@@ -19,7 +19,7 @@ let wipId: string;
 let strangerBookId: string;
 
 const entry = async (storyId: string) =>
-  (await supabase.from('library_entries').select('status, is_favourite, progress_section, progress_page').eq('story_id', storyId).eq('user_id', me).single().throwOnError()).data!;
+  (await supabase.from('library_entries').select('status, progress_section, progress_page').eq('story_id', storyId).eq('user_id', me).single().throwOnError()).data!;
 
 beforeAll(async () => {
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -90,14 +90,13 @@ describe('a book you are reading', () => {
     expect(await entry(bookId)).toMatchObject({ progress_page: 150, progress_section: 2 });
   });
 
-  it('status and favourite are saved; On Hold is only for fanfiction', async () => {
+  it('status is saved; On Hold is only for fanfiction; no favourites in v1', async () => {
     await open('en', bookId);
     expect(screen.queryByText('On Hold')).toBeNull();
     await fireEvent.press(screen.getByText('Want to Read'));
     await screen.findByRole('button', { name: 'Want to Read', selected: true }, { timeout: 8000 });
-    await fireEvent.press(screen.getByLabelText('Add to favourites'));
-    expect(await screen.findByLabelText('Remove from favourites', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(await entry(bookId)).toMatchObject({ status: 'want_to_read', is_favourite: true });
+    expect(await entry(bookId)).toMatchObject({ status: 'want_to_read' });
+    expect(screen.queryByLabelText('Add to favourites')).toBeNull();
   });
 
   it('in Bulgarian', async () => {
