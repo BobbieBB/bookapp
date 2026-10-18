@@ -4,6 +4,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommentCard } from '@/components/CommentCard';
+import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -159,6 +160,7 @@ function Discussion({
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null);
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
+  const [posted, setPosted] = useState(0); // comments posted here, for the push offer
   const [failed, setFailed] = useState(false);
   const [blockedNotice, setBlockedNotice] = useState(false);
 
@@ -200,6 +202,7 @@ function Discussion({
     try {
       await postComment(discussionId, draft, replyTo?.id);
       void track('comment_posted', { kind: replyTo ? 'reply' : 'comment' });
+      setPosted((count) => count + 1);
       setDraft('');
       setReplyTo(null);
       reload();
@@ -296,6 +299,7 @@ function Discussion({
         />
         <Button title={t('room.post')} onPress={() => void post()} disabled={!draft.trim()} loading={posting} />
       </View>
+      <PushOffer posted={posted} />
     </View>
   );
 }

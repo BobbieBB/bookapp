@@ -12,6 +12,9 @@ export const en = {
   'notifications.empty': 'Nothing yet. Replies and mentions will show up here.',
   'notifications.error': 'Could not load your notifications. Try again in a moment.',
   'notifications.seeAll': 'See all',
+  'notifications.pushOffer': 'Want to know when someone replies?',
+  'notifications.pushOfferYes': 'Yes',
+  'notifications.pushOfferLater': 'Not now',
   'notifications.newComments': {
     one: '{count} new comment in chapter {chapter}',
     other: '{count} new comments in chapter {chapter}',
@@ -29,6 +32,9 @@ export const bg: Translation<typeof en> = {
   'notifications.empty': 'Още нищо. Отговорите и споменаванията ще се показват тук.',
   'notifications.error': 'Известията не се заредиха. Опитай пак след малко.',
   'notifications.seeAll': 'Виж всички',
+  'notifications.pushOffer': 'Искаш ли да разбереш, когато някой ти отговори?',
+  'notifications.pushOfferYes': 'Да',
+  'notifications.pushOfferLater': 'Не сега',
   'notifications.newComments': {
     one: '{count} нов коментар в глава {chapter}',
     other: '{count} нови коментара в глава {chapter}',

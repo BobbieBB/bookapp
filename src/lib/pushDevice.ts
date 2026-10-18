@@ -13,11 +13,18 @@ import { registerPushToken, unregisterPushToken } from './push';
 export const PUSH_TOKEN_KEY = 'fictionally.pushToken';
 /** A device turned off while the server couldn't be reached, still to be forgotten there. */
 export const PENDING_RELEASE_KEY = 'fictionally.pushTokenPendingRelease';
+/** The answer to "Want to know when someone replies?": 'yes', or when the reader said "Not now" (ms). */
+export const PUSH_OFFER_KEY = 'fictionally.pushOffer';
+const OFFER_PAUSE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type PushStatus = 'enabled' | 'denied' | 'unsupported' | 'not-configured';
 
 function phonePlatform(): 'ios' | 'android' | null {
   return Device.isDevice && (Platform.OS === 'ios' || Platform.OS === 'android') ? Platform.OS : null;
+}
+
+function easProjectId(): string | undefined {
+  return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 }
 
 /** Turns pushes on for this phone; says why when it cannot. */
@@ -26,7 +33,7 @@ export async function enablePush(language: Language): Promise<PushStatus> {
   if (!platform) return 'unsupported';
 
   // Without an EAS project there is no token to get: say so before asking the reader anything.
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const projectId = easProjectId();
   if (!projectId) return 'not-configured';
 
   if (platform === 'android') {
@@ -44,6 +51,30 @@ export async function enablePush(language: Language): Promise<PushStatus> {
   await registerPushToken(token, language, platform);
   await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
   return 'enabled';
+}
+
+/**
+ * Whether to ask "Want to know when someone replies?" after the reader posted (docs/DECISIONS.md,
+ * "Push notifications"): on a phone that can get pushes and doesn't yet, never again after "Yes",
+ * not for 30 days after "Not now", and not once the phone has said no for good.
+ */
+export async function shouldOfferPush(now = Date.now()): Promise<boolean> {
+  if (!phonePlatform() || !easProjectId() || (await pushIsOn())) return false;
+  const answer = await AsyncStorage.getItem(PUSH_OFFER_KEY);
+  if (answer === 'yes' || (answer !== null && now - Number(answer) < OFFER_PAUSE_MS)) return false;
+  const permission = await Notifications.getPermissionsAsync();
+  return permission.granted || permission.canAskAgain !== false;
+}
+
+/** "Yes" on the offer: turn pushes on (the OS asks now) and never offer again. */
+export async function acceptPushOffer(language: Language): Promise<PushStatus> {
+  await AsyncStorage.setItem(PUSH_OFFER_KEY, 'yes');
+  return enablePush(language);
+}
+
+/** "Not now" on the offer: ask again in 30 days. */
+export async function declinePushOffer(now = Date.now()): Promise<void> {
+  await AsyncStorage.setItem(PUSH_OFFER_KEY, String(now));
 }
 
 /** Whether this phone has been registered (and not switched off since). */
