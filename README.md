@@ -1,4 +1,4 @@
-# Fictionally *(working name)*
+# Livami
 
 A social reading companion for **books and fanfiction**. Readers track what they read and talk
 about it **chapter by chapter, without spoilers**: you can only enter a chapter's discussion once you
