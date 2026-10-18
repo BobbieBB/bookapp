@@ -57,7 +57,7 @@ function YourFandoms() {
             key={fandom}
             style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, borderRadius: radius.pill, backgroundColor: c.mine, paddingLeft: 14 }}
           >
-            <Text style={{ fontSize: 14, fontFamily: fonts.bodyBold, color: c.ink }}>{fandom}</Text>
+            <Text style={{ fontSize: 15, fontFamily: fonts.bodyBold, color: c.ink }}>{fandom}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('profile.removeFandom', { fandom })}
@@ -92,7 +92,7 @@ function YourFandoms() {
                 }}
               >
                 <Feather name="plus" size={14} color={c.inkSoft} />
-                <Text style={{ fontSize: 14, fontFamily: fonts.body, color: c.inkSoft }}>{fandom}</Text>
+                <Text style={{ fontSize: 15, fontFamily: fonts.body, color: c.inkSoft }}>{fandom}</Text>
               </Pressable>
             ))}
           </View>

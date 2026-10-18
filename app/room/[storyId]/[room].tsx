@@ -129,7 +129,7 @@ function FinishPill({ label, onDone, onChanged }: { label: string; onDone: () =>
         }}
         style={{ minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: c.band }}
       >
-        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.ink }}>{label}</Text>
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink }}>{label}</Text>
       </Pressable>
       {error ? <ErrorText>{t('room.error')}</ErrorText> : null}
     </View>
@@ -248,7 +248,7 @@ function Discussion({
                   onPress={() => setExpanded((s) => new Set(s).add(thread.comment.id))}
                   style={{ minHeight: 44, justifyContent: 'center' }}
                 >
-                  <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.inkSoft, textDecorationLine: 'underline' }}>
+                  <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.inkSoft, textDecorationLine: 'underline' }}>
                     {t('room.earlier', { count: earlier })}
                   </Text>
                 </Pressable>
@@ -262,7 +262,7 @@ function Discussion({
       {finishRow ? <FinishRowButton {...finishRow} /> : null}
       {failed ? <ErrorText>{t('room.error')}</ErrorText> : null}
       {blockedNotice ? (
-        <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+        <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
           {t('safety.blocked')}
         </Text>
       ) : null}
@@ -314,7 +314,7 @@ function FinishRowButton({ label, onDone, onChanged }: FinishRow) {
         }}
         style={{ minHeight: 44, justifyContent: 'center' }}
       >
-        <Text style={{ fontFamily: fonts.body, fontSize: 14, color: c.muted }}>{label}</Text>
+        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: c.muted }}>{label}</Text>
       </Pressable>
       {error ? <ErrorText>{t('room.error')}</ErrorText> : null}
     </View>

@@ -66,7 +66,7 @@ export default function Authors() {
             <Field label={t('safety.removalMessage')} value={message} onChangeText={setMessage} multiline />
             <ErrorText>{problem === 'link' ? t('safety.removalBadLink') : problem === 'contact' ? t('safety.removalNeedsContact') : problem === 'send' ? t('safety.error') : null}</ErrorText>
             {sent ? (
-              <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+              <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
                 {t('safety.removalSent')}
               </Text>
             ) : null}
