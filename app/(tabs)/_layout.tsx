@@ -25,7 +25,7 @@ function TabIcon({ name, label, focused }: { name: IconName; label: string; focu
       }}
     >
       <Feather name={name} size={20} color={c.onPrimary} />
-      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.onPrimary }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.onPrimary }}>{label}</Text>
     </View>
   );
 }

@@ -66,7 +66,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
   const { c, fonts } = useTheme();
   return (
     <View style={{ gap: space.xs }}>
-      <Text style={{ fontSize: 14, fontFamily: fonts.bodyBold, color: c.inkSoft }}>{label}</Text>
+      <Text style={{ fontSize: 15, fontFamily: fonts.bodyBold, color: c.inkSoft }}>{label}</Text>
       <TextInput
         placeholderTextColor={c.muted}
         accessibilityLabel={label}
@@ -107,7 +107,7 @@ export function Card({ children, tone = 'surface', style }: { children: ReactNod
 export function ErrorText({ children }: { children: ReactNode }) {
   const { c, fonts } = useTheme();
   if (!children) return null;
-  return <Text style={{ color: c.danger, fontSize: 14, lineHeight: 20, fontFamily: fonts.bodyBold }}>{children}</Text>;
+  return <Text style={{ color: c.danger, fontSize: 15, lineHeight: 21, fontFamily: fonts.bodyBold }}>{children}</Text>;
 }
 
 /** Text in one of the design-system roles. */
@@ -128,9 +128,9 @@ export function T({
     h2: { fontFamily: fonts.display, fontSize: 19, letterSpacing: -0.3, color: c.ink },
     moment: { fontFamily: fonts.moment, fontSize: 28, color: c.ink },
     body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: c.inkSoft },
-    muted: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: c.muted },
+    muted: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: c.muted },
     overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.2, color: c.muted },
-    label: { fontFamily: fonts.bodyBold, fontSize: 14, color: c.ink },
+    label: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink },
   };
   return (
     <Text style={[styles[v], style]} numberOfLines={numberOfLines}>
