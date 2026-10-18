@@ -25,7 +25,7 @@ function QuietAction({ label, onPress }: { label: string; onPress: () => void })
   const { fonts, c } = useTheme();
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={{ minHeight: 44, justifyContent: 'center', paddingRight: space.m }}>
-      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.muted }}>{label}</Text>
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.muted }}>{label}</Text>
     </Pressable>
   );
 }
