@@ -1,4 +1,4 @@
-import { cleanProps, track } from '../analytics';
+import { analyticsOptOut, cleanProps, setAnalyticsOptOut, track } from '../analytics';
 import { supabase } from '../supabase';
 
 describe('cleanProps: no content ever leaves the device', () => {
@@ -35,6 +35,16 @@ describe('track', () => {
 
   it('records a known event', async () => {
     expect(await track('story_added', { kind: 'book' })).toBe(true);
+  });
+
+  it('records nothing while the reader has opted out, and again once they opt back in', async () => {
+    expect(await analyticsOptOut()).toBe(false); // on by default
+    await setAnalyticsOptOut(true);
+    expect(await analyticsOptOut()).toBe(true);
+    expect(await track('app_open')).toBe(false);
+    await setAnalyticsOptOut(false);
+    expect(await analyticsOptOut()).toBe(false);
+    expect(await track('app_open')).toBe(true);
   });
 
   it('never throws: a failure is reported as false', async () => {

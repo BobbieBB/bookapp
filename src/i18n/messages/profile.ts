@@ -16,6 +16,9 @@ export const en = {
   'profile.removeFandom': 'Remove {fandom} from your fandoms',
   'profile.addFandom': 'Add {fandom} to your fandoms',
   'profile.fandomsError': 'Could not update your fandoms. Please try again.',
+  'profile.analytics': 'Help us improve the app',
+  'profile.analyticsHint': 'We count which features get used. Never what you read or write.',
+  'profile.analyticsError': 'Could not save this choice. Please try again.',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -33,4 +36,7 @@ export const bg: Translation<typeof en> = {
   'profile.removeFandom': 'Махни {fandom} от твоите фендъми',
   'profile.addFandom': 'Добави {fandom} към твоите фендъми',
   'profile.fandomsError': 'Не успяхме да обновим фендъмите ти. Опитай пак.',
+  'profile.analytics': 'Помогни ни да подобрим приложението',
+  'profile.analyticsHint': 'Броим кои функции се използват. Никога какво четеш или пишеш.',
+  'profile.analyticsError': 'Не успяхме да запазим избора ти. Опитай пак.',
 };

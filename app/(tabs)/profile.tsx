@@ -4,9 +4,9 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, Chip, ErrorText, T } from '@/components/ui';
+import { Button, Card, Chip, ErrorText, T, Toggle } from '@/components/ui';
 import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
-import { track } from '@/lib/analytics';
+import { analyticsOptOut, setAnalyticsOptOut, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
@@ -103,6 +103,33 @@ function YourFandoms() {
   );
 }
 
+// "Help us improve the app": on by default; off means track() records nothing (docs/DECISIONS.md).
+function HelpUsImprove() {
+  const t = useT();
+  const [version, setVersion] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const { data, error, previous } = useLookup(`analytics-opt-out-${version}`, analyticsOptOut);
+  const optedOut = data ?? previous ?? false;
+
+  async function change(on: boolean) {
+    setFailed(false);
+    try {
+      await setAnalyticsOptOut(!on);
+      setVersion((v) => v + 1);
+    } catch {
+      setFailed(true);
+    }
+  }
+
+  return (
+    <Card>
+      <Toggle label={t('profile.analytics')} value={!optedOut} onChange={change} />
+      <T v="muted">{t('profile.analyticsHint')}</T>
+      <ErrorText>{failed || error !== undefined ? t('profile.analyticsError') : null}</ErrorText>
+    </Card>
+  );
+}
+
 export default function Profile() {
   const { c } = useTheme();
   const t = useT();
@@ -139,6 +166,8 @@ export default function Profile() {
         </Card>
 
         <YourFandoms />
+
+        <HelpUsImprove />
 
         <Card tone="mine">
           <T v="moment" style={{ fontSize: 26 }}>{t('profile.authorsWelcome')}</T>
