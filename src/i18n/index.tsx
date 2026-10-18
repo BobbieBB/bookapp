@@ -10,7 +10,7 @@ import type { Message } from './types';
 
 export type Language = 'en' | 'bg';
 export const LANGUAGES: readonly Language[] = ['en', 'bg'];
-export const STORAGE_KEY = 'fictionally.language';
+export const STORAGE_KEY = 'livami.language';
 
 const dictionaries: Record<Language, Record<MessageKey, Message>> = { en, bg };
 const pluralRules = { en: new Intl.PluralRules('en'), bg: new Intl.PluralRules('bg') };

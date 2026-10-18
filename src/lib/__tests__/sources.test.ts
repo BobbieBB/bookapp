@@ -93,7 +93,7 @@ describe('searchBooks', () => {
 
   it('identifies the app to Open Library and asks for at most 10 results', async () => {
     await searchBooks('the hobbit');
-    expect(last.headers['user-agent']).toBe('Fictionally/0.1.0 (https://github.com/BobbieBB/bookapp)');
+    expect(last.headers['user-agent']).toBe('Livami/0.1.0 (https://github.com/BobbieBB/bookapp)');
     const params = new URL(last.url, 'http://x').searchParams;
     expect(params.get('q')).toBe('the hobbit');
     expect(params.get('limit')).toBe('10');

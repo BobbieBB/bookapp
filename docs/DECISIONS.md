@@ -5,8 +5,10 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 
 ## Naming and wording
 
-- **Working name:** Fictionally. Final name still open (fictionally.com is taken; check trademarks
-  before launch).
+- **Name: Livami** (18 Oct 2026, PO). Domain **livami.app** (Porkbun, owned by Boryana). Replaces the working name
+  Fictionally (a plain English word: hard to find in search, .com taken). Checks: no app or book/reading business uses the
+  name; the only registered "livami" mark (DPMA, class 9) covers phone cases and screen protectors only. Readfellow was
+  dropped: readfellow.com is an active book blog for the same readers. Not registering a trademark for now.
 - **Finished** instead of "Read" — clearer about what unlocks discussions.
 - **Chapter Discussion** instead of "Chapter Chat".
 - **The Epilogue** for the whole-story room, one name for books and fics, always shown with the
@@ -19,7 +21,7 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
 - **Ink & Bloom**: light mode "Fresh Ink" (hot pink + fresh mint, night-violet ink outlines and hard
   "sticker" shadows), dark mode "Midnight Bloom" (neon rose + electric mint on violet night).
   Same colour roles in both; tokens live in `src/theme.ts`. Design file: claude.ai artifact
-  "Fictionally — Style Directions".
+  "Livami — Style Directions".
 - Type (replaced 18 Oct 2026, see "Fonts: Unbounded + Sofia Sans" below): Bricolage Grotesque (UI headings), Cormorant Garamond italic (moments: chapter titles,
   The Epilogue), Atkinson Hyperlegible (reading text).
 - The discussion comes first: "I finished chapter N+1" is a small pill in the header plus a quiet
@@ -116,7 +118,7 @@ fic auto-fill from AO3 (only with OTW permission).
 
 ## Add a fic: what happens when you paste an AO3 link (14 Oct 2026)
 - We do NOT fetch anything from AO3 (no scraping, see above). The link is looked up in OUR database only.
-- Found (someone already added it): fields are filled in from our record, with a line "Already on Fictionally, so we filled in the details. Check they look right." The person joins the same story, so no duplicate rooms.
+- Found (someone already added it): fields are filled in from our record, with a line "Already on Livami, so we filled in the details. Check they look right." The person joins the same story, so no duplicate rooms.
 - Not found: fields stay empty for manual entry; the work id is taken from the link so the same fic can't be added twice.
 - Loading state: the lookup is one fast query (<0.5 s). Show a small spinner inside the link field with "Checking…"; the other fields stay usable. No full-screen loader.
 - Invalid link: inline error under the field: "That doesn't look like an AO3 work link."
@@ -158,8 +160,8 @@ fic auto-fill from AO3 (only with OTW permission).
 - Code (src/theme.ts, components) still uses the old style: update in the next coding session.
 
 ## Add a story: details (15 Oct 2026, decided by the PO)
-- Book discussions are by chapter. A book new to Fictionally asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
-- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Fictionally (no silent default).
+- Book discussions are by chapter. A book new to Livami asks for its chapter count (Open Library doesn't know it). No "by pages" option in v1; the schema still supports page-based parts for later.
+- Every add ends with the same short step: pick "Reading now" (default) or "Want to read". Also for books already on Livami (no silent default).
 ## Reading progress: chapters unlock, pages are personal (15 Oct 2026, PO: option B)
 - Discussions unlock only with "I finished chapter X" (and the chapter picker). That is the key to the rooms.
 - Book readers may also log a page ("I'm on page 143") to see a percentage. Pages never unlock anything: we don't know which page is in which chapter, and page numbers differ between editions.
@@ -175,7 +177,7 @@ fic auto-fill from AO3 (only with OTW permission).
 ## Dev defaults (pending PO review)
 Choices made during development where the decisions above don't say. Each one is easy to change.
 - **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
-  (`Fictionally/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
+  (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
   reaches Open Library from the iOS and Android apps.
 - **Old fic ratings and recs (16 Oct 2026):** from now on ratings and reviews can only be written
@@ -222,3 +224,30 @@ Choices made during development where the decisions above don't say. Each one is
 - Ask for permission at a moment that makes sense: right after the reader posts their first comment ("Want to know when someone
   replies?" [Yes] [Not now]). The Profile switch stays. If they say "Not now", don't ask again for 30 days.
 - Bundle: several replies within 10 minutes become one push ("3 new replies in chapter 12").
+
+## Bulgarian copy style (18 Oct 2026, PO)
+- Address the reader as "ти". **Gender-neutral**: rephrase so no gendered form is needed ("За първи път ли си тук?", "Никой още не
+  е добавял това издание", "добави я ръчно"), never masculine-by-default and no "сам/а" slashes.
+- Use the words readers actually use, even loanwords: фенфикшън, фик, kudos, **Ship**, **WIP**, **DNF**, линк (not "връзка").
+- AO3 ratings and archive warnings stay **in English, exactly as on AO3**, so readers match them at a glance; only the headings are
+  Bulgarian ("Рейтинг в AO3", "Предупреждения в AO3").
+
+## Logo and tagline (18 Oct 2026, PO)
+- **Mark ("I1"):** an open book (outline, ink, with short lines of text on the pages) and two overlapping readers above it,
+  mint and pink; the overlap is in ink: two people, one shared story. The app icon is the mark alone.
+- **Wordmark:** "Livami" in Cormorant Garamond italic 700 (warm, literary), with the dots of the two i's in mint and pink.
+  Stacked (splash, App Store, website, social) and horizontal (header, email signature) versions.
+- **Tagline:** "Read it. Find your people. Scream about it!" Kept in English in both UIs. (ami = friend: the name and the
+  tagline say the same thing.)
+- Colours: mint #3DBE95, pink #FF4F84, ink #1E1328 (dark: #4FD1A6, #FF6B97, #F7EEF3). Design file: "Logo: final".
+- Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
+
+## Calm theme (18 Oct 2026, design; v1 inclusion still open)
+- **Name: "Calm" / „Спокойна“** (PO). Profile → Appearance: Auto · Light · Dark · Calm. Not "Easy mode": it should feel calmer, not simpler.
+- A muted theme for people sensitive to bright colours, next to Light and Dark. Feedback from a tester: pink and green
+  swapping places between cards (pink cover + green progress, then the reverse) is confusing.
+- Rule: **one warm beige family only, no pink/green.** Ground #F3F1EC, cards #FBFAF7, ink #2F2A35, covers in sand tones
+  (#E3D5C0, #D8C7AE, #CBB9A3), buttons #D8C7AE with ink text, accent text #7A5F45.
+- **Every progress bar looks the same:** taupe #8A7258 on a sand track #EAE6DE, never coloured per story.
+- Contrast stays WCAG AA or better (body text 13:1, buttons 8:1).
+- (A parchment variant was tried the same day and dropped: the PO preferred this beige.)
