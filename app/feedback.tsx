@@ -52,7 +52,7 @@ export default function Feedback() {
           <Field label={t('safety.feedbackLabel')} value={body} onChangeText={setBody} multiline />
           <ErrorText>{failed ? t('safety.error') : null}</ErrorText>
           {sent ? (
-            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
               {t('safety.feedbackSent')}
             </Text>
           ) : null}
