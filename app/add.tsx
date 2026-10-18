@@ -197,7 +197,7 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
 
 /**
  * Last step before adding a book: the edition language (rooms are per language), the reading
- * status, and for an edition new to Fictionally its chapter count (Open Library doesn't know it).
+ * status, and for an edition new to Livami its chapter count (Open Library doesn't know it).
  */
 function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => void }) {
   const t = useT();
@@ -208,7 +208,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   const [saveError, setError] = useState('');
 
   const found = useLookup(`${book.key}#${language}`, () => findStory({ openLibraryKey: book.key, language }));
-  // undefined = still checking; null = new to Fictionally (or the check failed: we'll create it)
+  // undefined = still checking; null = new to Livami (or the check failed: we'll create it)
   const existing: Story | null | undefined = found.loading ? undefined : (found.data ?? null);
   const error = saveError || (found.error ? friendly(found.error, t) : '');
 
