@@ -1,11 +1,8 @@
 import { fireEvent, screen } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
-import type { ReactElement } from 'react';
 
 import StoryScreen from '../../../app/story/[id]';
-import { languageWrapper } from '../../../test/i18n';
+import { renderScreen } from '../../../test/router';
 import type { Language } from '../../i18n';
-import { AuthProvider } from '../../lib/auth';
 import { addToLibrary, createBook, createFic, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -56,18 +53,7 @@ beforeAll(async () => {
 });
 
 async function open(language: Language, storyId: string) {
-  const InLanguage = await languageWrapper(language);
-  await renderRouter(
-    { 'story/[id]': StoryScreen },
-    {
-      initialUrl: `/story/${storyId}`,
-      wrapper: ({ children }: { children: ReactElement }) => (
-        <InLanguage>
-          <AuthProvider>{children}</AuthProvider>
-        </InLanguage>
-      ),
-    },
-  );
+  await renderScreen(language, { 'story/[id]': StoryScreen }, `/story/${storyId}`);
   await screen.findByTestId('story-title', {}, { timeout: 8000 });
 }
 
