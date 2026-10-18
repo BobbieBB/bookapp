@@ -194,7 +194,7 @@ export function CommentCard({
             />
           ) : null}
           {reported ? (
-            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 14, color: c.success }}>
+            <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
               {t('safety.reported')}
             </Text>
           ) : null}
