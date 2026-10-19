@@ -14,6 +14,7 @@ const wiring: [string, string, string][] = [
   ['story_finished', 'app/story/[id].tsx', "track('story_finished'"],
   ['comment_posted', 'app/room/[storyId]/[room].tsx', "track('comment_posted'"],
   ['reaction_added', 'app/room/[storyId]/[room].tsx', "track('reaction_added'"],
+  ['room_opened', 'app/room/[storyId]/[room].tsx', "track('room_opened'"],
   ['discover_opened', 'app/(tabs)/discover.tsx', "track('discover_opened'"],
   ['feedback_sent', 'app/feedback.tsx', "track('feedback_sent'"],
   ['language_changed', 'app/(tabs)/profile.tsx', "track('language_changed'"],
