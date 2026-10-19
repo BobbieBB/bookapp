@@ -14,7 +14,7 @@ alter table public.analytics_events add constraint analytics_event_known check (
 --   active             readers with any event that week
 --   signed_up          readers whose sign_up was that week
 --   returned_week1     of those, readers with any event on days 7 to 13 after signing up; null until every
---                      one of them has had all of those days (the week ended 21 days ago or more)
+--                      one of them has had all of those days (the week started 21 days ago or more)
 --   discussion_readers readers who opened a room, commented or reacted
 --   added_*            story_added by where it came from (props.source) and by edition language
 --                      (props.language); AO3 fics and events from before the language was recorded are unknown
@@ -47,7 +47,7 @@ begin
   sign_ups as (
     select e.user_id, min(e.created_at) as at
     from public.analytics_events e
-    where e.name = 'sign_up'
+    where e.name = 'sign_up' and e.created_at >= (this_week - (p_weeks - 1) * interval '1 week') at time zone 'UTC'
     group by e.user_id
   ),
   cohorts as (

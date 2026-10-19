@@ -69,15 +69,15 @@ describe('as an admin', () => {
     const active = await screen.findByTestId('numbers-active', {}, { timeout: 8000 });
     expect(within(active).getByText('Weekly active readers')).toBeOnTheScreen();
     expect(within(active).getAllByTestId(/^week-/)).toHaveLength(8);
-    expect(within(active).getByTestId(`value-${before.week}`)).toHaveTextContent(String(before.active));
+    expect(within(active).getByTestId(`value-${before.week}`)).toHaveTextContent(new RegExp(`^${before.active}$`));
     expect(within(screen.getByTestId('numbers-discussion')).getByTestId(`value-${before.week}`)).toHaveTextContent(
-      String(before.discussion_readers),
+      new RegExp(`^${before.discussion_readers}$`),
     );
     expect(within(screen.getByTestId('numbers-sources')).getByTestId(`value-${before.week}`)).toHaveTextContent(
-      `${before.added_search} · ${before.added_manual} · ${before.added_ao3}`,
+      new RegExp(`^${before.added_search} · ${before.added_manual} · ${before.added_ao3}$`),
     );
     expect(within(screen.getByTestId('numbers-languages')).getByTestId(`value-${before.week}`)).toHaveTextContent(
-      `${before.added_bg} · ${before.added_en} · ${before.added_unknown}`,
+      new RegExp(`^${before.added_bg} · ${before.added_en} · ${before.added_unknown}$`),
     );
   });
 
@@ -85,7 +85,7 @@ describe('as an admin', () => {
     await renderScreen('en', { admin: Admin }, '/admin');
     const returned = await screen.findByTestId('numbers-returned', {}, { timeout: 8000 });
     const known = weekOf(rows, 3);
-    expect(within(returned).getByTestId(`value-${known.week}`)).toHaveTextContent(`${known.returned_week1} of ${known.signed_up}`);
+    expect(within(returned).getByTestId(`value-${known.week}`)).toHaveTextContent(new RegExp(`^${known.returned_week1} of ${known.signed_up}$`));
     expect(within(returned).getByTestId(`value-${weekOf(rows, 2).week}`)).toHaveTextContent('not yet');
     expect(within(returned).getByTestId(`value-${weekOf(rows, 0).week}`)).toHaveTextContent('not yet');
   });
