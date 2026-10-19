@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddButton } from '@/components/AddButton';
+import { useMyCoverUrls } from '@/components/CustomCover';
 import { StoryRow } from '@/components/StoryRow';
 import { NotificationRow } from '@/components/NotificationRow';
 import { Button, Card, ErrorText, T } from '@/components/ui';
@@ -20,6 +21,7 @@ export default function Home() {
   const { language } = useLanguage();
   const { session, profile } = useAuth();
   const { entries, loading, error } = useMyLibrary(session?.user.id, 'currently_reading');
+  const coverUrls = useMyCoverUrls(entries);
   const router = useRouter();
   const [version, setVersion] = useState(0);
   useFocusEffect(useCallback(() => setVersion((v) => v + 1), []));
@@ -58,7 +60,7 @@ export default function Home() {
             <View key={kind} style={{ gap: space.m }}>
               <T v="overline">{kind === 'fanfic' ? t('home.continueFanfic') : t('home.continueBooks')}</T>
               {items.map((e) => (
-                <StoryRow key={e.story_id} entry={e} hint={hintFor(e.story_id)} />
+                <StoryRow key={e.story_id} entry={e} hint={hintFor(e.story_id)} coverUrl={coverUrls[e.story_id]} />
               ))}
             </View>
           ))

@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
-import { myCoverUrl, removeCover, uploadCover } from '@/lib/covers';
+import { myCoverUrl, myCoverUrls, removeCover, uploadCover } from '@/lib/covers';
 import { space } from '@/theme';
 
 const COVER_WIDTH = 1200;
@@ -110,6 +110,26 @@ export function useCustomCover(storyId: string, enabled: boolean) {
   );
 
   return { url, error, busy, choose, remove };
+}
+
+/**
+ * Your covers for the stories in a list of library rows, keyed by story id. Loaded again when the rows
+ * change (the lists reload on focus, so a cover set on the story page shows on the way back). Until
+ * then the last links stay up, and if loading fails every row simply keeps its usual cover.
+ */
+export function useMyCoverUrls(entries: { story_id: string }[]): Record<string, string> {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let current = true;
+    myCoverUrls(entries.map((e) => e.story_id)).then(
+      (links) => current && setUrls(links),
+      () => undefined, // rows fall back to the typographic cover; nothing here worth an error message
+    );
+    return () => {
+      current = false;
+    };
+  }, [entries]);
+  return urls;
 }
 
 /** The quiet link, the privacy explanation before picking, and the way back to the usual cover. */
