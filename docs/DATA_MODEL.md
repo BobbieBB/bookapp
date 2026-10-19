@@ -21,6 +21,8 @@ table. Anonymous users (`anon`) have no access at all.
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
 | `feedback` | In-app feedback | Author and admins |
+| `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
+| `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
@@ -95,6 +97,22 @@ other, and neither gets notifications from the other. A no longer sees B's react
 - A removal request needs an AO3 work link and a way to reach the author, so an admin can check
   with them before hiding the fic.
 - Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day.
+
+## Push notifications
+
+When a reply or @mention notification is created, `notifications_send_push` builds one Expo push per
+device of the recipient (`push_messages`): who, which story and which chapter, in the device's
+language, never the comment text, and a link to the room (which checks the spoiler wall again). It is
+sent with `pg_net` (in batches of 100) only when `push_settings.enabled` is on, and a failed send never
+loses the comment. Pushes only go out for rooms the reader can still open. Reactions don't send pushes.
+Replies close together become one push (PO, 18 Oct 2026): if the reader got a push of the same kind
+about the same room in the last 10 minutes, the notification waits (`notifications.pushed_at` stays
+empty), and `send_held_pushes`, run every minute by `pg_cron`, sends what waited as one push
+("3 new replies in <story> · Chapter 12") once those 10 minutes are up. Anything still waiting after
+30 minutes is dropped without a push, so switching sending on never floods anyone.
+Devices are added only through `claim_push_token` (at most 10 per reader) and forgotten with
+`release_push_token`, which also works from a signed-out phone. Only migrations or the service role can
+change `push_settings`.
 
 ## Functions the app calls
 

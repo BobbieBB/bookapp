@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
 import { analyticsOptOut, setAnalyticsOptOut, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
+import { disablePush, enablePush, pushIsOn, type PushStatus } from '@/lib/pushDevice';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
 
@@ -103,6 +104,55 @@ function YourFandoms() {
   );
 }
 
+const PUSH_NOTE = {
+  denied: 'profile.pushDenied',
+  unsupported: 'profile.pushUnsupported',
+  'not-configured': 'profile.pushNotConfigured',
+} as const;
+
+function PhoneNotifications() {
+  const t = useT();
+  const { language } = useLanguage();
+  const [on, setOn] = useState(false);
+  const [note, setNote] = useState<Exclude<PushStatus, 'enabled'> | 'failed' | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    pushIsOn()
+      .then((isOn) => live && setOn(isOn))
+      .catch(() => {
+        // Unreadable storage: the switch starts off.
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  async function change(next: boolean) {
+    setNote(null);
+    try {
+      if (next) {
+        const status = await enablePush(language);
+        setOn(status === 'enabled');
+        setNote(status === 'enabled' ? null : status);
+      } else {
+        await disablePush();
+        setOn(false);
+      }
+    } catch {
+      setNote('failed');
+    }
+  }
+
+  return (
+    <Card>
+      <Toggle label={t('profile.push')} value={on} onChange={change} />
+      <T v="muted">{t('profile.pushHint')}</T>
+      <ErrorText>{note === null ? null : t(note === 'failed' ? 'profile.pushError' : PUSH_NOTE[note])}</ErrorText>
+    </Card>
+  );
+}
+
 // "Help us improve the app": on by default; off means track() records nothing (docs/DECISIONS.md).
 function HelpUsImprove() {
   const t = useT();
@@ -168,6 +218,8 @@ export default function Profile() {
         </Card>
 
         <YourFandoms />
+
+        <PhoneNotifications />
 
         <HelpUsImprove />
 

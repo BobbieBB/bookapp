@@ -6,6 +6,7 @@ import { useColorScheme } from 'react-native';
 
 const light = {
   ground: '#F6F8F7',
+  scrim: 'rgba(30, 19, 40, 0.35)', // behind a sheet
   surface: '#FFFFFF',
   band: '#BFEBD8', // header band
   ink: '#1E1328', // text
@@ -27,6 +28,7 @@ const light = {
 
 const dark: typeof light = {
   ground: '#120C17',
+  scrim: 'rgba(0, 0, 0, 0.55)',
   surface: '#1F1726',
   band: '#13302A',
   ink: '#F7EEF3',

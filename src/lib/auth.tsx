@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { disablePush, releasePendingPushToken } from './pushDevice';
 import { supabase } from './supabase';
 import type { Profile } from './types';
 
@@ -55,6 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // A phone turned off while offline is forgotten on the server as soon as it can be.
+    releasePendingPushToken().catch(() => {
+      // Still offline: try again on the next start.
+    });
+  }, []);
+
+  useEffect(() => {
     let active = true;
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
@@ -80,6 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileState,
     refreshProfile: () => loadProfile(session?.user.id),
     signOut: async () => {
+      // This phone stops getting this reader's pushes; failing to say so must not keep them signed in.
+      await disablePush().catch(() => {
+        // Offline, say: the phone is already off, and the server is told on the next start.
+      });
       await supabase.auth.signOut();
     },
   };
