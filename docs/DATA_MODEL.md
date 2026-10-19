@@ -15,7 +15,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
 | `discussion_follows` | Followed / muted discussions, last read time | You |
 | `blocks` | Users you blocked | You |
-| `notifications` | Replies and reactions — **never the comment text** | You |
+| `notifications` | Replies, reactions and @mentions — **never the comment text** | You |
 | `ratings` | 0.5–5 in half steps, **books only** (fanfiction is never rated) | Everyone |
 | `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3) | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
@@ -48,7 +48,8 @@ table. Anonymous users (`anon`) have no access at all.
 
 ## The spoiler wall
 
-`can_access_section(story, kind, section)` is the single rule used everywhere:
+`can_access_section(story, kind, section)` is the single rule used everywhere (it delegates to the
+internal `user_can_access_section(user, …)`, which also decides whether a mentioned reader is told):
 
 - **chapter N** → `progress_section >= N`, or the reader Finished a story that is not ongoing;
 - **epilogue** → the reader Finished the story, and the story is not ongoing (a WIP fic has no
@@ -100,6 +101,9 @@ other, and neither gets notifications from the other. A no longer sees B's react
 | `can_access_section(story, kind, section)` | Show locked / unlocked state in the UI |
 | `section_reader_counts(story)` | Anonymous "N readers are here" counts |
 | `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
+| `my_notifications(limit)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now |
+| `mark_notifications_read()` | Mark all your notifications read |
+| `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |
 | `my_fandoms()` | Discover's YOUR FANDOMS: picked ones, then fandoms of fics in your library (max 6); the starter list if none |
 | `suggested_fandoms()` | Fandoms of fics in your library you haven't picked (Profile's "+" chips) |
 | `search_fandoms(text)` | All fandoms in the app matching the text, most discussed this week first |

@@ -63,6 +63,7 @@ function RootStack() {
         <Stack.Screen name="blocked" />
         <Stack.Screen name="feedback" />
         <Stack.Screen name="authors" />
+        <Stack.Screen name="notifications" />
       </Stack.Protected>
     </Stack>
   );

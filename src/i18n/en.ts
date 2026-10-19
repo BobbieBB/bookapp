@@ -10,7 +10,8 @@ import * as room from './messages/room';
 import * as discover from './messages/discover';
 import * as safety from './messages/safety';
 import * as finishing from './messages/finishing';
+import * as notifications from './messages/notifications';
 
-export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en };
+export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en, ...notifications.en };
 
 export type MessageKey = keyof typeof en;
