@@ -21,6 +21,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
 | `feedback` | In-app feedback | Author and admins |
+| `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
 
 ## Story rules
 
@@ -91,6 +92,10 @@ other, and neither gets notifications from the other.
 | `can_access_section(story, kind, section)` | Show locked / unlocked state in the UI |
 | `section_reader_counts(story)` | Anonymous "N readers are here" counts |
 | `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
+| `my_fandoms()` | Discover's YOUR FANDOMS: picked ones, then fandoms of fics in your library (max 6); the starter list if none |
+| `suggested_fandoms()` | Fandoms of fics in your library you haven't picked (Profile's "+" chips) |
+| `search_fandoms(text)` | All fandoms in the app matching the text, most discussed this week first |
+| `lively_in_fandoms(fandoms)` | Fics you don't read yet in those fandoms: discussion this week → 30 days → most read → starter fandoms |
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |
