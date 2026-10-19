@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useT } from '@/i18n';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { space, useTheme } from '@/theme';
@@ -46,6 +47,7 @@ export default function Onboarding() {
       setError(error.code === '23505' ? t('auth.errorNameTaken') : error.message);
       return;
     }
+    void track('onboarding_done', { source: readsBooks && readsFanfic ? 'both' : readsBooks ? 'books' : 'fanfic' });
     await refreshProfile();
   }
 

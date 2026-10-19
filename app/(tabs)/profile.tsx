@@ -4,8 +4,9 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, Chip, ErrorText, T } from '@/components/ui';
+import { Button, Card, Chip, ErrorText, T, Toggle } from '@/components/ui';
 import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
+import { analyticsOptOut, setAnalyticsOptOut, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
@@ -102,6 +103,35 @@ function YourFandoms() {
   );
 }
 
+// "Help us improve the app": on by default; off means track() records nothing (docs/DECISIONS.md).
+function HelpUsImprove() {
+  const t = useT();
+  const [version, setVersion] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const { data, error, previous } = useLookup(`analytics-opt-out-${version}`, analyticsOptOut);
+  // Until the choice has been read (or when it can't be), the switch shows on but can't be used.
+  const known = data ?? previous;
+  const optedOut = known ?? false;
+
+  async function change(on: boolean) {
+    setFailed(false);
+    try {
+      await setAnalyticsOptOut(!on);
+      setVersion((v) => v + 1);
+    } catch {
+      setFailed(true);
+    }
+  }
+
+  return (
+    <Card>
+      <Toggle label={t('profile.analytics')} value={!optedOut} onChange={change} disabled={known === undefined} />
+      <T v="muted">{t('profile.analyticsHint')}</T>
+      <ErrorText>{failed || error !== undefined ? t('profile.analyticsError') : null}</ErrorText>
+    </Card>
+  );
+}
+
 export default function Profile() {
   const { c } = useTheme();
   const t = useT();
@@ -129,12 +159,17 @@ export default function Profile() {
           <T v="h2">{t('profile.language')}</T>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {LANGUAGES.map((code) => (
-              <Chip key={code} label={LANGUAGE_NAMES[code]} active={code === language} onPress={() => setLanguage(code)} />
+              <Chip key={code} label={LANGUAGE_NAMES[code]} active={code === language} onPress={() => {
+                setLanguage(code);
+                if (code !== language) void track('language_changed', { language: code });
+              }} />
             ))}
           </View>
         </Card>
 
         <YourFandoms />
+
+        <HelpUsImprove />
 
         <Card tone="mine">
           <T v="moment" style={{ fontSize: 26 }}>{t('profile.authorsWelcome')}</T>

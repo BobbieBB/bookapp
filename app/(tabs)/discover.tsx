@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { lively, myFandoms, searchFandoms, type LivelyStory, type LivelyTier } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
@@ -103,7 +104,14 @@ export default function Discover() {
   const [searching, setSearching] = useState(false);
   // Tabs stay mounted: reload whenever Discover comes back into view (fandoms or library may have changed).
   const [version, setVersion] = useState(0);
-  useFocusEffect(useCallback(() => setVersion((v) => v + 1), []));
+  // The tier of the first loaded list is remembered so later focuses can report it; the first has none.
+  const firstTier = useRef<LivelyTier | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      setVersion((v) => v + 1);
+      void track('discover_opened', firstTier.current ? { tier: firstTier.current } : {});
+    }, []),
+  );
   const mine = useLookup(`mine-${version}`, () => myFandoms());
   // The profile default is reads_fanfic = false, so a reader who has picked a fandom or shelved a fic
   // is a fanfiction reader whatever the flag says; only a reader with neither is told it is not for them.
@@ -112,6 +120,10 @@ export default function Discover() {
   const shownChips = selected && !chips.includes(selected) ? [selected, ...chips.slice(0, MAX_CHIPS - 1)] : chips;
   const scope = selected ? [selected] : chips;
   const feed = useLookup(mine.data ? `${version}:${JSON.stringify(scope)}` : null, () => lively(scope));
+  const loadedTier = feed.data?.[0]?.tier;
+  useEffect(() => {
+    if (loadedTier && !firstTier.current) firstTier.current = loadedTier;
+  }, [loadedTier]);
 
   function pick(fandom: string) {
     setSelected(fandom);

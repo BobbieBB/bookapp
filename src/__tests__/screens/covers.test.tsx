@@ -55,6 +55,7 @@ it('explains why the cover is private before you pick, then shows yours with a n
   ).toBeOnTheScreen();
   await fireEvent.press(screen.getByText('Choose an image'));
   expect(await screen.findByText('Only you see this cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.queryByText('We couldn’t save your cover. Please try again.')).toBeNull();
   const { data } = await supabase.from('custom_covers').select('path').eq('story_id', mineId).single().throwOnError();
   expect(data!.path.startsWith(`${me}/`)).toBe(true);
 });

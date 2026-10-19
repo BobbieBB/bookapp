@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, Sc
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { useLookup } from '@/lib/useLookup';
 import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult } from '@/lib/sources';
@@ -84,8 +85,9 @@ function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l
   );
 }
 
-async function finish(storyId: string, status: LibraryStatus) {
+async function finish(storyId: string, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
   await addToLibrary(storyId, status);
+  void track('story_added', { kind, source, status });
   router.back();
 }
 
@@ -220,7 +222,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     setError('');
     try {
       const story = existing ?? (await createBook(book, { chapters: n }, language));
-      await finish(story.id, status);
+      await finish(story.id, status, 'book', 'open_library');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -273,7 +275,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setError('');
     try {
       const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n, language });
-      await finish(story.id, status);
+      await finish(story.id, status, 'book', 'manual');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -334,7 +336,7 @@ function AddFic() {
     setError('');
     try {
       if (existing) {
-        await finish(existing.id, status);
+        await finish(existing.id, status, 'fanfic', 'ao3');
         return;
       }
       const n = Number(chapters);
@@ -353,7 +355,7 @@ function AddFic() {
         rating,
         warnings,
       });
-      await finish(story.id, status);
+      await finish(story.id, status, 'fanfic', 'ao3');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);

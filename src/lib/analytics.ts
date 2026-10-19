@@ -1,0 +1,80 @@
+// First-party analytics (docs/DECISIONS.md, "Analytics: first-party, with an opt-out"): which features
+// get used, never content.
+// Events are a fixed list (also enforced by the database); properties are a few short, non-content
+// values. Recording an event never gets in a reader's way: failures are swallowed and reported as false.
+import { Platform } from 'react-native';
+
+import { APP_VERSION } from './config';
+import { supabase } from './supabase';
+
+export type AnalyticsEvent =
+  | 'app_open'
+  | 'sign_up'
+  | 'onboarding_done'
+  | 'story_added'
+  | 'chapter_finished'
+  | 'story_finished'
+  | 'comment_posted'
+  | 'reaction_added'
+  | 'discover_opened'
+  | 'feedback_sent'
+  | 'language_changed'
+  | 'cover_set';
+
+type Value = string | number | boolean;
+const ALLOWED_KEYS = new Set(['kind', 'language', 'tier', 'count', 'wip', 'source', 'status']);
+const MAX_TEXT = 40;
+
+/** Only allowed keys with short plain values; everything else is dropped. */
+export function cleanProps(props: Record<string, Value>): Record<string, Value> {
+  return Object.fromEntries(
+    Object.entries(props).filter(
+      ([key, value]) =>
+        ALLOWED_KEYS.has(key) &&
+        (typeof value === 'number' || typeof value === 'boolean' || (typeof value === 'string' && value.length <= MAX_TEXT)),
+    ),
+  );
+}
+
+const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web' ? Platform.OS : null;
+
+// The signed-in reader's "Help us improve the app" choice, read once per account and kept up to date by
+// setAnalyticsOptOut, so track() needn't ask the database before every event. A change made on another
+// device reaches this one at the next start; until then an opt-out made elsewhere is still enforced by
+// the database (analytics_insert_own), so nothing is recorded against the reader's wish.
+let optOut: { userId: string; value: boolean } | null = null;
+
+async function signedInUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
+/** Whether the signed-in reader switched analytics off (stored on the account, so it follows them). */
+export async function analyticsOptOut(): Promise<boolean> {
+  const userId = await signedInUserId();
+  if (!userId) return false;
+  if (optOut?.userId === userId) return optOut.value;
+  const { data } = await supabase.from('analytics_opt_outs').select('user_id').eq('user_id', userId).throwOnError();
+  optOut = { userId, value: (data ?? []).length > 0 };
+  return optOut.value;
+}
+
+export async function setAnalyticsOptOut(value: boolean): Promise<void> {
+  const userId = await signedInUserId();
+  if (!userId) throw new Error('not signed in');
+  if (value) await supabase.from('analytics_opt_outs').upsert({ user_id: userId }, { ignoreDuplicates: true }).throwOnError();
+  else await supabase.from('analytics_opt_outs').delete().eq('user_id', userId).throwOnError();
+  optOut = { userId, value };
+}
+
+export async function track(name: AnalyticsEvent, props: Record<string, Value> = {}): Promise<boolean> {
+  try {
+    if (!(await signedInUserId()) || (await analyticsOptOut())) return false;
+    const { error } = await supabase
+      .from('analytics_events')
+      .insert({ name, props: cleanProps(props), app_version: APP_VERSION, platform });
+    return !error;
+  } catch {
+    return false;
+  }
+}
