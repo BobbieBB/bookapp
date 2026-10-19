@@ -16,11 +16,19 @@ table. Anonymous users (`anon`) have no access at all.
 | `discussion_follows` | Followed / muted discussions, last read time | You |
 | `blocks` | Users you blocked | You |
 | `notifications` | Replies and reactions — **never the comment text** | You |
-| `ratings` | 0.5–5 in half steps | Books: everyone. Fanfic: only you |
-| `reviews` | Book reviews and fic recs, with a *contains spoilers* flag | Everyone (spoilers blurred in the app) |
+| `ratings` | 0.5–5 in half steps, **books only** (fanfiction is never rated) | Everyone |
+| `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3) | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
 | `feedback` | In-app feedback | Author and admins |
+
+## Story rules
+
+- A **book** is one Open Library work in one **edition language** (`language`: `en` or `bg`), so
+  English and Bulgarian readers have separate rooms. Its `source_id` is `<work key>#<language>`.
+  Fics have no language: AO3 translations are separate works already.
+- A fic's `content_rating` and `warnings` are AO3's fixed ratings and archive warnings, stored in
+  AO3's own wording (the app shows translated labels).
 
 ## Progress and sections
 

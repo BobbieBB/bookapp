@@ -45,14 +45,14 @@ insert into public.profiles (id, username, is_admin) values
   ('00000000-0000-0000-0000-00000000000d', 'dave', false),
   ('00000000-0000-0000-0000-0000000000ad', 'admin', true);
 
-insert into public.stories (id, kind, title, author_name, total_sections, status, created_by) values
-  ('10000000-0000-0000-0000-000000000001', 'book', 'A Book', 'Some Author', 20, 'completed',
+insert into public.stories (id, kind, language, title, author_name, total_sections, status, created_by) values
+  ('10000000-0000-0000-0000-000000000001', 'book', 'en', 'A Book', 'Some Author', 20, 'completed',
    '00000000-0000-0000-0000-00000000000a');
 insert into public.stories (id, kind, title, author_name, published_sections, status, source, source_url, created_by) values
   ('10000000-0000-0000-0000-000000000002', 'fanfic', 'A WIP Fic', 'some_writer', 5, 'ongoing', 'ao3',
    'https://archiveofourown.org/works/1', '00000000-0000-0000-0000-00000000000a');
-insert into public.stories (id, kind, title, author_name, has_chapters, page_count, created_by) values
-  ('10000000-0000-0000-0000-000000000003', 'book', 'No Chapters', 'Someone', false, 110,
+insert into public.stories (id, kind, language, title, author_name, has_chapters, page_count, created_by) values
+  ('10000000-0000-0000-0000-000000000003', 'book', 'en', 'No Chapters', 'Someone', false, 110,
    '00000000-0000-0000-0000-00000000000a');
 
 insert into public.library_entries (user_id, story_id, status, progress_section) values
@@ -135,11 +135,10 @@ select test.ok((select count(*) from public.notifications where type = 'reply') 
 select test.ok(test.error_of($$update public.comments set is_hidden = true where body = 'carol on ch2'$$) like 'only moderators%',
   'authors cannot un/hide via is_hidden');
 
--- 8. Ratings: books public, fanfic private -----------------------------------
+-- 8. Ratings: books public; fanfiction is never rated (story_rules.test.sql) -----
 select test.login('00000000-0000-0000-0000-00000000000b');
 insert into public.ratings (story_id, rating) values ('10000000-0000-0000-0000-000000000001', 4.5);
 insert into public.library_entries (story_id, status, progress_section) values ('10000000-0000-0000-0000-000000000002', 'currently_reading', 2);
-insert into public.ratings (story_id, rating) values ('10000000-0000-0000-0000-000000000002', 2);
 select test.ok(test.error_of($$insert into public.ratings (story_id, rating) values ('10000000-0000-0000-0000-000000000003', 3.3)$$) is not null,
   'only half-star steps');
 select test.login('00000000-0000-0000-0000-00000000000a');
@@ -196,8 +195,8 @@ select test.ok(test.error_of($$insert into public.stories (kind, title, author_n
 select test.ok(test.error_of($$insert into public.stories (kind, title, author_name, status, source, source_url)
   values ('fanfic', 'x', 'y', 'completed', 'ao3', 'https://archiveofourown.org/works/99/')$$) like '%fanfic_ao3_work_link%',
   'no duplicate fics through another URL form');
-select test.ok(test.error_of($$insert into public.stories (kind, title, author_name, cover_url)
-  values ('book', 'x', 'y', 'https://tracker.example/pixel.gif')$$) like '%cover_from_open_library%', 'covers only from Open Library');
+select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, cover_url)
+  values ('book', 'en', 'x', 'y', 'https://tracker.example/pixel.gif')$$) like '%cover_from_open_library%', 'covers only from Open Library');
 select test.ok(test.error_of($$insert into public.stories (kind, title, author_name, source, source_url)
   values ('fanfic', 'x', 'y', 'ao3', 'https://archiveofourown.org/works/101')$$) like '%fanfic_status_known%',
   'a fic must say whether it is complete or ongoing');

@@ -3,12 +3,12 @@
 -- Sign up in the app first, then run:  npm run db:seed:dev
 -- Safe to run more than once.
 
-insert into public.stories (id, kind, title, author_name, total_sections, published_sections, status, has_chapters, page_count, source, source_url, fandoms, ships) values
-  ('d0000000-0000-0000-0000-000000000001', 'book',   'The Night Circus',        'Erin Morgenstern', 40,  null, 'completed', true,  null, 'manual', null, '{}', '{}'),
-  ('d0000000-0000-0000-0000-000000000002', 'book',   'Piranesi',                'Susanna Clarke',   null, null, 'completed', false, 272,  'manual', null, '{}', '{}'),
-  ('d0000000-0000-0000-0000-000000000003', 'book',   'The Secret History',      'Donna Tartt',      8,   null, 'completed', true,  null, 'manual', null, '{}', '{}'),
-  ('d0000000-0000-0000-0000-000000000004', 'fanfic', 'All the Young Dudes',     'MsKingBean89',     188, 188,  'completed', true,  null, 'ao3', 'https://archiveofourown.org/works/10057010', '{"Harry Potter - J. K. Rowling"}', '{"Remus Lupin/Sirius Black"}'),
-  ('d0000000-0000-0000-0000-000000000005', 'fanfic', 'A Sample WIP',            'some_writer',      null, 12,  'ongoing',   true,  null, 'ao3', 'https://archiveofourown.org/works/1000000001', '{"Good Omens"}', '{"Aziraphale/Crowley"}')
+insert into public.stories (id, kind, language, title, author_name, total_sections, published_sections, status, has_chapters, page_count, source, source_url, fandoms, ships) values
+  ('d0000000-0000-0000-0000-000000000001', 'book',   'en', 'The Night Circus',        'Erin Morgenstern', 40,  null, 'completed', true,  null, 'manual', null, '{}', '{}'),
+  ('d0000000-0000-0000-0000-000000000002', 'book',   'en', 'Piranesi',                'Susanna Clarke',   null, null, 'completed', false, 272,  'manual', null, '{}', '{}'),
+  ('d0000000-0000-0000-0000-000000000003', 'book',   'en', 'The Secret History',      'Donna Tartt',      8,   null, 'completed', true,  null, 'manual', null, '{}', '{}'),
+  ('d0000000-0000-0000-0000-000000000004', 'fanfic', null, 'All the Young Dudes',     'MsKingBean89',     188, 188,  'completed', true,  null, 'ao3', 'https://archiveofourown.org/works/10057010', '{"Harry Potter - J. K. Rowling"}', '{"Remus Lupin/Sirius Black"}'),
+  ('d0000000-0000-0000-0000-000000000005', 'fanfic', null, 'A Sample WIP',            'some_writer',      null, 12,  'ongoing',   true,  null, 'ao3', 'https://archiveofourown.org/works/1000000001', '{"Good Omens"}', '{"Aziraphale/Crowley"}')
 on conflict (id) do nothing;
 
 insert into public.library_entries (user_id, story_id, status, progress_section, progress_page)

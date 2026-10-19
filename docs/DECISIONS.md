@@ -180,6 +180,9 @@ Choices made during development where the decisions above don't say. Each one is
   (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
   reaches Open Library from the iOS and Android apps.
+- **Old fic ratings and recs (16 Oct 2026):** from now on ratings and reviews can only be written
+  for books. Fic ratings or recs made before stay visible only as before and can be deleted, but not
+  edited. Nothing is deleted automatically.
 
 ## Bulgarian books: where the data comes from (18 Oct 2026, PO)
 - Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:
