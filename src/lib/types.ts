@@ -10,6 +10,7 @@ export type Profile = {
   display_name: string | null;
   reads_books: boolean;
   reads_fanfic: boolean;
+  is_admin: boolean; // sees Profile > Numbers (set only in the database)
 };
 
 export type Story = {

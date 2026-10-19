@@ -85,9 +85,16 @@ function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l
   );
 }
 
-async function finish(storyId: string, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
+// A book's edition language goes with the event (the PO's "BG vs EN"); AO3 fics have none.
+async function finish(
+  storyId: string,
+  status: LibraryStatus,
+  kind: StoryKind,
+  source: 'open_library' | 'manual' | 'ao3',
+  language?: BookLanguage,
+) {
   await addToLibrary(storyId, status);
-  void track('story_added', { kind, source, status });
+  void track('story_added', language ? { kind, source, status, language } : { kind, source, status });
   router.back();
 }
 
@@ -222,7 +229,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     setError('');
     try {
       const story = existing ?? (await createBook(book, { chapters: n }, language));
-      await finish(story.id, status, 'book', 'open_library');
+      await finish(story.id, status, 'book', 'open_library', language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -275,7 +282,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setError('');
     try {
       const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n, language });
-      await finish(story.id, status, 'book', 'manual');
+      await finish(story.id, status, 'book', 'manual', language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);

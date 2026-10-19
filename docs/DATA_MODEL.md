@@ -23,7 +23,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `feedback` | In-app feedback | Author and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
-| `analytics_events` | Which features get used: an event name from a fixed list and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
+| `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
@@ -132,6 +132,7 @@ change `push_settings`.
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |
+| `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
 
 ## Tests
 
