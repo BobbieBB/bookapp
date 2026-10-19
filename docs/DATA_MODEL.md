@@ -71,6 +71,13 @@ replaces its text with `[deleted]`; it cannot be edited or restored afterwards.
 - At most 5000 chapters and 50 000 pages. `bump_published_sections` works only on ongoing fics.
 - Names are unique regardless of capitals (`Alice` = `alice`).
 
+## Live updates
+
+`comments` is in the `supabase_realtime` publication. Realtime applies Row Level Security to inserts
+and updates, so a locked chapter's comments are never pushed to a reader who hasn't reached it.
+`reactions` is deliberately **not** published: Realtime does not apply RLS to deletes, and a removed
+reaction's key would reveal who reacted to what in a locked room.
+
 ## Blocking
 
 When A blocks B, A no longer sees B's comments or reviews, neither can reply to or react to the
@@ -83,6 +90,7 @@ other, and neither gets notifications from the other.
 | `open_discussion(story, kind, section)` | Get or create a discussion the user has unlocked |
 | `can_access_section(story, kind, section)` | Show locked / unlocked state in the UI |
 | `section_reader_counts(story)` | Anonymous "N readers are here" counts |
+| `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |

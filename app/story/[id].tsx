@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { StoryRooms } from '@/components/StoryRooms';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
@@ -59,7 +60,10 @@ export default function StoryScreen() {
   return (
     <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l }}>
       {shown && userId ? (
-        <StoryBody story={shown.story} entry={shown.entry} userId={userId} onChanged={reload} />
+        <>
+          <StoryBody story={shown.story} entry={shown.entry} userId={userId} onChanged={reload} />
+          <StoryRooms storyId={shown.story.id} version={version} />
+        </>
       ) : page.error ? (
         <View style={{ gap: space.m }}>
           <ErrorText>{t('story.loadFailed')}</ErrorText>

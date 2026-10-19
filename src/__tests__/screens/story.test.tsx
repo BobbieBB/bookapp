@@ -1,4 +1,6 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, within } from '@testing-library/react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { Text } from 'react-native';
 
 import StoryScreen from '../../../app/story/[id]';
 import { renderScreen } from '../../../test/router';
@@ -141,5 +143,38 @@ describe('a story not in your library', () => {
     // The page shows the library section once the entry is saved; then check what was saved.
     expect(await screen.findByText('I finished chapter 1', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(strangerBookId)).status).toBe('want_to_read');
+  });
+});
+
+describe('the discussion rooms on a story page', () => {
+  let roomsBookId: string;
+
+  function RoomStub() {
+    const { room } = useLocalSearchParams<{ room: string }>();
+    return <Text>{`room ${room}`}</Text>;
+  }
+
+  beforeAll(async () => {
+    roomsBookId = (await createManualBook({ title: 'Three Rooms', author: 'C. Writer', chapters: 3, language: 'en' })).id;
+    await addToLibrary(roomsBookId, 'currently_reading');
+    await supabase.from('library_entries').update({ progress_section: 1 }).eq('story_id', roomsBookId).eq('user_id', me).throwOnError();
+  });
+
+  it('lists every chapter and The Epilogue, with what is still locked', async () => {
+    await renderScreen('en', { 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomStub }, `/story/${roomsBookId}`);
+    const ch1 = await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 });
+    expect(within(ch1).getByText('Chapter 1')).toBeOnTheScreen();
+    expect(within(ch1).getByText('1 reader')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('room-chapter-2')).getByText('Finish chapter 2 to open')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('room-epilogue')).getByText('The Epilogue')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('room-epilogue')).getByText('Opens when you finish')).toBeOnTheScreen();
+  });
+
+  it('an unlocked room opens; a locked one does not', async () => {
+    await renderScreen('en', { 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomStub }, `/story/${roomsBookId}`);
+    await fireEvent.press(await screen.findByTestId('room-chapter-2', {}, { timeout: 8000 }));
+    expect(screen.queryByText('room 2')).toBeNull();
+    await fireEvent.press(screen.getByTestId('room-chapter-1'));
+    expect(await screen.findByText('room 1', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });

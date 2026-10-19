@@ -1,6 +1,12 @@
 import type { Messages, Translation } from '../types';
 
 export const en = {
+  'story.discussions': 'DISCUSSIONS',
+  'story.readers': { one: '{count} reader', other: '{count} readers' },
+  'story.comments': { one: '{count} comment', other: '{count} comments' },
+  'story.roomLocked': 'Finish chapter {n} to open',
+  'story.epilogueLocked': 'Opens when you finish',
+  'story.roomsFailed': 'We couldn’t load the discussions.',
   'story.loadFailed': 'We couldn’t load this story.',
   'story.actionFailed': 'Something went wrong. Please try again.',
   'story.allTags': 'All tags on AO3 ↗',
@@ -21,6 +27,12 @@ export const en = {
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
+  'story.discussions': 'ОБСЪЖДАНИЯ',
+  'story.readers': { one: '{count} читател', other: '{count} читатели' },
+  'story.comments': { one: '{count} коментар', other: '{count} коментара' },
+  'story.roomLocked': 'Прочети глава {n}, за да влезеш',
+  'story.epilogueLocked': 'Отваря се, когато я завършиш',
+  'story.roomsFailed': 'Не успяхме да заредим обсъжданията.',
   'story.loadFailed': 'Не успяхме да заредим тази история.',
   'story.actionFailed': 'Нещо се обърка. Опитай пак.',
   'story.allTags': 'Всички тагове в AO3 ↗',
