@@ -195,8 +195,11 @@ Choices made during development where the decisions above don't say. Each one is
 ## Fonts: Unbounded + Sofia Sans, the same in both languages (18 Oct 2026, PO)
 - Replaces Bricolage Grotesque and Atkinson Hyperlegible, which have no Cyrillic: Bulgarian titles and comments would fall back
   to the system font, even inside the English UI.
-- **Unbounded** (600/700) for headings, book titles and the big moments of the UI: bold, wide, matches the bold colours.
+- **Unbounded** (600/700) for the big headings (22 px and up), counts and the wordmark: bold, wide, matches the bold colours.
   Short text only; it is too wide for paragraphs.
+- **Screen titles** (top bars, sheet titles, ~18–19 px) use **Sofia Sans ExtraBold 800**, 3 px larger than the Unbounded size
+  they replace (e.g. 21 px). At that size Unbounded looked squashed (wide, low letters); Sofia Sans is taller (19 Oct 2026, PO).
+  Bricolage Grotesque was looked at again and dropped: still no Cyrillic.
 - **Sofia Sans** (400/700/800) for everything else: comments, buttons, labels. Made by a Bulgarian designer; reads well in both
   scripts. It is narrow, so body text is 15 px rather than 14.
 - **Cormorant Garamond** italic stays for "moments" (The Epilogue, typographic covers); it has Cyrillic.
