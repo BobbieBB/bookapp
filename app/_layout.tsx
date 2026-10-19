@@ -1,12 +1,3 @@
-import {
-  AtkinsonHyperlegible_400Regular,
-  AtkinsonHyperlegible_700Bold,
-} from '@expo-google-fonts/atkinson-hyperlegible';
-import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_800ExtraBold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import { CormorantGaramond_700Bold_Italic } from '@expo-google-fonts/cormorant-garamond';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +5,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Button, T } from '@/components/ui';
+import { FONT_FILES } from '@/fonts';
+import { LanguageProvider, useT } from '@/i18n';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { space, useTheme } from '@/theme';
 
@@ -26,15 +19,16 @@ function Loading() {
   );
 }
 
-function ProfileError() {
+export function ProfileError() {
   const { c } = useTheme();
+  const t = useT();
   const { refreshProfile, signOut } = useAuth();
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: space.xl, gap: space.l, backgroundColor: c.ground }}>
-      <T v="h2">We couldn’t load your profile</T>
-      <T v="muted">Check your connection and try again.</T>
-      <Button title="Try again" onPress={refreshProfile} />
-      <Button variant="link" title="Sign out" onPress={signOut} />
+      <T v="h2">{t('auth.profileLoadFailed')}</T>
+      <T v="muted">{t('auth.profileLoadHint')}</T>
+      <Button title={t('common.tryAgain')} onPress={refreshProfile} />
+      <Button variant="link" title={t('common.signOut')} onPress={signOut} />
     </View>
   );
 }
@@ -70,20 +64,16 @@ function RootStack() {
 
 export default function RootLayout() {
   const { isDark } = useTheme();
-  const [fontsLoaded] = useFonts({
-    AtkinsonHyperlegible_400Regular,
-    AtkinsonHyperlegible_700Bold,
-    BricolageGrotesque_600SemiBold,
-    BricolageGrotesque_800ExtraBold,
-    CormorantGaramond_700Bold_Italic,
-  });
+  const [fontsLoaded] = useFonts(FONT_FILES);
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        {fontsLoaded ? <RootStack /> : <Loading />}
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          {fontsLoaded ? <RootStack /> : <Loading />}
+        </AuthProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

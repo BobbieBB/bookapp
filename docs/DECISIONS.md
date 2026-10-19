@@ -22,7 +22,7 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
   "sticker" shadows), dark mode "Midnight Bloom" (neon rose + electric mint on violet night).
   Same colour roles in both; tokens live in `src/theme.ts`. Design file: claude.ai artifact
   "Livami — Style Directions".
-- Type: Bricolage Grotesque (UI headings), Cormorant Garamond italic (moments: chapter titles,
+- Type (replaced 18 Oct 2026, see "Fonts: Unbounded + Sofia Sans" below): Bricolage Grotesque (UI headings), Cormorant Garamond italic (moments: chapter titles,
   The Epilogue), Atkinson Hyperlegible (reading text).
 - The discussion comes first: "I finished chapter N+1" is a small pill in the header plus a quiet
   row at the end of the comments, never the main button on the screen.
@@ -177,7 +177,7 @@ fic auto-fill from AO3 (only with OTW permission).
 ## Dev defaults (pending PO review)
 Choices made during development where the decisions above don't say. Each one is easy to change.
 - **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
-  (`Fictionally/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
+  (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
   reaches Open Library from the iOS and Android apps.
 

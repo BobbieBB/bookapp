@@ -19,20 +19,33 @@ import {
   type BookLanguage,
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
-import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
+import { coverColor, softShadow, space, useTheme } from '@/theme';
+import { useT } from '@/i18n';
+import type { MessageKey } from '@/i18n/en';
 
-// Short labels for AO3's archive warnings (the stored value stays AO3's wording).
-const WARNING_LABEL: Record<string, string> = {
-  'No Archive Warnings Apply': 'No warnings apply',
-  'Creator Chose Not To Use Archive Warnings': 'Chose not to warn',
-  'Graphic Depictions Of Violence': 'Graphic violence',
-  'Major Character Death': 'Major character death',
-  'Rape/Non-Con': 'Rape/Non-con',
-  'Underage Sex': 'Underage sex',
+type Translate = ReturnType<typeof useT>;
+
+// Short labels for AO3's archive warnings and ratings: what is shown, never what is stored (that stays AO3's wording).
+const WARNING_LABEL: Record<(typeof AO3_WARNINGS)[number], MessageKey> = {
+  'No Archive Warnings Apply': 'add.warnNone',
+  'Creator Chose Not To Use Archive Warnings': 'add.warnUnchosen',
+  'Graphic Depictions Of Violence': 'add.warnViolence',
+  'Major Character Death': 'add.warnDeath',
+  'Rape/Non-Con': 'add.warnNonCon',
+  'Underage Sex': 'add.warnUnderage',
+};
+
+const RATING_LABEL: Record<(typeof AO3_RATINGS)[number], MessageKey> = {
+  'General Audiences': 'add.ratingGeneral',
+  'Teen And Up Audiences': 'add.ratingTeen',
+  Mature: 'add.ratingMature',
+  Explicit: 'add.ratingExplicit',
+  'Not Rated': 'add.ratingNotRated',
 };
 
 export default function AddStory() {
   const { c } = useTheme();
+  const t = useT();
   const { profile } = useAuth();
   const params = useLocalSearchParams<{ kind?: StoryKind }>();
   const [kind, setKind] = useState<StoryKind>(
@@ -42,19 +55,19 @@ export default function AddStory() {
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, paddingHorizontal: space.m, paddingVertical: space.s, backgroundColor: c.band }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => router.back()} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('add.close')} onPress={() => router.back()} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Feather name="x" size={24} color={c.ink} />
         </Pressable>
-        <T v="h2" style={{ fontSize: 24 }}>Add a story</T>
+        <T v="h2" style={{ fontSize: 24 }}>{t('add.title')}</T>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.l, gap: space.l, paddingBottom: space.xxl }}>
           <View style={{ flexDirection: 'row', gap: space.s }}>
             <View style={{ flex: 1 }}>
-              <Chip label="Book" active={kind === 'book'} onPress={() => setKind('book')} big />
+              <Chip label={t('add.kindBook')} active={kind === 'book'} onPress={() => setKind('book')} big />
             </View>
             <View style={{ flex: 1 }}>
-              <Chip label="Fanfiction" active={kind === 'fanfic'} onPress={() => setKind('fanfic')} big />
+              <Chip label={t('add.kindFanfic')} active={kind === 'fanfic'} onPress={() => setKind('fanfic')} big />
             </View>
           </View>
           {kind === 'book' ? <AddBook /> : <AddFic />}
@@ -66,22 +79,24 @@ export default function AddStory() {
 
 /** Status for the new library entry: most people add what they're about to read. */
 function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s: LibraryStatus) => void }) {
+  const t = useT();
   return (
     <View style={{ flexDirection: 'row', gap: space.s }}>
-      <Chip label="Reading now" active={value === 'currently_reading'} onPress={() => onChange('currently_reading')} />
-      <Chip label="Want to read" active={value === 'want_to_read'} onPress={() => onChange('want_to_read')} />
+      <Chip label={t('add.statusReading')} active={value === 'currently_reading'} onPress={() => onChange('currently_reading')} />
+      <Chip label={t('add.statusWant')} active={value === 'want_to_read'} onPress={() => onChange('want_to_read')} />
     </View>
   );
 }
 
 /** Which edition the reader has: discussions are separate per language (PO, 15 Oct 2026). */
 function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l: BookLanguage) => void }) {
+  const t = useT();
   return (
     <View style={{ gap: space.xs }}>
-      <T v="label">I’m reading it in</T>
+      <T v="label">{t('add.readingIn')}</T>
       <View style={{ flexDirection: 'row', gap: space.s }}>
-        <Chip label="English" active={value === 'en'} onPress={() => onChange('en')} />
-        <Chip label="Bulgarian" active={value === 'bg'} onPress={() => onChange('bg')} />
+        <Chip label={t('add.langEn')} active={value === 'en'} onPress={() => onChange('en')} />
+        <Chip label={t('add.langBg')} active={value === 'bg'} onPress={() => onChange('bg')} />
       </View>
     </View>
   );
@@ -92,9 +107,9 @@ async function finish(storyId: string, status: LibraryStatus) {
   router.back();
 }
 
-function friendly(e: unknown) {
+function friendly(e: unknown, t: Translate) {
   const msg = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
-  if (/network|fetch/i.test(msg)) return 'We couldn’t reach the server. Check your connection and try again.';
+  if (/network|fetch/i.test(msg)) return t('add.errorNetwork');
   return msg;
 }
 
@@ -104,6 +119,7 @@ function friendly(e: unknown) {
 // ---------------------------------------------------------------------------
 
 function AddBook() {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<BookResult | null>(null);
   const [manual, setManual] = useState(false);
@@ -115,7 +131,7 @@ function AddBook() {
   // While the next search loads (or if it fails), the last results stay on screen.
   const results = delay === null ? [] : (search.data ?? search.previous ?? []);
   const settled = search.data !== undefined || search.error !== undefined;
-  const error = search.error ? friendly(search.error) : '';
+  const error = search.error ? friendly(search.error, t) : '';
 
   if (picked) return <ConfirmBook book={picked} onCancel={() => setPicked(null)} />;
   if (manual) return <ManualBook initialTitle={query} onCancel={() => setManual(false)} />;
@@ -123,14 +139,14 @@ function AddBook() {
   return (
     <View style={{ gap: space.m }}>
       <Field
-        label="Search"
-        placeholder="Title, author or ISBN"
+        label={t('add.search')}
+        placeholder={t('add.searchPlaceholder')}
         value={query}
         onChangeText={setQuery}
         autoCorrect={false}
         returnKeyType="search"
       />
-      <T v="muted" style={{ fontSize: 12 }}>Book details from Open Library</T>
+      <T v="muted" style={{ fontSize: 12 }}>{t('add.openLibraryCredit')}</T>
       {search.loading && <ActivityIndicator />}
       <ErrorText>{error}</ErrorText>
       {results.map((b) => (
@@ -141,9 +157,9 @@ function AddBook() {
           <CantFind onPress={() => setManual(true)} />
         ) : (
           <Card>
-            <T v="h2">No books found</T>
-            <T v="muted">Check the spelling, or add it yourself.</T>
-            <Button title="Add it by hand" onPress={() => setManual(true)} />
+            <T v="h2">{t('add.noBooks')}</T>
+            <T v="muted">{t('add.noBooksHint')}</T>
+            <Button title={t('add.byHand')} onPress={() => setManual(true)} />
           </Card>
         )
       )}
@@ -153,21 +169,24 @@ function AddBook() {
 
 function CantFind({ onPress }: { onPress: () => void }) {
   const { c } = useTheme();
+  const t = useT();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: c.hairline, paddingLeft: space.m }}>
-      <T v="muted">Can’t find it?</T>
-      <Button variant="link" title="Add it by hand" onPress={onPress} />
+      <T v="muted">{t('add.cantFind')}</T>
+      <Button variant="link" title={t('add.byHand')} onPress={onPress} />
     </View>
   );
 }
 
 function SmallCover({ title, author, url, id }: { title: string; author: string; url?: string | null; id: string }) {
-  const t = useTheme();
-  const col = coverColor(id, t.isDark);
-  const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(t.isDark, 'small') };
-  if (url) return <Image source={{ uri: url }} style={style} accessibilityLabel={`${title} cover`} />;
+  const theme = useTheme();
+  const t = useT();
+  const { fonts } = theme;
+  const col = coverColor(id, theme.isDark);
+  const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(theme.isDark, 'small') };
+  if (url) return <Image source={{ uri: url }} style={style} accessibilityLabel={t('add.cover', { title })} />;
   return (
-    <View accessible accessibilityLabel={`${title} cover`} style={[style, { backgroundColor: col.bg, padding: 4, justifyContent: 'space-between', overflow: 'hidden' }]}>
+    <View accessible accessibilityLabel={t('add.cover', { title })} style={[style, { backgroundColor: col.bg, padding: 4, justifyContent: 'space-between', overflow: 'hidden' }]}>
       <Text numberOfLines={4} style={{ fontFamily: fonts.moment, fontSize: 10, lineHeight: 10, color: col.fg }}>{title}</Text>
       <Text numberOfLines={2} style={{ fontFamily: fonts.bodyBold, fontSize: 5.5, color: col.fg }}>{author.toUpperCase()}</Text>
     </View>
@@ -175,19 +194,20 @@ function SmallCover({ title, author, url, id }: { title: string; author: string;
 }
 
 function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) => void }) {
-  const t = useTheme();
+  const theme = useTheme();
+  const t = useT();
 
   return (
-    <View style={[t.card, { padding: 10, flexDirection: 'row', alignItems: 'center', gap: space.m }]}>
+    <View style={[theme.card, { padding: 10, flexDirection: 'row', alignItems: 'center', gap: space.m }]}>
       <SmallCover title={book.title} author={book.author} url={book.coverUrl} id={book.key} />
       <View style={{ flex: 1, gap: 2 }}>
         <T v="h2" style={{ fontSize: 16 }} numberOfLines={2}>{book.title}</T>
         <T v="muted" numberOfLines={1}>
-          {[book.author, book.year, book.pages ? `${book.pages} pages` : null].filter(Boolean).join(' · ')}
+          {[book.author, book.year, book.pages ? t('add.pages', { count: book.pages }) : null].filter(Boolean).join(' · ')}
         </T>
       </View>
       <View style={{ width: 84 }}>
-        <Button title="Add" onPress={() => onPick(book)} />
+        <Button title={t('add.add')} onPress={() => onPick(book)} />
       </View>
     </View>
   );
@@ -195,9 +215,10 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
 
 /**
  * Last step before adding a book: the edition language (rooms are per language), the reading
- * status, and for an edition new to Fictionally its chapter count (Open Library doesn't know it).
+ * status, and for an edition new to Livami its chapter count (Open Library doesn't know it).
  */
 function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => void }) {
+  const t = useT();
   const [language, setLanguage] = useState<BookLanguage>(guessLanguage(book.title));
   const [chapters, setChapters] = useState('');
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
@@ -205,21 +226,21 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   const [saveError, setError] = useState('');
 
   const found = useLookup(`${book.key}#${language}`, () => findStory({ openLibraryKey: book.key, language }));
-  // undefined = still checking; null = new to Fictionally (or the check failed: we'll create it)
+  // undefined = still checking; null = new to Livami (or the check failed: we'll create it)
   const existing: Story | null | undefined = found.loading ? undefined : (found.data ?? null);
-  const error = saveError || (found.error ? friendly(found.error) : '');
+  const error = saveError || (found.error ? friendly(found.error, t) : '');
 
   async function save() {
     const n = Number(chapters);
     if (existing === undefined) return;
-    if (!existing && (!Number.isInteger(n) || n < 1 || n > 5000)) return setError('Enter the number of chapters.');
+    if (!existing && (!Number.isInteger(n) || n < 1 || n > 5000)) return setError(t('add.errorChapters'));
     setBusy(true);
     setError('');
     try {
       const story = existing ?? (await createBook(book, { chapters: n }, language));
       await finish(story.id, status);
     } catch (e) {
-      setError(friendly(e));
+      setError(friendly(e, t));
       setBusy(false);
     }
   }
@@ -239,20 +260,21 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
       ) : (
         !existing && (
           <>
-            <T v="muted">You’re the first to add this edition. How many chapters does it have? Each chapter gets its own discussion.</T>
-            <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder="e.g. 40" />
+            <T v="muted">{t('add.firstEdition')}</T>
+            <Field label={t('add.chapters')} keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder={t('add.chaptersPlaceholder')} />
           </>
         )
       )}
       <StatusPicker value={status} onChange={setStatus} />
       <ErrorText>{error}</ErrorText>
-      <Button title="Add to my library" onPress={save} loading={busy} disabled={existing === undefined} />
-      <Button variant="link" title="Back to results" onPress={onCancel} />
+      <Button title={t('add.addToLibrary')} onPress={save} loading={busy} disabled={existing === undefined} />
+      <Button variant="link" title={t('add.backToResults')} onPress={onCancel} />
     </Card>
   );
 }
 
 function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel: () => void }) {
+  const t = useT();
   const [title, setTitle] = useState(isbnOf(initialTitle) ? '' : initialTitle.trim());
   const [author, setAuthor] = useState('');
   const [chapters, setChapters] = useState('');
@@ -263,30 +285,30 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
 
   async function save() {
     const n = Number(chapters);
-    if (!title.trim() || !author.trim()) return setError('Add the title and the author.');
-    if (!Number.isInteger(n) || n < 1 || n > 5000) return setError('Enter the number of chapters.');
+    if (!title.trim() || !author.trim()) return setError(t('add.errorTitleAuthor'));
+    if (!Number.isInteger(n) || n < 1 || n > 5000) return setError(t('add.errorChapters'));
     setBusy(true);
     setError('');
     try {
       const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n, language });
       await finish(story.id, status);
     } catch (e) {
-      setError(friendly(e));
+      setError(friendly(e, t));
       setBusy(false);
     }
   }
 
   return (
     <Card>
-      <T v="h2">Add a book by hand</T>
-      <Field label="Title" value={title} onChangeText={setTitle} />
-      <Field label="Author" value={author} onChangeText={setAuthor} />
-      <Field label="Chapters" keyboardType="number-pad" value={chapters} onChangeText={setChapters} />
+      <T v="h2">{t('add.manualTitle')}</T>
+      <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} />
+      <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} />
+      <Field label={t('add.chapters')} keyboardType="number-pad" value={chapters} onChangeText={setChapters} />
       <LanguagePicker value={language} onChange={setLanguage} />
       <StatusPicker value={status} onChange={setStatus} />
       <ErrorText>{error}</ErrorText>
-      <Button title="Add to my library" onPress={save} loading={busy} />
-      <Button variant="link" title="Back to search" onPress={onCancel} />
+      <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
+      <Button variant="link" title={t('add.backToSearch')} onPress={onCancel} />
     </Card>
   );
 }
@@ -298,6 +320,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
 
 function AddFic() {
   const { c } = useTheme();
+  const t = useT();
   const [link, setLink] = useState('');
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -324,7 +347,7 @@ function AddFic() {
   }
 
   async function save() {
-    if (!canonical) return setError('Paste the link to the fic on AO3.');
+    if (!canonical) return setError(t('add.errorLink'));
     setBusy(true);
     setError('');
     try {
@@ -333,10 +356,10 @@ function AddFic() {
         return;
       }
       const n = Number(chapters);
-      if (!title.trim() || !author.trim()) throw new Error('Add the title and the author.');
-      if (!fandom.trim()) throw new Error('Add the fandom.');
-      if (!Number.isInteger(n) || n < 1 || n > 5000) throw new Error('Enter the number of chapters.');
-      if (!warnings.length) throw new Error('Pick the archive warnings, as shown on AO3.');
+      if (!title.trim() || !author.trim()) throw new Error(t('add.errorTitleAuthor'));
+      if (!fandom.trim()) throw new Error(t('add.errorFandom'));
+      if (!Number.isInteger(n) || n < 1 || n > 5000) throw new Error(t('add.errorChapters'));
+      if (!warnings.length) throw new Error(t('add.errorWarnings'));
       const story = await createFic({
         ao3Link: canonical,
         title,
@@ -350,7 +373,7 @@ function AddFic() {
       });
       await finish(story.id, status);
     } catch (e) {
-      setError(friendly(e));
+      setError(friendly(e, t));
       setBusy(false);
     }
   }
@@ -358,22 +381,22 @@ function AddFic() {
   return (
     <View style={{ gap: space.m }}>
       <Field
-        label="AO3 link"
-        placeholder="archiveofourown.org/works/…"
+        label={t('add.ao3Link')}
+        placeholder={t('add.ao3Placeholder')}
         value={link}
         onChangeText={setLink}
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="url"
       />
-      {checking && <T v="muted">Checking…</T>}
-      {badLink && <ErrorText>That doesn’t look like an AO3 work link.</ErrorText>}
+      {checking && <T v="muted">{t('add.checking')}</T>}
+      {badLink && <ErrorText>{t('add.badLink')}</ErrorText>}
 
       {existing ? (
         <Card tone="band">
           <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
             <Feather name="check" size={18} color={c.ink} />
-            <T v="label">Already on Fictionally</T>
+            <T v="label">{t('add.alreadyHere')}</T>
           </View>
           <T v="h2">{existing.title}</T>
           <T v="muted">{[existing.author_name, existing.fandoms[0], existing.ships[0]].filter(Boolean).join(' · ')}</T>
@@ -381,34 +404,34 @@ function AddFic() {
       ) : (
         canonical && !checking && (
           <>
-            <Field label="Title" value={title} onChangeText={setTitle} />
-            <Field label="Author" value={author} onChangeText={setAuthor} autoCapitalize="none" />
-            <Field label="Fandom" value={fandom} onChangeText={setFandom} />
-            <Field label="Ship (optional)" value={ship} onChangeText={setShip} />
+            <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} />
+            <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} autoCapitalize="none" />
+            <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} />
+            <Field label={t('add.ship')} value={ship} onChangeText={setShip} />
 
-            <T v="label">Status</T>
+            <T v="label">{t('add.ficStatus')}</T>
             <View style={{ flexDirection: 'row', gap: space.s }}>
-              <Chip label="Complete" active={complete} onPress={() => setComplete(true)} />
-              <Chip label="WIP" active={!complete} onPress={() => setComplete(false)} />
+              <Chip label={t('add.complete')} active={complete} onPress={() => setComplete(true)} />
+              <Chip label={t('add.wip')} active={!complete} onPress={() => setComplete(false)} />
             </View>
             <Field
-              label={complete ? 'Chapters' : 'Chapters so far'}
+              label={complete ? t('add.chapters') : t('add.chaptersSoFar')}
               keyboardType="number-pad"
               value={chapters}
               onChangeText={setChapters}
             />
 
-            <T v="label">AO3 rating</T>
+            <T v="label">{t('add.rating')}</T>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
               {AO3_RATINGS.map((r) => (
-                <Chip key={r} label={r} active={rating === r} onPress={() => setRating(r)} />
+                <Chip key={r} label={t(RATING_LABEL[r])} active={rating === r} onPress={() => setRating(r)} />
               ))}
             </View>
 
-            <T v="label">Archive warnings (as on AO3)</T>
+            <T v="label">{t('add.warnings')}</T>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
               {AO3_WARNINGS.map((w) => (
-                <Chip key={w} label={WARNING_LABEL[w] ?? w} active={warnings.includes(w)} onPress={() => toggleWarning(w)} />
+                <Chip key={w} label={t(WARNING_LABEL[w])} active={warnings.includes(w)} onPress={() => toggleWarning(w)} />
               ))}
             </View>
           </>
@@ -419,7 +442,7 @@ function AddFic() {
         <>
           <StatusPicker value={status} onChange={setStatus} />
           <ErrorText>{error}</ErrorText>
-          <Button title="Add to my library" onPress={save} loading={busy} />
+          <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
         </>
       )}
     </View>

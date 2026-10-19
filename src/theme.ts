@@ -75,13 +75,14 @@ export function coverColor(storyId: string, isDark: boolean) {
   return set[h % set.length]!;
 }
 
-// Font family names as registered in app/_layout.tsx.
+// Font family names as registered in app/_layout.tsx. One set for both languages; every family has
+// Cyrillic (docs/DECISIONS.md, "Fonts: Unbounded + Sofia Sans"). Unbounded is wide: short text only.
 export const fonts = {
-  display: 'BricolageGrotesque_800ExtraBold', // UI headings
-  displaySemi: 'BricolageGrotesque_600SemiBold',
+  display: 'Unbounded_700Bold', // UI headings, book titles
+  displaySemi: 'Unbounded_600SemiBold',
   moment: 'CormorantGaramond_700Bold_Italic', // emotional moments: The Epilogue, chapter titles
-  body: 'AtkinsonHyperlegible_400Regular', // reading text
-  bodyBold: 'AtkinsonHyperlegible_700Bold',
+  body: 'SofiaSans_400Regular', // comments, buttons, labels
+  bodyBold: 'SofiaSans_700Bold',
 };
 
 export const radius = { s: 14, m: 20, l: 22, pill: 999 };
@@ -106,6 +107,7 @@ export function useTheme() {
   return {
     isDark,
     c,
+    fonts,
     // Modern card: no outline, soft shadow, generous corners.
     card: {
       backgroundColor: c.surface,

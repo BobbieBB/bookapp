@@ -3,11 +3,14 @@ import { Text, View } from 'react-native';
 import { T } from '@/components/ui';
 import { progressLine, sectionTotal } from '@/lib/library';
 import type { LibraryEntry } from '@/lib/types';
-import { STATUS_LABEL } from '@/lib/types';
-import { coverColor, fonts, softShadow, space, useTheme } from '@/theme';
+import { STATUS_KEY } from '@/lib/types';
+import { useT } from '@/i18n';
+import { coverColor, softShadow, space, useTheme } from '@/theme';
 
 export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatus?: boolean }) {
   const t = useTheme();
+  const tr = useT();
+  const { fonts } = t;
   const { c } = t;
   const s = entry.story;
   const total = sectionTotal(entry);
@@ -22,7 +25,7 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
       {/* Typographic cover: fics never have covers (fanart is someone else's work). */}
       <View
         accessible
-        accessibilityLabel={`${s.title} cover`}
+        accessibilityLabel={tr('library.coverLabel', { title: s.title })}
         style={{
           width: 64,
           height: 92,
@@ -48,8 +51,8 @@ export function StoryRow({ entry, showStatus }: { entry: LibraryEntry; showStatu
           {subtitle}
         </T>
         <T v="label">
-          {showStatus ? `${STATUS_LABEL[entry.status]} · ` : ''}
-          {progressLine(entry)}
+          {showStatus ? `${tr(STATUS_KEY[entry.status])} · ` : ''}
+          {progressLine(entry, tr)}
         </T>
         <View
           style={{

@@ -4,12 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddButton } from '@/components/AddButton';
 import { StoryRow } from '@/components/StoryRow';
 import { Card, ErrorText, T } from '@/components/ui';
+import { useLanguage, useT, type Language } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useMyLibrary } from '@/lib/library';
 import { space, useTheme } from '@/theme';
 
 export default function Home() {
   const { c } = useTheme();
+  const t = useT();
+  const { language } = useLanguage();
   const { session, profile } = useAuth();
   const { entries, loading, error } = useMyLibrary(session?.user.id, 'currently_reading');
   // Fanfiction and books are never mixed in one list (fandom etiquette), and Home shows only
@@ -24,8 +27,8 @@ export default function Home() {
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ gap: space.xs, flex: 1 }}>
-            <T v="overline">{greeting()}</T>
-            <T v="h1">Hi, {profile?.username}</T>
+            <T v="overline">{greeting(language, t)}</T>
+            <T v="h1">{t('home.hi', { name: profile?.username ?? '' })}</T>
           </View>
           <AddButton />
         </View>
@@ -35,7 +38,7 @@ export default function Home() {
         ) : groups.length ? (
           groups.map(({ kind, items }) => (
             <View key={kind} style={{ gap: space.m }}>
-              <T v="overline">CONTINUE READING · {kind === 'fanfic' ? 'FANFICTION' : 'BOOKS'}</T>
+              <T v="overline">{kind === 'fanfic' ? t('home.continueFanfic') : t('home.continueBooks')}</T>
               {items.map((e) => (
                 <StoryRow key={e.story_id} entry={e} />
               ))}
@@ -43,26 +46,24 @@ export default function Home() {
           ))
         ) : (
           <Card>
-            <T v="h2">Nothing on the go yet</T>
-            <T v="muted">
-              Tap + to add a book or a fic. The chapters you finish unlock their discussions.
-            </T>
+            <T v="h2">{t('home.emptyTitle')}</T>
+            <T v="muted">{t('home.emptyHint')}</T>
           </Card>
         )}
         <ErrorText>{error}</ErrorText>
 
-        <T v="overline">REPLIES TO YOU</T>
+        <T v="overline">{t('home.repliesTitle')}</T>
         <Card tone="band">
-          <T v="muted">When someone replies to you or mentions you, you’ll see it here.</T>
+          <T v="muted">{t('home.repliesEmpty')}</T>
         </Card>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function greeting() {
-  const day = new Date().toLocaleDateString('en-GB', { weekday: 'long' }).toUpperCase();
+function greeting(language: Language, t: ReturnType<typeof useT>) {
+  const day = new Date().toLocaleDateString(language === 'bg' ? 'bg-BG' : 'en-GB', { weekday: 'long' }).toUpperCase();
   const h = new Date().getHours();
-  const part = h < 5 ? 'NIGHT' : h < 12 ? 'MORNING' : h < 18 ? 'AFTERNOON' : 'NIGHT';
-  return `${day} ${part} READING`;
+  const key = h < 5 ? 'home.greetingNight' : h < 12 ? 'home.greetingMorning' : h < 18 ? 'home.greetingAfternoon' : 'home.greetingNight';
+  return t(key, { day });
 }
