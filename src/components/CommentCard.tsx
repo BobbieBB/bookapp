@@ -48,7 +48,7 @@ function SafetyPanel({
   name: string;
   onClose: () => void;
   onReport: (reason: ReportReason, details: string) => Promise<void>;
-  onBlock: () => Promise<void>;
+  onBlock?: () => Promise<void>;
 }) {
   const t = useT();
   const [reason, setReason] = useState<ReportReason>('other');
@@ -88,7 +88,7 @@ function SafetyPanel({
         {panel === 'report' ? (
           <Button title={t('safety.sendReport')} loading={busy} onPress={() => void run(() => onReport(reason, details))} />
         ) : (
-          <Button title={t('safety.blockButton')} loading={busy} onPress={() => void run(onBlock)} />
+          <Button title={t('safety.blockButton')} loading={busy} onPress={() => onBlock && void run(onBlock)} />
         )}
         <Button variant="link" title={t('safety.cancel')} onPress={onClose} />
       </View>
@@ -112,7 +112,7 @@ export function CommentCard({
   onReact: (emoji: Emoji, mine: boolean) => void;
   /** Present on other people's comments: sends a report. */
   onReport?: (reason: ReportReason, details: string) => Promise<void>;
-  /** Present on other people's comments: blocks the author. */
+  /** Present on other people's comments, unless the author deleted their account: blocks the author. */
   onBlock?: () => Promise<void>;
 }) {
   const { c, fonts } = useTheme();
@@ -121,12 +121,15 @@ export function CommentCard({
   const deleted = comment.deleted_at !== null;
   const [panel, setPanel] = useState<Panel>(null);
   const [reported, setReported] = useState(false);
-  const canModerate = !mine && !deleted && !!onReport && !!onBlock;
+  // A deleted reader's comment (author null) can still be reported; there is nobody to block.
+  const name = comment.author?.username ?? t('account.deletedReader');
+  const canReport = !mine && !deleted && !!onReport;
+  const canBlock = canReport && !!onBlock;
 
   return (
     <View testID={`comment-${comment.id}`} style={{ gap: space.xs, padding: space.m, borderRadius: radius.m, backgroundColor: mine ? c.mine : c.surface }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.s }}>
-        <T v="label">{comment.author.username}</T>
+        <T v="label">{name}</T>
         <T v="muted">{shortTime(comment.created_at)}</T>
       </View>
       {deleted ? (
@@ -166,24 +169,16 @@ export function CommentCard({
           <View style={{ flexDirection: 'row' }}>
             {onReply ? <QuietAction label={t('room.reply')} onPress={onReply} /> : null}
             {mine ? <QuietAction label={t('room.delete')} onPress={onDelete} /> : null}
-            {canModerate ? (
-              <>
-                {reported ? null : (
-                  <QuietAction
-                    label={t('safety.report')}
-                    accessibilityLabel={t('safety.reportLabel', { name: comment.author.username })}
-                    onPress={() => setPanel('report')}
-                  />
-                )}
-                <QuietAction label={t('safety.block', { name: comment.author.username })} onPress={() => setPanel('block')} />
-              </>
+            {canReport && !reported ? (
+              <QuietAction label={t('safety.report')} accessibilityLabel={t('safety.reportLabel', { name })} onPress={() => setPanel('report')} />
             ) : null}
+            {canBlock ? <QuietAction label={t('safety.block', { name })} onPress={() => setPanel('block')} /> : null}
           </View>
-          {canModerate && panel ? (
+          {canReport && panel ? (
             <SafetyPanel
               key={panel}
               panel={panel}
-              name={comment.author.username}
+              name={name}
               onClose={() => setPanel(null)}
               onReport={async (reason, details) => {
                 await onReport(reason, details);
