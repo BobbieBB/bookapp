@@ -9,12 +9,12 @@ import { supabase } from '../supabase';
 const password = 'test-password-1234';
 const run = Date.now().toString(36);
 const PNG = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (ch) => ch.charCodeAt(0));
-const service = serviceClient();
-
+let service: ReturnType<typeof serviceClient>;
 let referenced: string;
 let orphan: string;
 
 beforeAll(async () => {
+  service = serviceClient();
   const { data, error } = await supabase.auth.signUp({ email: `sweep-${run}@example.test`, password });
   if (error || !data.user) throw error ?? new Error('could not sign up');
   await supabase.from('profiles').insert({ id: data.user.id, username: `sweep_${run}` }).throwOnError();

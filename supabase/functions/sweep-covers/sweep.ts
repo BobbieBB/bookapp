@@ -24,9 +24,20 @@ export function chunks<T>(list: T[], size: number): T[][] {
 
 export type RemoveResult = { removed: number; error: string | null };
 
+async function attempt(group: string[], remove: (group: string[]) => Promise<RemoveResult>): Promise<number | null> {
+  try {
+    const result = await remove(group);
+    return result.error ? null : result.removed;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Removes the files a chunk at a time and counts them. A chunk that fails is counted as failed and
- * the rest still go: those files are still orphans tomorrow, and the next sweep tries them again.
+ * Removes the files a chunk at a time and counts them. A chunk that fails is tried again file by
+ * file, so one file Storage keeps refusing can't hold back the others: orphan_cover_paths lists the
+ * oldest first, and the same failing chunk would otherwise come back first every day. What still
+ * fails is counted as failed and tried again in the next sweep.
  */
 export async function removeInChunks(
   paths: string[],
@@ -36,12 +47,19 @@ export async function removeInChunks(
   let removed = 0;
   let failed = 0;
   for (const group of chunks(paths, size)) {
-    try {
-      const result = await remove(group);
-      if (result.error) failed += group.length;
-      else removed += result.removed;
-    } catch {
-      failed += group.length;
+    const done = await attempt(group, remove);
+    if (done !== null) {
+      removed += done;
+      continue;
+    }
+    if (group.length === 1) {
+      failed += 1;
+      continue;
+    }
+    for (const path of group) {
+      const one = await attempt([path], remove);
+      if (one === null) failed += 1;
+      else removed += one;
     }
   }
   return { removed, failed };

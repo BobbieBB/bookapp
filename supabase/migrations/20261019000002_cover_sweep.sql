@@ -20,6 +20,8 @@ insert into public.cover_sweep_settings default values;
 alter table public.cover_sweep_settings enable row level security;
 -- Admins can see it; only migrations or the service role change it (the sweep secret is sent to this
 -- address, so a hijacked admin account must not be able to point it elsewhere).
+-- Supabase's default privileges grant every role everything on new tables: take that back first.
+revoke all on public.cover_sweep_settings from public, anon, authenticated;
 grant select on public.cover_sweep_settings to authenticated;
 create policy cover_sweep_settings_admin_read on public.cover_sweep_settings for select to authenticated
   using (public.is_admin());

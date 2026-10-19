@@ -37,11 +37,18 @@ describe('removeInChunks', () => {
     const calls: string[][] = [];
     const result = await removeInChunks(paths, async (group) => {
       calls.push(group);
-      if (calls.length === 2) return { removed: 0, error: 'storage is down' };
+      if (calls.length >= 2 && calls.length <= 102) return { removed: 0, error: 'storage is down' };
       return { removed: group.length, error: null };
     });
-    expect(calls.map((c) => c.length)).toEqual([100, 100, 30]);
+    expect(calls.map((c) => c.length)).toEqual([100, 100, ...Array(100).fill(1), 30]);
     expect(result).toEqual({ removed: 130, failed: 100 });
+  });
+
+  it('a failed chunk is tried again file by file, so one bad file cannot hold back the rest', async () => {
+    const result = await removeInChunks(['a', 'bad', 'c'], async (group) =>
+      group.includes('bad') ? { removed: 0, error: 'cannot remove bad' } : { removed: group.length, error: null },
+    );
+    expect(result).toEqual({ removed: 2, failed: 1 });
   });
 
   it('a chunk that throws counts as failed, and the rest still go', async () => {
