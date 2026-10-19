@@ -254,3 +254,14 @@ Choices made during development where the decisions above don't say. Each one is
 - **Every progress bar looks the same:** taupe #8A7258 on a sand track #EAE6DE, never coloured per story.
 - Contrast stays WCAG AA or better (body text 13:1, buttons 8:1).
 - (A parchment variant was tried the same day and dropped: the PO preferred this beige.)
+
+## Deleting an account: what happens to comments (19 Oct 2026, PO)
+- Required before the App Store (Apple 5.1.1(v): account deletion inside the app) and by GDPR.
+- **By default comments stay, anonymised:** the author shows as "Deleted reader" / „Изтрит читател“, with no avatar and no
+  link to a profile, so the discussions and the replies of other readers keep making sense (as Reddit and Discord do).
+- **Opt-in on the delete screen:** "Also delete all my comments". Each comment's text is then erased and shown as
+  "This comment was deleted"; the place in the thread stays, so replies to it still read in context.
+- **Book reviews** are treated like comments (anonymised, or erased with the opt-in).
+- **Always deleted:** profile, library and progress, ratings, reactions, follows, blocks, notifications, custom covers
+  (including the files in Storage `covers/<user id>/`), analytics events, push tokens.
+- The screen says plainly, before confirming, what stays and what goes. Deletion cannot be undone.
