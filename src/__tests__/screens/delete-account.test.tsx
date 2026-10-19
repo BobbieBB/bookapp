@@ -6,6 +6,7 @@ import RoomScreen from '../../../app/room/[storyId]/[room]';
 import StoryScreen from '../../../app/story/[id]';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
+import * as pushDevice from '../../lib/pushDevice';
 import { saveReview } from '../../lib/reviews';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
@@ -125,6 +126,24 @@ it('with "Also delete all my comments" on, your comments read "This comment was 
   expect(await screen.findByText('This comment was deleted', {}, { timeout: 8000 })).toBeOnTheScreen();
   expect(screen.getByText('Deleted reader')).toBeOnTheScreen();
   expect(screen.queryByText('Nobody will read this')).toBeNull();
+});
+
+it('once the account is deleted, a failure tidying up this phone is not shown as a failed deletion', async () => {
+  const u = await signUp('tidy');
+  await as(u);
+  const forget = jest.spyOn(pushDevice, 'forgetPushDevice').mockRejectedValueOnce(new Error('storage full'));
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  try {
+    await renderScreen('en', routes, '/delete-account');
+    await fireEvent.press(await screen.findByText('Delete my account', {}, { timeout: 8000 }));
+    await fireEvent.press(screen.getByText('Yes, delete it forever'));
+    await waitFor(async () => expect((await supabase.auth.getSession()).data.session).toBeNull(), { timeout: 8000 });
+    expect(screen.queryByText('We couldn’t delete your account. Please try again.')).toBeNull();
+  } finally {
+    forget.mockRestore();
+    warn.mockRestore();
+  }
+  expect(await signInFails(u)).toBe(true);
 });
 
 it('in Bulgarian', async () => {

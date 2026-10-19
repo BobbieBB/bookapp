@@ -32,7 +32,8 @@ it('the switch is on by default; turning it off is saved to the account', async 
   await waitFor(() => expect(toggle.props.value).toBe(true), { timeout: 8000 });
   await fireEvent(toggle, 'valueChange', false);
   await waitFor(async () => expect(await optedOut()).toBe(true), { timeout: 8000 });
-  expect(screen.getByLabelText('Help us improve the app').props.value).toBe(false);
+  // Saved first, then the screen reloads the choice: wait for that reload to show it.
+  await waitFor(() => expect(screen.getByLabelText('Help us improve the app').props.value).toBe(false), { timeout: 8000 });
   await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', true);
   await waitFor(async () => expect(await optedOut()).toBe(false), { timeout: 8000 });
 });

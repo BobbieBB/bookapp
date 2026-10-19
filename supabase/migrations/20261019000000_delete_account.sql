@@ -79,6 +79,14 @@ language sql stable security definer set search_path = public as $$
   group by le.story_id, le.progress_section
 $$;
 
+-- A removal request whose reader deleted their account keeps no contact details (they are personal
+-- data); every other request still needs a way to reach the author.
+alter table public.removal_requests
+  drop constraint removal_contact,
+  add constraint removal_contact check (
+    (requester_id is null and contact is null) or char_length(trim(coalesce(contact, ''))) between 3 and 320
+  ) not valid;
+
 -- ---------------------------------------------------------------------------
 -- delete_my_account: only ever the signed-in reader's own account
 -- ---------------------------------------------------------------------------
@@ -98,10 +106,16 @@ begin
   if me is null then
     raise exception 'not signed in';
   end if;
+  -- Lock the profile first: a comment being posted from another device holds a KEY SHARE lock on it
+  -- (its foreign key check), so we wait for it and then erase it too, and one posted after this
+  -- waits for us and then fails because the profile is gone. No comment slips past the erase.
+  perform 1 from public.profiles where id = me for update;
   if p_erase_comments then
     update public.comments set deleted_at = now() where author_id = me and deleted_at is null;
     delete from public.reviews where user_id = me;
   end if;
+  -- Kept without a name means without a way to reach you as well.
+  update public.removal_requests set requester_id = null, contact = null where requester_id = me;
   delete from auth.users where id = me;
 end $$;
 

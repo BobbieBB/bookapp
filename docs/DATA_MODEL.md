@@ -109,7 +109,9 @@ without its owner: `comments.author_id` and `reviews.user_id` (shown as "Deleted
 `stories.created_by` (the story is shared with its other readers), `feedback.user_id`,
 `removal_requests.requester_id` and `notifications.actor_id` (other readers keep their reply and
 mention notifications, signed "Deleted reader"). With `erase_comments`, the reader's comments are first
-soft-deleted (the text is erased, the place in the thread stays) and their reviews deleted. A comment's
+soft-deleted (the text is erased, the place in the thread stays) and their reviews deleted. Removal
+requests also lose their contact details. The function locks the reader's profile row first, so a
+comment being posted from another device at the same moment is erased too, or refused. A comment's
 author can never be changed, except to empty by that `set null`. Queries compare authors with
 `is distinct from`, so a comment without an author still counts as new, can be reported and replied to.
 Storage files can't be removed from SQL: the app removes the reader's `covers/<user id>/` files before

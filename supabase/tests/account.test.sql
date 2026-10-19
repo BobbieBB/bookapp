@@ -25,12 +25,17 @@ insert into public.discussions (id, story_id, kind, section_number) values
 insert into public.comments (id, discussion_id, author_id, parent_id, body) values
   ('a3000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd001', null, 'Dora on chapter 2'),
   ('a3000000-0000-0000-0000-000000000003', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd001', null, 'Dora takes it back'),
-  ('a3000000-0000-0000-0000-000000000004', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd003', null, 'Gabi on chapter 2');
+  ('a3000000-0000-0000-0000-000000000004', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd003', null, 'Gabi on chapter 2'),
+  ('a3000000-0000-0000-0000-000000000006', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd003', null, 'Gabi takes it back');
+-- Gabi also has a comment moderators hid.
+insert into public.comments (id, discussion_id, author_id, body, is_hidden) values
+  ('a3000000-0000-0000-0000-000000000007', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd003', 'Gabi was rude', true);
 insert into public.comments (id, discussion_id, author_id, parent_id, body) values
   ('a3000000-0000-0000-0000-000000000002', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd002', 'a3000000-0000-0000-0000-000000000001', 'Emil answers Dora'),
   ('a3000000-0000-0000-0000-000000000005', 'a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000dd002', 'a3000000-0000-0000-0000-000000000004', 'Emil answers Gabi');
 -- Dora deleted one of her comments herself before leaving.
 update public.comments set deleted_at = now() where id = 'a3000000-0000-0000-0000-000000000003';
+update public.comments set deleted_at = now() where id = 'a3000000-0000-0000-0000-000000000006';
 -- Emil last read the chapter a day ago, so everyone else's comments are new to him.
 update public.discussion_follows set last_read_at = now() - interval '1 day' where user_id = '00000000-0000-0000-0000-0000000dd002';
 
@@ -108,8 +113,8 @@ select test.ok(not exists (select 1 from public.reports where reporter_id = '000
 select test.ok((select created_by is null from public.stories where id = 'a1000000-0000-0000-0000-000000000001'),
   'a story she added stays for its other readers, without a creator');
 select test.ok((select user_id is null from public.feedback where body = 'More books'), 'feedback stays, anonymised');
-select test.ok((select requester_id is null from public.removal_requests where story_url = 'https://archiveofourown.org/works/1'),
-  'a removal request stays, anonymised');
+select test.ok((select requester_id is null and contact is null from public.removal_requests where story_url = 'https://archiveofourown.org/works/1'),
+  'a removal request stays, anonymised: without her and without her contact details');
 select test.ok(exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-0000000dd004'), 'the reader she blocked is untouched');
 
 -- 3. Other readers still see and count her comments ---------------------------------
@@ -140,8 +145,12 @@ select public.delete_my_account(true);
 select test.logout();
 
 select test.ok(not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000dd003'), 'her account is gone');
-select test.ok((select author_id is null and deleted_at is not null and body <> 'Gabi on chapter 2' from public.comments
+select test.ok((select author_id is null and deleted_at is not null and body = '[deleted]' from public.comments
   where id = 'a3000000-0000-0000-0000-000000000004'), 'her comment is erased, and keeps its place');
+select test.ok((select author_id is null and deleted_at is not null and body = '[deleted]' from public.comments
+  where id = 'a3000000-0000-0000-0000-000000000006'), 'a comment she had deleted herself stays erased, without an author');
+select test.ok((select author_id is null and deleted_at is not null and body = '[deleted]' and is_hidden from public.comments
+  where id = 'a3000000-0000-0000-0000-000000000007'), 'a comment moderators hid is erased too, and stays hidden');
 select test.ok((select parent_id = 'a3000000-0000-0000-0000-000000000004' from public.comments
   where id = 'a3000000-0000-0000-0000-000000000005'), 'the reply to her erased comment stays in its thread');
 select test.ok(not exists (select 1 from public.reviews where body = 'Gabi reviews'), 'her review is erased');

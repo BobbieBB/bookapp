@@ -267,7 +267,8 @@ Choices made during development where the decisions above don't say. Each one is
 - The screen says plainly, before confirming, what stays and what goes. Deletion cannot be undone.
 - How it was built (19 Oct 2026): erasing a book review deletes it (a review is not part of a thread,
   so there is no place to keep). Kept without a name, as before: a story the reader added (other readers
-  have it in their libraries), feedback and removal requests they sent, and other readers' reply and
+  have it in their libraries), feedback and removal requests they sent (a removal request also loses the
+  contact details; feedback keeps its text), and other readers' reply and
   mention notifications from them. Reports the reader filed, or about them as a reader, go with the account; reports about their
   comments stay with the comments. "This comment was deleted" is now also what a comment deleted by its
   author shows. Cover files that can't be removed at deletion are left for a later sweep.

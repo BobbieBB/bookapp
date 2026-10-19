@@ -1,5 +1,6 @@
 import { holdRequest } from '../../../test/network';
 import { deleteMyAccount } from '../account';
+import * as pushDevice from '../pushDevice';
 import { uploadCover } from '../covers';
 import { loadComments, openRoom, postComment } from '../discussions';
 import { loadReviews, saveReview } from '../reviews';
@@ -85,7 +86,7 @@ it('with "also delete my comments", their text is erased but their place stays; 
   const comments = await loadComments(roomId);
   const erased = comments.find((c) => c.id === commentId)!;
   expect(erased.deleted_at).not.toBeNull();
-  expect(erased.body).not.toContain('eraser was here');
+  expect(erased.body).toBe('[deleted]');
   expect(erased.author).toBeNull();
   expect(comments.find((c) => c.id === replyId)).toMatchObject({ parent_id: commentId });
   expect((await loadReviews(storyId)).some((r) => r.body === 'eraser reviews')).toBe(false);
@@ -126,9 +127,12 @@ it('still deletes the account when the cover files cannot be removed', async () 
   expect(await signInFails(u)).toBe(true);
 });
 
-it('when the deletion fails, you stay signed in and are told', async () => {
+it('when the deletion fails, you stay signed in and are told, with no cover pointing at a removed file', async () => {
   const u = await signUp('notdeleted');
   await as(u);
+  const book = (await createManualBook({ title: 'Still Covered', author: 'x', chapters: 2, language: 'en' })).id;
+  await addToLibrary(book, 'currently_reading');
+  await uploadCover(book, PNG.buffer, 'image/png');
   const rpc = jest.spyOn(supabase, 'rpc').mockResolvedValueOnce({ data: null, error: new Error('offline') } as never);
   try {
     await expect(deleteMyAccount({ eraseComments: false })).rejects.toThrow('offline');
@@ -136,6 +140,47 @@ it('when the deletion fails, you stay signed in and are told', async () => {
     rpc.mockRestore();
   }
   expect((await supabase.auth.getSession()).data.session?.user.id).toBe(u.id);
+  expect((await supabase.storage.from('covers').list(u.id)).data).toEqual([]);
+  expect((await supabase.from('custom_covers').select('story_id').throwOnError()).data).toEqual([]);
+});
+
+it('gives up on cover files that will not all go, instead of trying forever', async () => {
+  const u = await signUp('stuckcovers');
+  await as(u);
+  // A full page every time, of which only some files are removed.
+  const page = Array.from({ length: 100 }, (_, i) => ({ name: `f${i}.png` }));
+  const list = jest.fn(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return { data: page, error: null };
+  });
+  const remove = jest.fn(async (paths: string[]) => ({ data: paths.slice(1), error: null }));
+  const storage = jest.spyOn(supabase.storage, 'from').mockReturnValue({ list, remove } as never);
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  try {
+    await deleteMyAccount({ eraseComments: false });
+  } finally {
+    storage.mockRestore();
+    warn.mockRestore();
+  }
+  expect(list).toHaveBeenCalledTimes(1);
+  expect(await signInFails(u)).toBe(true);
+});
+
+it('once the account is deleted, a failure tidying up this phone still signs you out and is not an error', async () => {
+  const u = await signUp('tidyfail');
+  await as(u);
+  const forget = jest.spyOn(pushDevice, 'forgetPushDevice').mockRejectedValueOnce(new Error('storage full'));
+  const signOut = jest.spyOn(supabase.auth, 'signOut').mockRejectedValueOnce(new Error('storage full'));
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  try {
+    await deleteMyAccount({ eraseComments: false });
+  } finally {
+    forget.mockRestore();
+    signOut.mockRestore();
+    warn.mockRestore();
+  }
+  expect((await supabase.auth.getSession()).data.session).toBeNull();
+  expect(await signInFails(u)).toBe(true);
 });
 
 async function waitUntil(check: () => Promise<boolean>) {
