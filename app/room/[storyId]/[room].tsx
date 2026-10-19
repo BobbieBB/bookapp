@@ -213,25 +213,33 @@ function Discussion({
     }
   };
 
-  const card = (comment: Thread['comment'], top: boolean) => (
-    <CommentCard
-      key={comment.id}
-      comment={comment}
-      mine={comment.author.id === userId}
-      onReply={top ? () => setReplyTo({ id: comment.id, username: comment.author.username }) : undefined}
-      onDelete={() => void act(() => deleteComment(comment.id))}
-      onReact={(emoji: Emoji, mine: boolean) => void act(async () => {
-          await toggleReaction(comment.id, emoji, mine);
-          if (!mine) void track('reaction_added');
-        })}
-      onReport={(reason, details) => reportComment(comment.id, reason, details)}
-      onBlock={async () => {
-        await block(comment.author.id);
-        setBlockedNotice(true);
-        reload();
-      }}
-    />
-  );
+  const card = (comment: Thread['comment'], top: boolean) => {
+    // Null once the author deleted their account: nobody to block, but the comment can be reported.
+    const author = comment.author;
+    return (
+      <CommentCard
+        key={comment.id}
+        comment={comment}
+        mine={author !== null && author.id === userId}
+        onReply={top ? () => setReplyTo({ id: comment.id, username: author?.username ?? t('account.deletedReader') }) : undefined}
+        onDelete={() => void act(() => deleteComment(comment.id))}
+        onReact={(emoji: Emoji, mine: boolean) => void act(async () => {
+            await toggleReaction(comment.id, emoji, mine);
+            if (!mine) void track('reaction_added');
+          })}
+        onReport={(reason, details) => reportComment(comment.id, reason, details)}
+        onBlock={
+          author
+            ? async () => {
+                await block(author.id);
+                setBlockedNotice(true);
+                reload();
+              }
+            : undefined
+        }
+      />
+    );
+  };
 
   const threads = list ? threadComments(list) : [];
 

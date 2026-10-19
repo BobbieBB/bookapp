@@ -60,7 +60,7 @@ it('reviews: one per reader, edited in place, spoiler flag kept, newest first', 
   await as(b);
   await saveReview(bookId, 'Not for me', false);
   const reviews = await loadReviews(bookId);
-  expect(reviews.map((r) => [r.author.username, r.contains_spoilers])).toEqual([
+  expect(reviews.map((r) => [r.author?.username, r.contains_spoilers])).toEqual([
     [b.username, false],
     [a.username, true],
   ]);
@@ -69,7 +69,7 @@ it('reviews: one per reader, edited in place, spoiler flag kept, newest first', 
 it('reviews by people you blocked are not shown', async () => {
   await as(b);
   await block(a.id);
-  expect((await loadReviews(bookId)).map((r) => r.author.username)).toEqual([b.username]);
+  expect((await loadReviews(bookId)).map((r) => r.author?.username)).toEqual([b.username]);
 });
 
 it('an empty review is refused; you can delete yours', async () => {

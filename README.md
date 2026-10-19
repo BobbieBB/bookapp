@@ -20,7 +20,7 @@ merge. In the app:
 - **Discussions:** chapter discussions and The Epilogue with replies, reactions and live updates.
 - **After reading:** "You finished it!", book ratings and reviews.
 - **Home and Discover:** Home with replies and @mentions, notifications, and Discover by fandom.
-- **Safety:** report, block, feedback and "Authors are welcome".
+- **Safety:** report, block, feedback, "Authors are welcome" and deleting your account.
 - **Extras:** private custom covers, push notifications and first-party analytics.
 
 Before launch:

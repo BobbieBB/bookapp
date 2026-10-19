@@ -16,5 +16,7 @@ psql -v ON_ERROR_STOP=1 -d $DB -f tests/home.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/covers.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/analytics.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/push.test.sql
+psql -v ON_ERROR_STOP=1 -d $DB -f tests/account.test.sql
+bash tests/account_race.test.sh
 bash tests/bump_race.test.sh
 bash tests/push_race.test.sh
