@@ -9,7 +9,8 @@ import * as story from './messages/story';
 import * as room from './messages/room';
 import * as discover from './messages/discover';
 import * as safety from './messages/safety';
+import * as finishing from './messages/finishing';
 
-export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en };
+export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en };
 
 export type MessageKey = keyof typeof en;
