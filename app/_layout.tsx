@@ -59,6 +59,9 @@ function RootStack() {
         <Stack.Screen name="add" options={{ presentation: 'modal' }} />
         <Stack.Screen name="story/[id]" />
         <Stack.Screen name="room/[storyId]/[room]" />
+        <Stack.Screen name="blocked" />
+        <Stack.Screen name="feedback" />
+        <Stack.Screen name="authors" />
       </Stack.Protected>
     </Stack>
   );

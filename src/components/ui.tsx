@@ -20,8 +20,10 @@ export function Button({
   variant = 'primary',
   disabled,
   loading,
+  accessibilityLabel,
 }: {
   title: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'link';
   disabled?: boolean;
@@ -40,6 +42,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [style, (pressed || disabled) && { opacity: 0.75, transform: [{ scale: 0.98 }] }]}
@@ -71,7 +74,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
         placeholderTextColor={c.muted}
         accessibilityLabel={label}
         style={{
-          height: 50,
+          ...(props.multiline ? { minHeight: 120, paddingVertical: space.m, textAlignVertical: 'top' } : { height: 50 }),
           borderRadius: radius.s,
           borderWidth: 1.5,
           borderColor: c.hairline,
