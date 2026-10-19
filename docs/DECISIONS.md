@@ -187,6 +187,10 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Orphan cover files (19 Oct 2026):** cover files nothing points to any more (a deleted account, an
+  old cover that could not be removed) are swept daily after a 1-day grace period, at most 500 a
+  day. The grace period keeps a cover that is being uploaded right now, whose file lands a moment
+  before the row that points to it.
 
 ## Bulgarian books: where the data comes from (18 Oct 2026, PO)
 - Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:

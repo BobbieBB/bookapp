@@ -55,6 +55,7 @@ src/
 supabase/
   migrations/         SQL migrations (schema, functions, RLS policies)
   tests/              SQL tests for spoiler rules and privacy
+  functions/          Edge Functions (sweep-covers: the daily orphan cover sweep)
 test/                 Jest environment and helpers for the app tests
 docs/
   DECISIONS.md        Product decisions and the reasoning behind them
@@ -139,6 +140,11 @@ the tests can never touch the live project. `test/network.ts` can hold one reque
 an order of replies (a slow, stale response); every reply still comes from the real server.
 Open Library is never called from tests: `EXPO_PUBLIC_OPEN_LIBRARY_URL` points the search at a
 small local stand-in server inside the test.
+The cover sweep tests act as the service role: they take the local stack's secret key from
+`SUPABASE_SECRET_KEY` (CI exports it) or else ask `npx supabase status` for it. The
+`sweep-covers` Edge Function's logic (`supabase/functions/sweep-covers/sweep.ts`) is tested by Jest
+too; the Deno entry point can be tried with
+`npx -y supabase@2.121.0 functions serve sweep-covers --env-file <file with COVER_SWEEP_SECRET=…>`.
 
 Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
 no warnings allowed); CI runs all three.
