@@ -19,7 +19,9 @@ export default function Home() {
   const t = useT();
   const { language } = useLanguage();
   const { session, profile } = useAuth();
-  const { entries, loading, error } = useMyLibrary(session?.user.id, 'currently_reading');
+  // The whole library, so Home can tell "nothing added yet" from "nothing being read right now".
+  const { entries: library, loading, error } = useMyLibrary(session?.user.id);
+  const entries = library.filter((e) => e.status === 'currently_reading');
   const router = useRouter();
   const [version, setVersion] = useState(0);
   useFocusEffect(useCallback(() => setVersion((v) => v + 1), []));
@@ -64,8 +66,9 @@ export default function Home() {
           ))
         ) : (
           <Card>
-            <T v="h2">{t('home.emptyTitle')}</T>
-            <T v="muted">{t('home.emptyHint')}</T>
+            <T v="h2">{library.length ? t('home.idleTitle') : t('home.emptyTitle')}</T>
+            <T v="muted">{library.length ? t('home.idleHint') : t('home.emptyHint')}</T>
+            {library.length ? <Button variant="link" title={t('home.toLibrary')} onPress={() => router.navigate('/library')} /> : null}
           </Card>
         )}
         <ErrorText>{error}</ErrorText>
