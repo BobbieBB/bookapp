@@ -281,3 +281,14 @@ Choices made during development where the decisions above don't say. Each one is
 - **Wording on a WIP:** the Finished status reads **"Caught up"** / „Стигнах докрай“ (same status in the database), with
   "Caught up · 16 of 16 chapters" under it. "Chapter 17 is out: I read it" is a secondary button there (you mostly wait),
   and when someone reports a new chapter the fic shows on Home again with "Chapter 17 is out".
+
+## Moderation in v1 (20 Oct 2026, PO)
+- **Readers can flag a wrong chapter count** ("Wrong chapter count?" on a book page, with the right number). Once a count is
+  set, only a moderator changes it.
+- **The PO gets an email** at support@livami.app for moderation work: **at once** for reports and author removal requests
+  (Apple expects action on reports within 24 hours), **a daily digest** for feedback and chapter-count requests. Sent by the
+  database (pg_net) through an email service (Resend), from an @livami.app address; the API key lives only in Supabase.
+- **A minimal "Moderation" screen in the app, admins only:** open items newest first, with one or two actions each
+  (report → hide the comment / dismiss; author request → hide the fic / dismiss; chapter count → accept / dismiss).
+  Not in v1: stats, history, notes, banning (block and hide comments instead).
+- Why v1: Apple requires reporting, blocking and timely action for apps with user content, and the PO moderates from her phone.
