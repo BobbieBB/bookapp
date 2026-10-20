@@ -126,7 +126,7 @@ export function CoverEditButton({ hasCover, onPress }: { hasCover: boolean; onPr
       style={{
         position: 'absolute',
         right: -10,
-        bottom: -10,
+        top: -10,
         width: 36,
         height: 36,
         borderRadius: 18,

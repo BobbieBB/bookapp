@@ -15,7 +15,7 @@ export const en = {
   'story.yourLibrary': 'Your library',
   'story.addToLibrary': 'Add to my library',
   'story.finishChapter': 'I finished chapter {n}',
-  'story.chapterOut': 'Chapter {n} is out: I finished it',
+  'story.chapterOut': 'Chapter {n} is out: I read it',
   'story.changeChapter': 'Change chapter',
   'story.chapterPicker': 'The last chapter you finished',
   'story.linkFailed': 'We couldn’t open AO3. Try again in your browser.',

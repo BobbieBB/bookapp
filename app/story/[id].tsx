@@ -10,7 +10,7 @@ import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
 import { isAo3Link } from '@/lib/links';
-import { progressLine } from '@/lib/library';
+import { progressLine, statusKey } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
 import {
@@ -31,7 +31,7 @@ import {
   type MyEntry,
   type StoryDetails,
 } from '@/lib/story';
-import { STATUS_KEY, type LibraryEntry, type LibraryStatus } from '@/lib/types';
+import { type LibraryEntry, type LibraryStatus } from '@/lib/types';
 import { useLookup } from '@/lib/useLookup';
 import { coverColor, radius, softShadow, space, useTheme } from '@/theme';
 
@@ -246,14 +246,16 @@ function StoryBody({
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
-              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved(s === 'finished' ? finishedFields(story) : { status: s }, () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
+              <Chip key={s} label={t(statusKey(s, story))} active={entry.status === s} onPress={() => saved(s === 'finished' ? finishedFields(story) : { status: s }, () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
             ))}
           </View>
 
           <T v="label">{progressLine(libraryEntry, t)}</T>
 
+          {/* On a caught-up WIP you mostly wait: a new chapter is a quiet action, not the main button. */}
           {next ? (
             <Button
+              variant={next.newlyPublished ? 'secondary' : 'primary'}
               title={next.newlyPublished ? t('story.chapterOut', { n: next.chapter }) : t('story.finishChapter', { n: next.chapter })}
               onPress={() => saved({ progress_section: next.chapter }, async () => { await finishChapter(story.id, userId, next); void track('chapter_finished', { kind: story.kind }); })}
              

@@ -57,9 +57,23 @@ export function sectionTotal(entry: LibraryEntry) {
 /** Text for `key` in the UI language, as returned by `useT()`. */
 export type Translate = (key: MessageKey, params?: Params) => string;
 
+type StatusStory = Pick<LibraryEntry['story'], 'kind' | 'status'>;
+
+/**
+ * The word for a library status. On a WIP fic, "Finished" reads "Caught up": you've read every
+ * chapter published so far, not the end of the story (PO, phone test 20 Oct 2026).
+ */
+export function statusKey(status: LibraryStatus, story: StatusStory): MessageKey {
+  if (status === 'finished' && story.kind === 'fanfic' && story.status === 'ongoing') return 'library.status.caughtUp';
+  return `library.status.${status}`;
+}
+
 export function progressLine(entry: LibraryEntry, t: Translate) {
   const total = sectionTotal(entry);
   const n = entry.progress_section;
+  if (entry.status === 'finished' && entry.story.kind === 'fanfic' && entry.story.status === 'ongoing' && total) {
+    return t('library.caughtUpOf', { n: Math.min(n, total), total });
+  }
   if (entry.status === 'finished') return t('library.status.finished');
   if (n === 0) return t('library.notStarted');
   const unit = entry.story.has_chapters ? 'Chapter' : 'Part';
