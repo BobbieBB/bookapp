@@ -157,8 +157,12 @@ it('adding a fic adds its fandom to "Your fandoms"', async () => {
   await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
   await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
   await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  // If it never saves, say what the screen shows (errors under fields, a save error).
+  const shown = () => JSON.stringify(screen.toJSON()).match(/"children":\["[^"]+"\]/g)?.join(' ') ?? '';
   await waitFor(
     async () => {
+      const added = await supabase.from('stories').select('id').eq('title', 'Followed Fic');
+      if (!added.data?.length) throw new Error(`not added; screen: ${shown()}`);
       const me = (await supabase.auth.getUser()).data.user!.id;
       const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
       expect(data!.favourite_fandoms).toContain(fandom);
