@@ -265,3 +265,13 @@ Choices made during development where the decisions above don't say. Each one is
 - **Always deleted:** profile, library and progress, ratings, reactions, follows, blocks, notifications, custom covers
   (including the files in Storage `covers/<user id>/`), analytics events, push tokens.
 - The screen says plainly, before confirming, what stays and what goes. Deletion cannot be undone.
+
+## Finishing a WIP fic (20 Oct 2026, PO, from the phone test)
+- **"Finished" on a WIP** means "I've read every chapter published so far": progress moves to the last published chapter,
+  so those discussions open. The screen says **"You're caught up!"** and does not offer The Epilogue, which opens only
+  once the story is complete (spoiler rules 3 and 7).
+- On that screen a caught-up reader is asked **"Is the story complete on AO3?"**; yes marks it complete (the same
+  caught-up rule and 7-day undo as before) and opens The Epilogue directly. This is the usual case: the reader has just
+  read the last chapter of a fic that was added while it was still being written.
+- **When someone else marks a fic complete**, everyone with it in their library gets an in-app notification
+  "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Card for v1.
