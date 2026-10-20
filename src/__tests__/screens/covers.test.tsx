@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import StoryScreen from '../../../app/story/[id]';
@@ -43,7 +43,7 @@ beforeAll(async () => {
   notMineId = (await createManualBook({ title: 'Not Mine', author: 'x', chapters: 2, language: 'en' })).id;
 });
 
-it('explains why the cover is private before you pick, then shows yours with a note', async () => {
+it('explains why the cover is private before you pick, then offers to change it', async () => {
   mockSaved = PNG_BASE64;
   pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///cover.png', mimeType: 'image/png' }] });
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
@@ -54,16 +54,20 @@ it('explains why the cover is private before you pick, then shows yours with a n
     ),
   ).toBeOnTheScreen();
   await fireEvent.press(screen.getByText('Choose an image'));
-  expect(await screen.findByText('Only you see this cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(await screen.findByText('Change my cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.queryByText('Only you see this cover.')).toBeNull(); // no permanent note under the cover
   expect(screen.queryByText('We couldn’t save your cover. Please try again.')).toBeNull();
   const { data } = await supabase.from('custom_covers').select('path').eq('story_id', mineId).single().throwOnError();
   expect(data!.path.startsWith(`${me}/`)).toBe(true);
 });
 
-it('you can go back to the usual cover', async () => {
+it('"Change my cover" reminds you it is private and lets you go back to the usual cover', async () => {
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  await fireEvent.press(await screen.findByText('Remove my cover', {}, { timeout: 8000 }));
-  await waitFor(() => expect(screen.queryByText('Only you see this cover')).toBeNull(), { timeout: 8000 });
+  await fireEvent.press(await screen.findByText('Change my cover', {}, { timeout: 8000 }));
+  expect(screen.getByText('Only you see this cover.')).toBeOnTheScreen();
+  expect(screen.getByText('Choose another image')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByText('Remove my cover'));
+  expect(await screen.findByText('Use my own cover', {}, { timeout: 8000 })).toBeOnTheScreen();
   const { data } = await supabase.from('custom_covers').select('path').eq('story_id', mineId).maybeSingle().throwOnError();
   expect(data).toBeNull();
 });
@@ -82,7 +86,7 @@ it('cancelling the picker changes nothing', async () => {
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
   await fireEvent.press(await screen.findByText('Use my own cover', {}, { timeout: 8000 }));
   await fireEvent.press(screen.getByText('Choose an image'));
-  expect(screen.queryByText('Only you see this cover')).toBeNull();
+  expect(screen.queryByText('Change my cover')).toBeNull();
 });
 
 it('only for stories in your library', async () => {

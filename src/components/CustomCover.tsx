@@ -112,36 +112,43 @@ export function useCustomCover(storyId: string, enabled: boolean) {
   return { url, error, busy, choose, remove };
 }
 
-/** The quiet link, the privacy explanation before picking, and the way back to the usual cover. */
+/**
+ * The quiet link under the story: "Use my own cover" explains why it stays private before you pick;
+ * once you have one, "Change my cover" opens the choices (another image, or back to the usual cover)
+ * with the reminder that only you see it, instead of a permanent note under the cover.
+ */
 export function CoverActions({ cover }: { cover: ReturnType<typeof useCustomCover> }) {
   const t = useT();
-  const [explaining, setExplaining] = useState(false);
+  const [open, setOpen] = useState(false);
+  const hasCover = !!cover.url;
 
-  if (cover.url) {
-    return (
-      <View>
-        <Button variant="link" title={t('covers.remove')} onPress={cover.remove} loading={cover.busy} />
-        <ErrorText>{cover.error}</ErrorText>
-      </View>
-    );
-  }
   return (
     <View style={{ gap: space.s }}>
-      {explaining ? (
+      {open ? (
         <Card style={{ gap: space.m }}>
-          <T v="body">{t('covers.explain')}</T>
+          <T v="body">{hasCover ? t('covers.onlyYou') : t('covers.explain')}</T>
           <Button
-            title={t('covers.choose')}
+            title={hasCover ? t('covers.chooseAnother') : t('covers.choose')}
             loading={cover.busy}
             onPress={async () => {
               await cover.choose();
-              setExplaining(false);
+              setOpen(false);
             }}
           />
-          <Button variant="link" title={t('covers.cancel')} onPress={() => setExplaining(false)} />
+          {hasCover ? (
+            <Button
+              variant="link"
+              title={t('covers.remove')}
+              onPress={async () => {
+                await cover.remove();
+                setOpen(false);
+              }}
+            />
+          ) : null}
+          <Button variant="link" title={t('covers.cancel')} onPress={() => setOpen(false)} />
         </Card>
       ) : (
-        <Button variant="link" title={t('covers.use')} onPress={() => setExplaining(true)} />
+        <Button variant="link" title={hasCover ? t('covers.change') : t('covers.use')} onPress={() => setOpen(true)} />
       )}
       <ErrorText>{cover.error}</ErrorText>
     </View>

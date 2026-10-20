@@ -188,7 +188,6 @@ function StoryBody({
       <View style={{ flexDirection: 'row', gap: space.l }}>
         <View style={{ width: 96, gap: space.xs }}>
           <Cover story={story} customUrl={myCover.url} />
-          {myCover.url ? <T v="muted">{t('covers.onlyYou')}</T> : null}
         </View>
         <View style={{ flex: 1, gap: space.xs }}>
           <Text accessibilityRole="header" testID="story-title" style={{ fontFamily: fonts.display, fontSize: 26, letterSpacing: -0.5, color: c.ink }}>
