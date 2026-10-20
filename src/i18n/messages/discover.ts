@@ -17,7 +17,7 @@ export const en = {
   'discover.tier.month': 'Most discussed this month',
   'discover.tier.readers': 'Most read',
   'discover.tier.starter': 'Popular fandoms to start with',
-  'discover.empty': 'Nothing lively here yet.',
+  'discover.empty': 'Nothing lively here yet: nobody else has added fics from these fandoms. Add one you love and start the conversation.',
   'discover.loading': 'Loading Discover',
   'discover.error': 'Could not load Discover. Please try again.',
 } as const satisfies Messages;
@@ -38,7 +38,7 @@ export const bg: Translation<typeof en> = {
   'discover.tier.month': 'Най-обсъждани този месец',
   'discover.tier.readers': 'Най-четени',
   'discover.tier.starter': 'Популярни фендъми, с които да започнеш',
-  'discover.empty': 'Още няма нищо оживено тук.',
+  'discover.empty': 'Още няма нищо оживено тук: никой друг не е добавял фикове от тези фендъми. Добави един, който обичаш, и започни разговора.',
   'discover.loading': 'Зареждаме „Открий“',
   'discover.error': 'Не успяхме да заредим „Открий“. Опитай пак.',
 };

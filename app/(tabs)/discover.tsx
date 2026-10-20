@@ -153,22 +153,39 @@ export default function Discover() {
               <T v="overline">{t('discover.yourFandoms')}</T>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
                 {shownChips.map((fandom) => (
-                  <Chip key={fandom} label={fandom} active={selected === fandom} onPress={() => setSelected(selected === fandom ? null : fandom)} />
+                  <Chip
+                    key={fandom}
+                    label={fandom}
+                    active={selected === fandom}
+                    onPress={() => {
+                      // One choice at a time: picking a fandom closes the search.
+                      setSelected(selected === fandom ? null : fandom);
+                      setSearching(false);
+                    }}
+                  />
                 ))}
-                <Chip label={t('discover.allFandoms')} active={searching} onPress={() => setSearching(!searching)} />
+                <Chip
+                  label={t('discover.allFandoms')}
+                  active={searching}
+                  onPress={() => {
+                    setSearching(!searching);
+                    setSelected(null);
+                  }}
+                />
               </View>
               {searching && <FandomSearch onPick={pick} />}
             </View>
 
             <View style={{ gap: space.s }}>
-              <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected }) : t('discover.lively')}</T>
+              <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected.toUpperCase() }) : t('discover.lively')}</T>
               {feed.error !== undefined ? (
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
                 <ActivityIndicator color={c.primary} accessibilityLabel={t('discover.loading')} />
               ) : feed.data.length === 0 ? (
-                <Card>
+                <Card style={{ gap: space.s }}>
                   <T v="muted">{t('discover.empty')}</T>
+                  <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
                 </Card>
               ) : (
                 <>
