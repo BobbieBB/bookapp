@@ -292,3 +292,13 @@ Choices made during development where the decisions above don't say. Each one is
   (report → hide the comment / dismiss; author request → hide the fic / dismiss; chapter count → accept / dismiss).
   Not in v1: stats, history, notes, banning (block and hide comments instead).
 - Why v1: Apple requires reporting, blocking and timely action for apps with user content, and the PO moderates from her phone.
+
+## Chapter counts for books (20 Oct 2026, PO)
+- No public source gives chapter counts (Open Library and Google Books don't), and editions differ. So:
+  1. **The community fills it once per edition** (already: the first reader enters it, everyone after gets it).
+  2. **Open Library's table of contents as a suggestion** where an edition has one: the field comes pre-filled
+     ("Open Library lists 47 chapters. Is that right?") and the reader confirms or corrects it.
+  3. **A seeded list of ~100 popular books** (BookTok / romantasy and Bulgarian bestsellers), researched and reviewed by
+     the PO before launch, so the first readers rarely see an empty field.
+- **What counts as a chapter:** everything the book presents as its own chapter, prologue and epilogue included
+  (interludes too when they are separate sections), so readers can check it against the book's contents.
