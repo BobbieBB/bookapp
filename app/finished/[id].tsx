@@ -29,13 +29,16 @@ export default function FinishedScreen() {
   });
 
   return (
-    <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l }}>
+    <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1 }}>
       {page.data ? (
         <Finished story={page.data.story} finished={page.data.finished} rating={page.data.mine?.[0] ?? null} review={page.data.mine?.[1] ?? null} />
       ) : page.error ? (
         <ErrorText>{t('finishing.loadFailed')}</ErrorText>
       ) : (
-        <ActivityIndicator color={c.primary} />
+        // Saving "Finished" and loading the page can take a moment: a clear spinner, not a blank screen.
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
+          <ActivityIndicator size="large" color={c.primary} accessibilityLabel={t('finishing.loading')} />
+        </View>
       )}
     </ScrollView>
   );
@@ -56,6 +59,9 @@ function Finished({
   const t = useT();
   const [error, setError] = useState('');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
+  // A WIP fic marked Finished: you're caught up, but The Epilogue (spoilers for the whole story)
+  // only opens once it is complete, so don't offer a door that is locked.
+  const wip = story.kind === 'fanfic' && story.status === 'ongoing';
 
   if (!finished) {
     return (
@@ -70,7 +76,9 @@ function Finished({
   return (
     <>
       <View accessible accessibilityRole="header" style={{ gap: space.s, paddingVertical: space.xl }}>
-        <Text style={{ fontFamily: fonts.moment, fontSize: 44, lineHeight: 50, color: c.ink }}>{t('finishing.title')}</Text>
+        <Text style={{ fontFamily: fonts.moment, fontSize: 44, lineHeight: 50, color: c.ink }}>
+          {wip ? t('finishing.caughtUpTitle') : t('finishing.title')}
+        </Text>
         <T v="h2">{story.title}</T>
       </View>
 
@@ -93,7 +101,14 @@ function Finished({
         <BookRating storyId={story.id} rating={savedRating} review={savedReview} />
       )}
 
-      <Button title={t('finishing.epilogue')} onPress={() => router.push(`/room/${story.id}/epilogue`)} />
+      {wip ? (
+        <>
+          <T v="body">{t('finishing.caughtUpHint')}</T>
+          <Button title={t('finishing.backToStory')} onPress={() => router.back()} />
+        </>
+      ) : (
+        <Button title={t('finishing.epilogue')} onPress={() => router.replace(`/room/${story.id}/epilogue`)} />
+      )}
     </>
   );
 }

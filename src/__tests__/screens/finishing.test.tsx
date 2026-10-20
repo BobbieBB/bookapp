@@ -51,7 +51,7 @@ async function book(status: LibraryStatus | null) {
   return b.id;
 }
 
-async function fic() {
+async function fic(complete = true) {
   const id = (
     await createFic({
       ao3Link: `https://archiveofourown.org/works/${(parseInt(run, 36) % 1_000_000_000) + 900 + n++}`,
@@ -59,7 +59,7 @@ async function fic() {
       author: 'w',
       fandom: 'F',
       ship: '',
-      complete: true,
+      complete,
       chapters: 2,
       rating: 'Not Rated',
       warnings: [],
@@ -100,12 +100,24 @@ describe('finishing', () => {
     const id = await fic();
     await renderScreen('en', finishedRoutes, `/finished/${id}`);
     expect(await screen.findByText('You finished it!', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByText('Leave kudos, a comment, or bookmark it as a rec on AO3')).toBeOnTheScreen();
+    expect(screen.getByText('Leave kudos, a comment, or bookmark it as a rec on AO3:')).toBeOnTheScreen();
     expect(screen.queryByLabelText(/^Rate /)).toBeNull();
     expect(screen.queryByLabelText('Your review (optional)')).toBeNull();
     expect(screen.queryByText('Save')).toBeNull();
     await fireEvent.press(screen.getByText('Join The Epilogue'));
     expect(await screen.findByText(`room ${id} epilogue`, {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('a WIP fic marked Finished: caught up, no door to The Epilogue (it opens when the story is complete)', async () => {
+    await as(me);
+    const id = await fic(false);
+    await renderScreen('en', finishedRoutes, `/finished/${id}`);
+    expect(await screen.findByText('You’re caught up!', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(
+      screen.getByText('It’s still a WIP, so The Epilogue opens once the story is complete. Until then, the chapter discussions are open.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Join The Epilogue')).toBeNull();
+    expect(screen.getByText('Back to the story')).toBeOnTheScreen();
   });
 
   it('a book you are still reading: no rating, review or Epilogue, a way back to the story', async () => {

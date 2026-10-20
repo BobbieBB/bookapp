@@ -2,7 +2,10 @@ import type { Translation } from '../types';
 
 export const en = {
   'finishing.title': 'You finished it!',
-  'finishing.ficHint': 'Leave kudos, a comment, or bookmark it as a rec on AO3',
+  'finishing.ficHint': 'Leave kudos, a comment, or bookmark it as a rec on AO3:',
+  'finishing.caughtUpTitle': 'You’re caught up!',
+  'finishing.loading': 'Loading',
+  'finishing.caughtUpHint': 'It’s still a WIP, so The Epilogue opens once the story is complete. Until then, the chapter discussions are open.',
   'finishing.openAo3': 'Open on AO3 ↗',
   'finishing.linkFailed': 'We couldn’t open AO3. Try again in your browser.',
   'finishing.rate': { one: 'Rate {count} star', other: 'Rate {count} stars' },
@@ -25,7 +28,10 @@ export const en = {
 
 export const bg: Translation<typeof en> = {
   'finishing.title': 'Прочете го!',
-  'finishing.ficHint': 'Остави kudos, коментар или го запази като препоръка в AO3',
+  'finishing.ficHint': 'Остави kudos, коментар или го запази като препоръка в AO3:',
+  'finishing.caughtUpTitle': 'Стигна докрай засега!',
+  'finishing.loading': 'Зарежда се',
+  'finishing.caughtUpHint': 'Историята още се пише, затова Епилогът се отваря, когато бъде завършена. Дотогава дискусиите по главите са отворени.',
   'finishing.openAo3': 'Отвори в AO3 ↗',
   'finishing.linkFailed': 'Не успяхме да отворим AO3. Опитай в браузъра си.',
   'finishing.rate': { one: 'Оцени с {count} звезда', other: 'Оцени с {count} звезди' },

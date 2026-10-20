@@ -97,5 +97,5 @@ it('only for stories in your library', async () => {
 
 it('in Bulgarian', async () => {
   await renderScreen('bg', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  expect(await screen.findByText('Моя собствена корица', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Моя собствена корица' }, { timeout: 8000 })).toBeOnTheScreen();
 });

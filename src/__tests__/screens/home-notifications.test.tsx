@@ -86,7 +86,7 @@ describe('Home', () => {
   });
 
   it('no See all while there are no replies to you yet', async () => {
-    const quiet = await signUp('quiet');
+    const quiet = await signUp('hush');
     await as(quiet);
     await renderScreen('en', { index: Home, notifications: NotificationsStub }, '/');
     expect(await screen.findByText('When someone replies to you or mentions you, you’ll see it here.', {}, { timeout: 8000 })).toBeOnTheScreen();
