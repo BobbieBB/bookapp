@@ -75,7 +75,7 @@ function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
   const { loading, data, error } = useLookup(trimmed.length >= 3 ? trimmed : null, () => searchFandoms(trimmed), SEARCH_DELAY_MS);
   return (
     <View style={{ gap: space.s }}>
-      <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} />
+      <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} autoFocus />
       {trimmed !== '' && loading && <T v="muted">{t('discover.searching')}</T>}
       {error !== undefined && <ErrorText>{t('discover.error')}</ErrorText>}
       {data?.length === 0 && <T v="muted">{t('discover.noHits')}</T>}
