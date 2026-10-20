@@ -135,6 +135,7 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
     await fireEvent.changeText(await screen.findByLabelText(w.link), `https://archiveofourown.org/works/9${Date.now() % 1e8}`);
     const chapters = await screen.findByLabelText(w.chapters, {}, { timeout: 8000 });
     expect(screen.getByText(w.statusLabel)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'DNF' })).toBeOnTheScreen(); // every status, not only reading / want to read
     // A wrong chapter count shows at once, without pressing save.
     await fireEvent.changeText(chapters, '86292');
     expect(await screen.findByText(w.errorChapters)).toBeOnTheScreen();

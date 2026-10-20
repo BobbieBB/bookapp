@@ -1,4 +1,3 @@
-import { addFavouriteFandom } from '@/lib/discover';
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -7,6 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
+import { addFavouriteFandom } from '@/lib/discover';
+import { statusKey } from '@/lib/library';
+import { finishStory } from '@/lib/story';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useLookup } from '@/lib/useLookup';
 import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult } from '@/lib/sources';
@@ -64,15 +67,37 @@ export default function AddStory() {
   );
 }
 
-/** Status for the new library entry: most people add what they're about to read. */
-function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s: LibraryStatus) => void }) {
+/**
+ * Status for the new library entry: most people add what they're about to read, but a book read
+ * long ago (or dropped) belongs on the shelf too (PO, phone test 20 Oct 2026). On Hold is for
+ * fanfiction only, as on the story page; on a WIP fic Finished reads "Caught up".
+ */
+function StatusPicker({
+  value,
+  onChange,
+  kind,
+  wip = false,
+}: {
+  value: LibraryStatus;
+  onChange: (s: LibraryStatus) => void;
+  kind: StoryKind;
+  wip?: boolean;
+}) {
   const t = useT();
+  const options: [LibraryStatus, string][] = [
+    ['currently_reading', t('add.statusReading')],
+    ['want_to_read', t('add.statusWant')],
+    ['finished', t(statusKey('finished', { kind, status: wip ? 'ongoing' : 'completed' }))],
+    ['dnf', t('library.status.dnf')],
+  ];
+  if (kind === 'fanfic') options.push(['on_hold', t('library.status.on_hold')]);
   return (
     <View style={{ gap: space.s, marginTop: space.m }}>
       <T v="label">{t('add.statusLabel')}</T>
-      <View style={{ flexDirection: 'row', gap: space.s }}>
-        <Chip label={t('add.statusReading')} active={value === 'currently_reading'} onPress={() => onChange('currently_reading')} />
-        <Chip label={t('add.statusWant')} active={value === 'want_to_read'} onPress={() => onChange('want_to_read')} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+        {options.map(([s, label]) => (
+          <Chip key={s} label={label} active={value === s} onPress={() => onChange(s)} />
+        ))}
       </View>
     </View>
   );
@@ -125,9 +150,18 @@ async function followFandoms(fandoms: string[]) {
   await Promise.all(fandoms.filter(Boolean).map((f) => addFavouriteFandom(f).catch(() => undefined)));
 }
 
-async function finish(storyId: string, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
-  await addToLibrary(storyId, status);
+async function finish(story: Story, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
+  await addToLibrary(story.id, status);
   void track('story_added', { kind, source, status });
+  if (status === 'finished') {
+    // Same as tapping Finished on the story page: a WIP is caught up to its published chapters,
+    // and the "You finished it!" screen follows (rate a book, The Epilogue, or "caught up").
+    const userId = (await supabase.auth.getSession()).data.session?.user.id;
+    if (userId) await finishStory(story, userId).catch(() => undefined);
+    void track('story_finished', { kind });
+    router.replace(`/finished/${story.id}`);
+    return;
+  }
   router.back();
 }
 
@@ -265,7 +299,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     setError('');
     try {
       const story = existing ?? (await createBook(book, { chapters: chapters.trim() ? n : null }, language));
-      await finish(story.id, status, 'book', 'open_library');
+      await finish(story, status, 'book', 'open_library');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -300,7 +334,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
           </>
         )
       )}
-      <StatusPicker value={status} onChange={setStatus} />
+      <StatusPicker value={status} onChange={setStatus} kind="book" />
       <ErrorText>{error}</ErrorText>
       <Button title={t('add.addToLibrary')} onPress={save} loading={busy} disabled={existing === undefined} />
       <Button variant="link" title={t('add.backToResults')} onPress={onCancel} />
@@ -332,7 +366,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setError('');
     try {
       const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: chapters.trim() ? n : null, language });
-      await finish(story.id, status, 'book', 'manual');
+      await finish(story, status, 'book', 'manual');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -353,7 +387,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
         error={fields.show('chapters', errors.chapters, chapters)}
       />
       <LanguagePicker value={language} onChange={setLanguage} />
-      <StatusPicker value={status} onChange={setStatus} />
+      <StatusPicker value={status} onChange={setStatus} kind="book" />
       <ErrorText>{error}</ErrorText>
       <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
       <Button variant="link" title={t('add.backToSearch')} onPress={onCancel} />
@@ -413,7 +447,7 @@ function AddFic() {
     try {
       if (existing) {
         await followFandoms(existing.fandoms);
-        await finish(existing.id, status, 'fanfic', 'ao3');
+        await finish(existing, status, 'fanfic', 'ao3');
         return;
       }
       const n = Number(chapters);
@@ -429,7 +463,7 @@ function AddFic() {
         warnings,
       });
       await followFandoms([fandom.trim()]);
-      await finish(story.id, status, 'fanfic', 'ao3');
+      await finish(story, status, 'fanfic', 'ao3');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -507,7 +541,7 @@ function AddFic() {
 
       {canonical && !checking && (
         <>
-          <StatusPicker value={status} onChange={setStatus} />
+          <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={existing ? existing.status === 'ongoing' : !complete} />
           <ErrorText>{error}</ErrorText>
           <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
         </>
