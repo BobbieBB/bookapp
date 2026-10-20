@@ -70,6 +70,11 @@ const words = {
     byHand: 'Add it by hand',
     link: 'AO3 link',
     badLink: 'That doesn’t look like an AO3 work link.',
+    chapters: 'Chapters',
+    add: 'Add to my library',
+    errorChapters: 'Enter the number of chapters (1 to 5000).',
+    errorTitle: 'Add the title.',
+    statusLabel: 'Add it as',
   },
   bg: {
     title: 'Добави история',
@@ -83,6 +88,11 @@ const words = {
     byHand: 'Добави я ръчно',
     link: 'Връзка към AO3',
     badLink: 'Това не прилича на връзка към работа в AO3.',
+    chapters: 'Глави',
+    add: 'Добави в моята библиотека',
+    errorChapters: 'Въведи броя на главите (от 1 до 5000).',
+    errorTitle: 'Добави заглавието.',
+    statusLabel: 'Добави като',
   },
 } as const;
 
@@ -117,5 +127,21 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
     await fireEvent.press(await screen.findByRole('button', { name: w.fanfic }));
     await fireEvent.changeText(await screen.findByLabelText(w.link), 'https://example.com/nope');
     await waitFor(() => expect(screen.getByText(w.badLink)).toBeOnTheScreen());
+  });
+
+  it('a new fic: field errors show right under each field, warnings are optional', async () => {
+    await open(lang);
+    await fireEvent.press(await screen.findByRole('button', { name: w.fanfic }));
+    await fireEvent.changeText(await screen.findByLabelText(w.link), `https://archiveofourown.org/works/9${Date.now() % 1e8}`);
+    const chapters = await screen.findByLabelText(w.chapters, {}, { timeout: 8000 });
+    expect(screen.getByText(w.statusLabel)).toBeOnTheScreen();
+    // A wrong chapter count shows at once, without pressing save.
+    await fireEvent.changeText(chapters, '86292');
+    expect(await screen.findByText(w.errorChapters)).toBeOnTheScreen();
+    // Empty required fields show only once the reader tries to save; no error for archive warnings.
+    expect(screen.queryByText(w.errorTitle)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: w.add }));
+    expect(await screen.findByText(w.errorTitle)).toBeOnTheScreen();
+    expect(screen.queryByText(/Pick the archive warnings|Избери предупрежденията/)).toBeNull();
   });
 });

@@ -64,11 +64,35 @@ export default function AddStory() {
 function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s: LibraryStatus) => void }) {
   const t = useT();
   return (
-    <View style={{ flexDirection: 'row', gap: space.s }}>
-      <Chip label={t('add.statusReading')} active={value === 'currently_reading'} onPress={() => onChange('currently_reading')} />
-      <Chip label={t('add.statusWant')} active={value === 'want_to_read'} onPress={() => onChange('want_to_read')} />
+    <View style={{ gap: space.s, marginTop: space.m }}>
+      <T v="label">{t('add.statusLabel')}</T>
+      <View style={{ flexDirection: 'row', gap: space.s }}>
+        <Chip label={t('add.statusReading')} active={value === 'currently_reading'} onPress={() => onChange('currently_reading')} />
+        <Chip label={t('add.statusWant')} active={value === 'want_to_read'} onPress={() => onChange('want_to_read')} />
+      </View>
     </View>
   );
+}
+
+/** Chapter count check: a whole number from 1 to 5000. */
+function chaptersError(value: string, t: ReturnType<typeof useT>): string | undefined {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorChapters');
+}
+
+/**
+ * When to show a field's error: once the reader has left the field, or tried to save. A chapter
+ * count that is already wrong while typing (e.g. 86292) shows at once.
+ */
+function useFieldErrors() {
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  return {
+    show: (name: string, error: string | undefined, value = '') =>
+      submitted || touched[name] || (name === 'chapters' && value.trim() !== '') ? error : undefined,
+    onBlur: (name: string) => () => setTouched((cur) => ({ ...cur, [name]: true })),
+    submit: () => setSubmitted(true),
+  };
 }
 
 /** Which edition the reader has: discussions are separate per language (PO, 15 Oct 2026). */
@@ -208,6 +232,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [saveError, setError] = useState('');
+  const fields = useFieldErrors();
 
   const found = useLookup(`${book.key}#${language}`, () => findStory({ openLibraryKey: book.key, language }));
   // undefined = still checking; null = new to Livami (or the check failed: we'll create it)
@@ -217,7 +242,8 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   async function save() {
     const n = Number(chapters);
     if (existing === undefined) return;
-    if (!existing && (!Number.isInteger(n) || n < 1 || n > 5000)) return setError(t('add.errorChapters'));
+    fields.submit();
+    if (!existing && chaptersError(chapters, t)) return;
     setBusy(true);
     setError('');
     try {
@@ -245,7 +271,15 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
         !existing && (
           <>
             <T v="muted">{t('add.firstEdition')}</T>
-            <Field label={t('add.chapters')} keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder={t('add.chaptersPlaceholder')} />
+            <Field
+              label={t('add.chapters')}
+              keyboardType="number-pad"
+              value={chapters}
+              onChangeText={setChapters}
+              onBlur={fields.onBlur('chapters')}
+              error={fields.show('chapters', chaptersError(chapters, t), chapters)}
+              placeholder={t('add.chaptersPlaceholder')}
+            />
           </>
         )
       )}
@@ -266,11 +300,17 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const fields = useFieldErrors();
+  const errors = {
+    title: title.trim() ? undefined : t('add.errorTitle'),
+    author: author.trim() ? undefined : t('add.errorAuthor'),
+    chapters: chaptersError(chapters, t),
+  };
 
   async function save() {
     const n = Number(chapters);
-    if (!title.trim() || !author.trim()) return setError(t('add.errorTitleAuthor'));
-    if (!Number.isInteger(n) || n < 1 || n > 5000) return setError(t('add.errorChapters'));
+    fields.submit();
+    if (Object.values(errors).some(Boolean)) return;
     setBusy(true);
     setError('');
     try {
@@ -285,9 +325,16 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   return (
     <Card>
       <T v="h2">{t('add.manualTitle')}</T>
-      <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} />
-      <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} />
-      <Field label={t('add.chapters')} keyboardType="number-pad" value={chapters} onChangeText={setChapters} />
+      <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
+      <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} onBlur={fields.onBlur('author')} error={fields.show('author', errors.author)} />
+      <Field
+        label={t('add.chapters')}
+        keyboardType="number-pad"
+        value={chapters}
+        onChangeText={setChapters}
+        onBlur={fields.onBlur('chapters')}
+        error={fields.show('chapters', errors.chapters, chapters)}
+      />
       <LanguagePicker value={language} onChange={setLanguage} />
       <StatusPicker value={status} onChange={setStatus} />
       <ErrorText>{error}</ErrorText>
@@ -317,6 +364,14 @@ function AddFic() {
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const fields = useFieldErrors();
+  // Archive warnings are optional: AO3 shows them in the work's tags, and readers often don't spot them.
+  const errors = {
+    title: title.trim() ? undefined : t('add.errorTitle'),
+    author: author.trim() ? undefined : t('add.errorAuthor'),
+    fandom: fandom.trim() ? undefined : t('add.errorFandom'),
+    chapters: chaptersError(chapters, t),
+  };
 
   const canonical = normaliseAo3Link(link);
   const badLink = link.trim().length > 0 && !canonical;
@@ -332,6 +387,10 @@ function AddFic() {
 
   async function save() {
     if (!canonical) return setError(t('add.errorLink'));
+    if (!existing) {
+      fields.submit();
+      if (Object.values(errors).some(Boolean)) return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -340,10 +399,6 @@ function AddFic() {
         return;
       }
       const n = Number(chapters);
-      if (!title.trim() || !author.trim()) throw new Error(t('add.errorTitleAuthor'));
-      if (!fandom.trim()) throw new Error(t('add.errorFandom'));
-      if (!Number.isInteger(n) || n < 1 || n > 5000) throw new Error(t('add.errorChapters'));
-      if (!warnings.length) throw new Error(t('add.errorWarnings'));
       const story = await createFic({
         ao3Link: canonical,
         title,
@@ -388,9 +443,16 @@ function AddFic() {
       ) : (
         canonical && !checking && (
           <>
-            <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} />
-            <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} autoCapitalize="none" />
-            <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} />
+            <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
+            <Field
+              label={t('add.fieldAuthor')}
+              value={author}
+              onChangeText={setAuthor}
+              autoCapitalize="none"
+              onBlur={fields.onBlur('author')}
+              error={fields.show('author', errors.author)}
+            />
+            <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} onBlur={fields.onBlur('fandom')} error={fields.show('fandom', errors.fandom)} />
             <Field label={t('add.ship')} value={ship} onChangeText={setShip} />
 
             <T v="label">{t('add.ficStatus')}</T>
@@ -403,6 +465,8 @@ function AddFic() {
               keyboardType="number-pad"
               value={chapters}
               onChangeText={setChapters}
+              onBlur={fields.onBlur('chapters')}
+              error={fields.show('chapters', errors.chapters, chapters)}
             />
 
             <T v="label">{t('add.rating')}</T>
