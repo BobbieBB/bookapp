@@ -120,6 +120,18 @@ describe('finishing', () => {
     expect(screen.getByText('Back to the story')).toBeOnTheScreen();
   });
 
+  it('caught up on a WIP that has ended on AO3: mark it complete and go straight into The Epilogue', async () => {
+    await as(me);
+    const id = await fic(false);
+    await supabase.from('library_entries').update({ progress_section: 2 }).eq('story_id', id).eq('user_id', me.id).throwOnError();
+    await renderScreen('en', finishedRoutes, `/finished/${id}`);
+    expect(await screen.findByText('Is the story complete on AO3?', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Yes, it’s complete: open The Epilogue'));
+    expect(await screen.findByText(`room ${id} epilogue`, {}, { timeout: 8000 })).toBeOnTheScreen();
+    const { data } = await supabase.from('stories').select('status').eq('id', id).single().throwOnError();
+    expect(data!.status).toBe('completed');
+  });
+
   it('a book you are still reading: no rating, review or Epilogue, a way back to the story', async () => {
     await as(me);
     const id = await book('currently_reading');

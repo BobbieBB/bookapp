@@ -123,6 +123,20 @@ export const setPage = (storyId: string, userId: string, page: number | null) =>
 export const setStatus = (storyId: string, userId: string, status: LibraryStatus) =>
   updateEntry(storyId, userId, { status });
 
+/**
+ * The fields "Finished" saves. On a WIP fic it also means "I've read every published chapter", so
+ * progress moves to the last published one: otherwise its chapter discussions stayed locked (rule 7
+ * opens a WIP chapter only once it is read) and the reader couldn't mark it complete.
+ */
+export function finishedFields(story: ProgressStory): Partial<MyEntry> {
+  return isWip(story) && story.published_sections
+    ? { status: 'finished', progress_section: story.published_sections }
+    : { status: 'finished' };
+}
+
+export const finishStory = (story: ProgressStory & { id: string }, userId: string) =>
+  updateEntry(story.id, userId, finishedFields(story));
+
 /** A caught-up reader marks a WIP fic complete; its count becomes the published chapters. */
 export async function markComplete(storyId: string) {
   const { error } = await supabase.rpc('complete_story', { p_story: storyId });

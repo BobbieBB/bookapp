@@ -26,6 +26,8 @@ import {
   setChapter,
   setPage,
   setStatus,
+  finishStory,
+  finishedFields,
   type MyEntry,
   type StoryDetails,
 } from '@/lib/story';
@@ -244,7 +246,7 @@ function StoryBody({
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
-              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
+              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved(s === 'finished' ? finishedFields(story) : { status: s }, () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
             ))}
           </View>
 
