@@ -34,8 +34,11 @@ export default function Library() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <T v="h1">{t('library.title')}</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.m }}>
+          {/* The title wraps ("Моята библиотека"); the + button keeps its place on screen. */}
+          <View style={{ flex: 1 }}>
+            <T v="h1">{t('library.title')}</T>
+          </View>
           <AddButton kind={kind} />
         </View>
 
@@ -44,7 +47,13 @@ export default function Library() {
           <Chip label={t('library.fanfiction')} active={kind === 'fanfic'} onPress={() => switchKind('fanfic')} big />
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.s }}>
+        {/* Runs edge to edge, so chips scroll off the screen edge instead of being cut at the margin. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginHorizontal: -space.xl }}
+          contentContainerStyle={{ gap: space.s, paddingHorizontal: space.xl }}
+        >
           {filters.map((f) => (
             <Chip key={f} label={f === 'all' ? t('library.all') : t(STATUS_KEY[f])} active={filter === f} onPress={() => setFilter(f)} />
           ))}
