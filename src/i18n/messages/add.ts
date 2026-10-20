@@ -79,7 +79,7 @@ export const bg: Translation<typeof en> = {
   'add.searchPlaceholder': 'Заглавие, автор или ISBN',
   'add.openLibraryCredit': 'Данните за книгите са от Open Library',
   'add.noBooks': 'Не намерихме книги',
-  'add.noBooksHint': 'Провери изписването или я добави сам.',
+  'add.noBooksHint': 'Провери изписването или я добави ръчно.',
   'add.byHand': 'Добави я ръчно',
   'add.cantFind': 'Не я намираш?',
   'add.pages': { one: '{count} страница', other: '{count} страници' },

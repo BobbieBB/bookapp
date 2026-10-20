@@ -96,9 +96,11 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
 export function Toggle({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
-      <Text style={{ fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.m, minHeight: 44 }}>
+      {/* The label wraps (Bulgarian labels are long); the switch keeps its size and never leaves the card. */}
+      <Text style={{ flex: 1, fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
+      <Switch
+        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
     </View>
   );
 }

@@ -69,7 +69,7 @@ export const bg: Translation<typeof en> = {
   'safety.blocked': 'Готово. Повече няма да виждаш коментарите на този читател.',
   'safety.error': 'Нещо се обърка. Опитай пак след малко.',
   'safety.blockedTitle': 'Блокирани читатели',
-  'safety.blockedEmpty': 'Още не си блокирал никого.',
+  'safety.blockedEmpty': 'Още няма блокирани читатели.',
   'safety.unblock': 'Отблокирай',
   'safety.unblockName': 'Отблокирай {name}',
   'safety.feedbackTitle': 'Изпрати отзив',
