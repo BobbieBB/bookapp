@@ -234,7 +234,7 @@ Choices made during development where the decisions above don't say. Each one is
 - Address the reader as "ти". **Gender-neutral**: rephrase so no gendered form is needed ("За първи път ли си тук?", "Никой още не
   е добавял това издание", "добави я ръчно"), never masculine-by-default and no "сам/а" slashes.
 - Use the words readers actually use, even loanwords: фенфикшън, фик, kudos, **Ship**, **WIP**, **DNF**, линк (not "връзка").
-  **Фендъм** (not „фандом“), 20 Oct 2026. („Връзка“ stays only for an internet connection: „Провери връзката си“.)
+  **Фендъм** (not „фандом“), 20 Oct 2026. Discover's "Lively in your fandoms" is **„Горещо в твоите фендъми“** (not the literal „Оживено“). („Връзка“ stays only for an internet connection: „Провери връзката си“.)
 - AO3 ratings and archive warnings stay **in English, exactly as on AO3**, so readers match them at a glance; only the headings are
   Bulgarian ("Рейтинг в AO3", "Предупреждения в AO3").
 
