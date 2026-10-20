@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { router, useFocusEffect, useRouter } from 'expo-router';
 
-import { Card, Chip, ErrorText, Field, T } from '@/components/ui';
+import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
@@ -78,7 +78,13 @@ function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
       <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} autoFocus />
       {trimmed !== '' && loading && <T v="muted">{t('discover.searching')}</T>}
       {error !== undefined && <ErrorText>{t('discover.error')}</ErrorText>}
-      {data?.length === 0 && <T v="muted">{t('discover.noHits')}</T>}
+      {data?.length === 0 && (
+        // Cold start: Livami only knows fandoms of fics readers have added, so invite them to add one.
+        <Card style={{ gap: space.s }}>
+          <T v="muted">{t('discover.noHits')}</T>
+          <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
+        </Card>
+      )}
       {data?.map((hit) => (
         <Pressable
           key={hit.fandom}
