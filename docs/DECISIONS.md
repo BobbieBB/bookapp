@@ -312,3 +312,10 @@ Choices made during development where the decisions above don't say. Each one is
 - **With TestFlight: share from Safari to Livami** (share extension): iOS hands over the link and the page title
   ("Title - Chapter 1 - Author - Fandom [Archive of Our Own]"), which fills title, author and fandom.
 - Not doing: Livami opening the AO3 page itself (a grey area with AO3, and often blocked).
+
+## Real fics stay out of the repo and AI tools (20 Oct 2026, PO)
+- Tests, examples, docs, Trello and conversations with AI tools use **invented** works and authors only. No real fic text,
+  summaries, titles or authors are copied into them, and AI tools don't open fic pages on AO3.
+- To show a format (e.g. AO3's Share text), replace the title, author and summary with invented ones first.
+- Why: authors in the fandom don't want their work fed to AI without consent; Livami is on the authors' side
+  ("Authors are welcome here").
