@@ -109,8 +109,8 @@ describe('a book you are reading', () => {
 describe('a WIP fic you are caught up with', () => {
   it('shows fic details: fandom, ship, AO3 rating, archive warnings and a link to all tags', async () => {
     await open('en', wipId);
-    expect(screen.getByText('Good Omens')).toBeOnTheScreen();
-    expect(screen.getByText('Aziraphale/Crowley')).toBeOnTheScreen();
+    expect(screen.getByText(/^Fandom\s+Good Omens$/)).toBeOnTheScreen();
+    expect(screen.getByText(/^Ship\s+Aziraphale\/Crowley$/)).toBeOnTheScreen();
     expect(screen.getByText('Mature')).toBeOnTheScreen();
     expect(screen.getByText('Major character death')).toBeOnTheScreen();
     expect(screen.getByText('All tags on AO3 ↗')).toBeOnTheScreen();
