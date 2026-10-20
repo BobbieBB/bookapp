@@ -162,7 +162,9 @@ async function finish(story: Story, status: LibraryStatus, kind: StoryKind, sour
     router.replace(`/finished/${story.id}`);
     return;
   }
-  router.back();
+  // Opened from a link with nothing behind it: go Home instead of nowhere.
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
 }
 
 function friendly(e: unknown, t: Translate) {

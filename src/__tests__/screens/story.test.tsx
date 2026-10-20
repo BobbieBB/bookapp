@@ -120,7 +120,7 @@ describe('a WIP fic you are caught up with', () => {
 
   it('reports a newly published chapter when you finish it', async () => {
     await open('en', wipId);
-    await fireEvent.press(screen.getByText('Chapter 6 is out: I finished it'));
+    await fireEvent.press(screen.getByText('Chapter 6 is out: I read it'));
     expect(await screen.findByText('Finished chapter 6 of 6', {}, { timeout: 8000 })).toBeOnTheScreen();
     const story = (await supabase.from('stories').select('published_sections').eq('id', wipId).single().throwOnError()).data!;
     expect(story.published_sections).toBe(6);

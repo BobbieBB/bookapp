@@ -33,7 +33,7 @@ export const bg: Translation<typeof en> = {
   'library.status.finished': 'Прочетено',
   'library.status.caughtUp': 'Стигнах докрай',
   'library.caughtUpOf': 'Стигнах докрай · {n} от {total} глави',
-  'library.status.dnf': 'Недочетено',
+  'library.status.dnf': 'DNF',
   'library.status.on_hold': 'На пауза',
   'library.emptyBooks': 'Още няма книги тук',
   'library.emptyFics': 'Още няма фикове тук',
