@@ -1,3 +1,4 @@
+import { addFavouriteFandom } from '@/lib/discover';
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -107,6 +108,14 @@ function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l
       </View>
     </View>
   );
+}
+
+/**
+ * Adding a fic adds its fandom to "Your fandoms" (Discover follows it); the reader can remove it in
+ * Profile. Best effort: a failure here never stops the fic being added (PO, phone test 20 Oct 2026).
+ */
+async function followFandoms(fandoms: string[]) {
+  await Promise.all(fandoms.filter(Boolean).map((f) => addFavouriteFandom(f).catch(() => undefined)));
 }
 
 async function finish(storyId: string, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
@@ -395,6 +404,7 @@ function AddFic() {
     setError('');
     try {
       if (existing) {
+        await followFandoms(existing.fandoms);
         await finish(existing.id, status, 'fanfic', 'ao3');
         return;
       }
@@ -410,6 +420,7 @@ function AddFic() {
         rating,
         warnings,
       });
+      await followFandoms([fandom.trim()]);
       await finish(story.id, status, 'fanfic', 'ao3');
     } catch (e) {
       setError(friendly(e, t));

@@ -145,3 +145,23 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
     expect(screen.queryByText(/Pick the archive warnings|Избери предупрежденията/)).toBeNull();
   });
 });
+
+it('adding a fic adds its fandom to "Your fandoms"', async () => {
+  const fandom = `Followed Fandom ${run}`;
+  await open('en');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/8${Date.now() % 1e8}`);
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), 'Followed Fic');
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await waitFor(
+    async () => {
+      const me = (await supabase.auth.getUser()).data.user!.id;
+      const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
+      expect(data!.favourite_fandoms).toContain(fandom);
+    },
+    { timeout: 8000 },
+  );
+});
