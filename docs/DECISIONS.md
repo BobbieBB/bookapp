@@ -211,6 +211,8 @@ Choices made during development where the decisions above don't say. Each one is
   scripts. It is narrow, so body text is 15 px rather than 14.
 - **Cormorant Garamond** italic stays for "moments" (The Epilogue, typographic covers); it has Cyrillic.
 - One font set for both languages: no per-language switch. Replaces the "Fonts for Bulgarian" dev default (Onest) from PR #4.
+- **Bulgarian Cyrillic letterforms** (д like g, т like m, и like u), which Sofia Sans shows when the app is in Bulgarian, stay:
+  the PO likes them (20 Oct 2026, phone test). No switch to the Russian-style forms.
 
 ## Analytics: first-party, with an opt-out (18 Oct 2026, PO)
 - Confirms the PR #12 approach: our own `analytics_events` table, a fixed list of events, short non-content properties, never
