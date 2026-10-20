@@ -159,6 +159,7 @@ export function Chip({ label, active, onPress, big }: { label: string; active: b
         paddingHorizontal: big ? 18 : 14,
         borderRadius: radius.pill,
         justifyContent: 'center',
+        alignItems: 'center', // centred also when the chip is stretched (Book / Fanfiction on Add)
         backgroundColor: active ? c.primary : c.surface,
         ...(active ? {} : softShadow(isDark, 'small')),
       }}
