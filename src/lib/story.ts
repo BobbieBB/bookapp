@@ -143,6 +143,12 @@ export async function markComplete(storyId: string) {
   if (error) throw error;
 }
 
+/** The first reader who has a book without a chapter count sets it (once). */
+export async function setBookChapterCount(storyId: string, count: number) {
+  const { error } = await supabase.rpc('set_book_chapter_count', { p_story: storyId, p_count: count });
+  if (error) throw error;
+}
+
 /** Undo a completion (within 7 days, caught-up readers only). */
 export async function reopen(storyId: string) {
   const { error } = await supabase.rpc('reopen_story', { p_story: storyId });

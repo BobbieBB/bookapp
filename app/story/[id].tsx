@@ -23,6 +23,7 @@ import {
   nextChapter,
   pagePercent,
   reopen,
+  setBookChapterCount,
   setChapter,
   setPage,
   setStatus,
@@ -143,6 +144,8 @@ function StoryBody({
   const running = useRef(false);
   const [error, setError] = useState('');
   const [picking, setPicking] = useState(false);
+  const [countText, setCountText] = useState('');
+  const [countError, setCountError] = useState('');
   const [pending, setPending] = useState<{ base: MyEntry | null; patch: Partial<MyEntry> }>({ base: null, patch: {} });
   const entry = loaded && pending.base === loaded ? { ...loaded, ...pending.patch } : loaded;
   const [pageText, setPageText] = useState(entry?.progress_page?.toString() ?? '');
@@ -251,6 +254,34 @@ function StoryBody({
           </View>
 
           <T v="label">{progressLine(libraryEntry, t)}</T>
+
+          {/* A Want to read book added without its chapter count: ask for it here, once. */}
+          {story.kind === 'book' && story.has_chapters && chapterCount(story) === null ? (
+            <View style={{ gap: space.s }}>
+              <T v="label">{t('story.countTitle')}</T>
+              <T v="muted">{t('story.countHint')}</T>
+              <Field
+                label={t('add.chapters')}
+                keyboardType="number-pad"
+                value={countText}
+                onChangeText={(v) => {
+                  setCountText(v);
+                  setCountError('');
+                }}
+                placeholder={t('add.chaptersPlaceholder')}
+                error={countError || undefined}
+              />
+              <Button
+                variant="secondary"
+                title={t('story.countSave')}
+                onPress={() => {
+                  const n = Number(countText);
+                  if (!Number.isInteger(n) || n < 1 || n > 5000) return setCountError(t('add.errorChapters'));
+                  void act(() => setBookChapterCount(story.id, n));
+                }}
+              />
+            </View>
+          ) : null}
 
           {/* On a caught-up WIP you mostly wait: a new chapter is a quiet action, not the main button. */}
           {next ? (

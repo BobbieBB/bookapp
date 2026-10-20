@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
@@ -176,5 +176,23 @@ describe('the discussion rooms on a story page', () => {
     expect(screen.queryByText('room 2')).toBeNull();
     await fireEvent.press(screen.getByTestId('room-chapter-1'));
     expect(await screen.findByText('room 1', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+});
+
+describe('a Want to read book added without its chapter count', () => {
+  it('asks for the count on its page, once', async () => {
+    const id = (await createManualBook({ title: `Count Later ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    expect(screen.getByText('How many chapters does it have?')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    await waitFor(
+      async () => {
+        const story = (await supabase.from('stories').select('total_sections').eq('id', id).single().throwOnError()).data!;
+        expect(story.total_sections).toBe(12);
+      },
+      { timeout: 8000 },
+    );
   });
 });

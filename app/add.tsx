@@ -78,8 +78,12 @@ function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s:
   );
 }
 
-/** Chapter count check: a whole number from 1 to 5000. */
-function chaptersError(value: string, t: ReturnType<typeof useT>): string | undefined {
+/**
+ * Chapter count check: a whole number from 1 to 5000. Optional for "Want to read": you may not
+ * have the book in hand yet; the count is asked on its page when you start (PO, 20 Oct 2026).
+ */
+function chaptersError(value: string, t: ReturnType<typeof useT>, optional = false): string | undefined {
+  if (optional && value.trim() === '') return undefined;
   const n = Number(value);
   return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorChapters');
 }
@@ -256,11 +260,11 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     const n = Number(chapters);
     if (existing === undefined) return;
     fields.submit();
-    if (!existing && chaptersError(chapters, t)) return;
+    if (!existing && chaptersError(chapters, t, status === 'want_to_read')) return;
     setBusy(true);
     setError('');
     try {
-      const story = existing ?? (await createBook(book, { chapters: n }, language));
+      const story = existing ?? (await createBook(book, { chapters: chapters.trim() ? n : null }, language));
       await finish(story.id, status, 'book', 'open_library');
     } catch (e) {
       setError(friendly(e, t));
@@ -285,12 +289,12 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
           <>
             <T v="muted">{t('add.firstEdition')}</T>
             <Field
-              label={t('add.chapters')}
+              label={status === 'want_to_read' ? t('add.chaptersOptional') : t('add.chapters')}
               keyboardType="number-pad"
               value={chapters}
               onChangeText={setChapters}
               onBlur={fields.onBlur('chapters')}
-              error={fields.show('chapters', chaptersError(chapters, t), chapters)}
+              error={fields.show('chapters', chaptersError(chapters, t, status === 'want_to_read'), chapters)}
               placeholder={t('add.chaptersPlaceholder')}
             />
           </>
@@ -317,7 +321,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   const errors = {
     title: title.trim() ? undefined : t('add.errorTitle'),
     author: author.trim() ? undefined : t('add.errorAuthor'),
-    chapters: chaptersError(chapters, t),
+    chapters: chaptersError(chapters, t, status === 'want_to_read'),
   };
 
   async function save() {
@@ -327,7 +331,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setBusy(true);
     setError('');
     try {
-      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n, language });
+      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: chapters.trim() ? n : null, language });
       await finish(story.id, status, 'book', 'manual');
     } catch (e) {
       setError(friendly(e, t));
@@ -341,7 +345,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
       <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
       <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} onBlur={fields.onBlur('author')} error={fields.show('author', errors.author)} />
       <Field
-        label={t('add.chapters')}
+        label={status === 'want_to_read' ? t('add.chaptersOptional') : t('add.chapters')}
         keyboardType="number-pad"
         value={chapters}
         onChangeText={setChapters}

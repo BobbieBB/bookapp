@@ -23,8 +23,9 @@ export const en = {
   'add.cover': '{title} cover',
   'add.add': 'Add',
   'add.firstEdition':
-    'You’re the first to add this edition. How many chapters does it have? Each chapter gets its own discussion.',
+    'Nobody has added this edition yet. How many chapters does it have? Each chapter gets its own discussion.',
   'add.chapters': 'Chapters',
+  'add.chaptersOptional': 'Chapters (you can add this later)',
   'add.chaptersPlaceholder': 'e.g. 40',
   'add.addToLibrary': 'Add to my library',
   'add.backToResults': 'Back to results',
@@ -86,8 +87,9 @@ export const bg: Translation<typeof en> = {
   'add.cover': 'Корица на „{title}“',
   'add.add': 'Добави',
   'add.firstEdition':
-    'Ти си първият, който добавя това издание. Колко глави има? Всяка глава си има собствено обсъждане.',
+    'Никой още не е добавял това издание. Колко глави има? Всяка глава си има собствено обсъждане.',
   'add.chapters': 'Глави',
+  'add.chaptersOptional': 'Глави (може и по-късно)',
   'add.chaptersPlaceholder': 'напр. 40',
   'add.addToLibrary': 'Добави в моята библиотека',
   'add.backToResults': 'Обратно към резултатите',
