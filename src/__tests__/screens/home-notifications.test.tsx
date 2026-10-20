@@ -85,6 +85,14 @@ describe('Home', () => {
     expect(await screen.findByText('all notifications', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
+  it('no See all while there are no replies to you yet', async () => {
+    const quiet = await signUp('quiet');
+    await as(quiet);
+    await renderScreen('en', { index: Home, notifications: NotificationsStub }, '/');
+    expect(await screen.findByText('When someone replies to you or mentions you, you’ll see it here.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('See all')).toBeNull();
+  });
+
   it('Continue Reading carries a quiet "N new comments in chapter X" hint', async () => {
     await as(me);
     await renderScreen('en', { index: Home }, '/');

@@ -17,9 +17,9 @@ function TabIcon({ name, label, focused }: { name: IconName; label: string; focu
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
         height: 44,
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         borderRadius: 999,
         backgroundColor: c.primary,
       }}
@@ -48,6 +48,9 @@ export default function TabsLayout() {
           borderTopWidth: 0,
           height: 88,
           paddingTop: 12,
+          // The active pill is wider than a quarter of the bar (more so in Bulgarian): keep it off the
+          // screen edge and let it spill into its neighbours' empty space instead of being cut off.
+          paddingHorizontal: 16,
           shadowColor: '#1E1328',
           shadowOffset: { width: 0, height: -1 },
           shadowOpacity: 0.06,
@@ -55,6 +58,7 @@ export default function TabsLayout() {
           elevation: 8,
         },
         tabBarIconStyle: { width: 'auto', height: 48 },
+        tabBarItemStyle: { overflow: 'visible' },
       }}
     >
       <Tabs.Screen name="index" options={tab(t('common.home'), 'home')} />

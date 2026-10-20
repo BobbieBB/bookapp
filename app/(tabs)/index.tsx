@@ -72,7 +72,9 @@ export default function Home() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <T v="overline">{t('home.repliesTitle')}</T>
-          <Button variant="link" title={t('notifications.seeAll')} onPress={() => router.push('/notifications')} />
+          {replyItems?.length ? (
+            <Button variant="link" title={t('notifications.seeAll')} onPress={() => router.push('/notifications')} />
+          ) : null}
         </View>
         {replyItems?.length ? (
           replyItems.map((n) => <NotificationRow key={n.id} n={n} />)
