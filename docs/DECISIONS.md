@@ -302,3 +302,13 @@ Choices made during development where the decisions above don't say. Each one is
      the PO before launch, so the first readers rarely see an empty field.
 - **What counts as a chapter:** everything the book presents as its own chapter, prologue and epilogue included
   (interludes too when they are separate sections), so readers can check it against the book's contents.
+
+## Filling in a fic from AO3 (20 Oct 2026, PO)
+- Typing a fic's details by hand was the hardest part of the phone test. Livami still **never fetches from AO3** (AO3/OTW
+  oppose scraping; its terms bar commercial scraping and disrupting the site).
+- **v1: AO3's Share text.** On AO3 the reader taps Share, copies the text and pastes it into the AO3 link field; Livami reads
+  link, title, author(s), chapters so far / complete, fandom, rating, archive warnings and the first relationship, and the
+  reader checks and adds. A plain link still works as before.
+- **With TestFlight: share from Safari to Livami** (share extension): iOS hands over the link and the page title
+  ("Title - Chapter 1 - Author - Fandom [Archive of Our Own]"), which fills title, author and fandom.
+- Not doing: Livami opening the AO3 page itself (a grey area with AO3, and often blocked).

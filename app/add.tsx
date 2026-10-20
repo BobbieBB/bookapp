@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
+import { parseAo3Share } from '@/lib/ao3Share';
 import { addFavouriteFandom } from '@/lib/discover';
 import { statusKey } from '@/lib/library';
 import { finishStory } from '@/lib/story';
@@ -426,6 +427,28 @@ function AddFic() {
     chapters: chaptersError(chapters, t),
   };
 
+  const [filled, setFilled] = useState(false);
+
+  /** A plain link, or AO3's Share text: then everything it says is filled in (nothing is fetched from AO3). */
+  function onLink(value: string) {
+    const share = parseAo3Share(value);
+    if (!share) {
+      setLink(value);
+      setFilled(false);
+      return;
+    }
+    setLink(share.link);
+    setTitle(share.title);
+    setAuthor(share.author);
+    setFandom(share.fandom);
+    setShip(share.ship);
+    setComplete(share.complete);
+    setChapters(share.chapters ? String(share.chapters) : '');
+    if (share.rating) setRating(share.rating);
+    setWarnings(share.warnings);
+    setFilled(true);
+  }
+
   const canonical = normaliseAo3Link(link);
   const badLink = link.trim().length > 0 && !canonical;
 
@@ -478,11 +501,12 @@ function AddFic() {
         label={t('add.ao3Link')}
         placeholder={t('add.ao3Placeholder')}
         value={link}
-        onChangeText={setLink}
+        onChangeText={onLink}
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="url"
       />
+      <T v="muted">{filled ? t('add.ao3Filled') : t('add.ao3ShareHint')}</T>
       {checking && <T v="muted">{t('add.checking')}</T>}
       {badLink && <ErrorText>{t('add.badLink')}</ErrorText>}
 

@@ -166,3 +166,22 @@ it('adding a fic adds its fandom to "Your fandoms"', async () => {
     { timeout: 8000 },
   );
 });
+
+it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', async () => {
+  const id = `7${Date.now() % 1e8}`;
+  const share =
+    `<a href="https://archiveofourown.org/works/${id}"><strong>The Lantern Keeper</strong></a> (45000 words) by ` +
+    '<a href="https://archiveofourown.org/users/inkwell_writer"><strong>inkwell_writer</strong></a><br />Chapters: 53/?<br />' +
+    'Fandom: <a href="x">Harry Potter - J. K. Rowling</a><br />Rating: Explicit<br />Warnings: Graphic Depictions Of Violence<br />' +
+    'Relationships: Hermione Granger/Draco Malfoy';
+  await open('en');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), share);
+  expect(await screen.findByText('Filled in from AO3’s Share text. Check it, then add.')).toBeOnTheScreen();
+  expect(await screen.findByDisplayValue('The Lantern Keeper', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('inkwell_writer')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('Harry Potter - J. K. Rowling')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('Hermione Granger/Draco Malfoy')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('53')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(`https://archiveofourown.org/works/${id}`)).toBeOnTheScreen();
+});

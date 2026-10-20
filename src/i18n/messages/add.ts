@@ -25,6 +25,8 @@ export const en = {
   'add.firstEdition':
     'Nobody has added this edition yet. How many chapters does it have? Each chapter gets its own discussion.',
   'add.chapters': 'Chapters',
+  'add.ao3ShareHint': 'Tip: on AO3, tap Share, copy the whole text and paste it here. We’ll fill in the rest.',
+  'add.ao3Filled': 'Filled in from AO3’s Share text. Check it, then add.',
   'add.chaptersOptional': 'Chapters (you can add this later)',
   'add.chaptersPlaceholder': 'e.g. 40',
   'add.addToLibrary': 'Add to my library',
@@ -89,6 +91,8 @@ export const bg: Translation<typeof en> = {
   'add.firstEdition':
     'Никой още не е добавял това издание. Колко глави има? Всяка глава си има собствено обсъждане.',
   'add.chapters': 'Глави',
+  'add.ao3ShareHint': 'Съвет: в AO3 натисни Share, копирай целия текст и го постави тук. Ние ще попълним останалото.',
+  'add.ao3Filled': 'Попълнихме данните от Share текста на AO3. Провери ги и добави.',
   'add.chaptersOptional': 'Глави (може и по-късно)',
   'add.chaptersPlaceholder': 'напр. 40',
   'add.addToLibrary': 'Добави в моята библиотека',
