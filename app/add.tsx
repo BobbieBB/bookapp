@@ -28,7 +28,7 @@ import { useT } from '@/i18n';
 type Translate = ReturnType<typeof useT>;
 
 export default function AddStory() {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   const t = useT();
   const { profile } = useAuth();
   const params = useLocalSearchParams<{ kind?: StoryKind }>();
@@ -42,7 +42,10 @@ export default function AddStory() {
         <Pressable accessibilityRole="button" accessibilityLabel={t('add.close')} onPress={() => router.back()} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Feather name="x" size={24} color={c.ink} />
         </Pressable>
-        <T v="h2" style={{ fontSize: 24 }}>{t('add.title')}</T>
+        {/* Screen titles are Sofia Sans (DECISIONS, "Fonts"): Unbounded ran off the screen in Bulgarian. */}
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, fontFamily: fonts.bodyBold, fontSize: 24, color: c.ink }}>
+          {t('add.title')}
+        </Text>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.l, gap: space.l, paddingBottom: space.xxl }}>
@@ -223,8 +226,9 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
           {[book.author, book.year, book.pages ? t('add.pages', { count: book.pages }) : null].filter(Boolean).join(' · ')}
         </T>
       </View>
-      <View style={{ width: 84 }}>
-        <Button title={t('add.add')} onPress={() => onPick(book)} />
+      {/* Sized by its label, never squeezed: "Добави" broke into two lines at a fixed width. */}
+      <View style={{ flexShrink: 0 }}>
+        <Button title={t('add.add')} accessibilityLabel={`${t('add.add')}: ${book.title}`} onPress={() => onPick(book)} />
       </View>
     </View>
   );
