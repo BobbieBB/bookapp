@@ -4,7 +4,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } 
 
 import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
-import { CoverActions, useCustomCover } from '@/components/CustomCover';
+import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
@@ -96,6 +96,17 @@ function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | 
   );
 }
 
+/** "Fandom  Harry Potter": a quiet label, then the value, so fandom and ship can't be mixed up. */
+function LabelledLine({ label, value }: { label: string; value: string }) {
+  const { c, fonts } = useTheme();
+  return (
+    <Text style={{ fontSize: 16, lineHeight: 22, color: c.ink, fontFamily: fonts.body }}>
+      <Text style={{ fontFamily: fonts.bodyBold, color: c.muted }}>{label}  </Text>
+      {value}
+    </Text>
+  );
+}
+
 function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 'secondary' }) {
   const { c, isDark, fonts } = useTheme();
   return (
@@ -135,6 +146,7 @@ function StoryBody({
   const [pageText, setPageText] = useState(entry?.progress_page?.toString() ?? '');
 
   const myCover = useCustomCover(story.id, loaded !== null);
+  const [coverOpen, setCoverOpen] = useState(false);
   const isFic = story.kind === 'fanfic';
   const count = chapterCount(story);
 
@@ -187,10 +199,13 @@ function StoryBody({
     <>
       <View style={{ flexDirection: 'row', gap: space.l }}>
         <View style={{ width: 96, gap: space.xs }}>
-          <Cover story={story} customUrl={myCover.url} />
+          <View>
+            <Cover story={story} customUrl={myCover.url} />
+            {entry ? <CoverEditButton hasCover={!!myCover.url} onPress={() => setCoverOpen((o) => !o)} /> : null}
+          </View>
         </View>
         <View style={{ flex: 1, gap: space.xs }}>
-          <Text accessibilityRole="header" testID="story-title" style={{ fontFamily: fonts.display, fontSize: 26, letterSpacing: -0.5, color: c.ink }}>
+          <Text accessibilityRole="header" testID="story-title" style={{ fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 28, color: c.ink }}>
             {story.title}
           </Text>
           <T v="body">{story.author_name}</T>
@@ -204,16 +219,8 @@ function StoryBody({
             {story.status ? <Tag tone="secondary" label={story.status === 'ongoing' ? t('add.wip') : t('add.complete')} /> : null}
             {isRating(story.content_rating) ? <Tag label={t(RATING_LABEL[story.content_rating])} /> : null}
           </View>
-          {story.fandoms.map((f) => (
-            <T key={f} v="label">
-              {f}
-            </T>
-          ))}
-          {story.ships.map((s) => (
-            <T key={s} v="body">
-              {s}
-            </T>
-          ))}
+          {story.fandoms.length ? <LabelledLine label={t('story.fandom')} value={story.fandoms.join(', ')} /> : null}
+          {story.ships.length ? <LabelledLine label={t('story.ship')} value={story.ships.join(', ')} /> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {story.warnings.map((w) => (
               <Tag key={w} label={isWarning(w) ? t(WARNING_LABEL[w]) : w} />
@@ -229,7 +236,7 @@ function StoryBody({
 
       <ErrorText>{error}</ErrorText>
 
-      {entry ? <CoverActions cover={myCover} /> : null}
+      {entry ? <CoverActions cover={myCover} open={coverOpen} onClose={() => setCoverOpen(false)} /> : null}
 
       {entry && libraryEntry ? (
         <Card style={{ gap: space.m }}>

@@ -1,13 +1,14 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
+import { Pressable, View } from 'react-native';
 
 import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { myCoverUrl, removeCover, uploadCover } from '@/lib/covers';
-import { space } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 const COVER_WIDTH = 1200;
 const MAX_COVER_BYTES = 5 * 1024 * 1024; // the covers bucket's limit
@@ -112,14 +113,49 @@ export function useCustomCover(storyId: string, enabled: boolean) {
   return { url, error, busy, choose, remove };
 }
 
-/**
- * The quiet link under the story: "Use my own cover" explains why it stays private before you pick;
- * once you have one, "Change my cover" opens the choices (another image, or back to the usual cover)
- * with the reminder that only you see it, instead of a permanent note under the cover.
- */
-export function CoverActions({ cover }: { cover: ReturnType<typeof useCustomCover> }) {
+/** The small pencil on the cover: "Use my own cover" / "Change my cover" for screen readers. */
+export function CoverEditButton({ hasCover, onPress }: { hasCover: boolean; onPress: () => void }) {
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const { c } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={hasCover ? t('covers.change') : t('covers.use')}
+      onPress={onPress}
+      hitSlop={8}
+      style={{
+        position: 'absolute',
+        right: -10,
+        bottom: -10,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: c.surface,
+        borderWidth: 2,
+        borderColor: c.ground,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Feather name="edit-2" size={16} color={c.ink} />
+    </Pressable>
+  );
+}
+
+/**
+ * Opened from the pencil on the cover. Before the first cover it explains why it stays private;
+ * with one, it offers another image or the usual cover, with the reminder that only you see it.
+ */
+export function CoverActions({
+  cover,
+  open,
+  onClose,
+}: {
+  cover: ReturnType<typeof useCustomCover>;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const t = useT();
   const hasCover = !!cover.url;
 
   return (
@@ -132,7 +168,7 @@ export function CoverActions({ cover }: { cover: ReturnType<typeof useCustomCove
             loading={cover.busy}
             onPress={async () => {
               await cover.choose();
-              setOpen(false);
+              onClose();
             }}
           />
           {hasCover ? (
@@ -141,15 +177,13 @@ export function CoverActions({ cover }: { cover: ReturnType<typeof useCustomCove
               title={t('covers.remove')}
               onPress={async () => {
                 await cover.remove();
-                setOpen(false);
+                onClose();
               }}
             />
           ) : null}
-          <Button variant="link" title={t('covers.cancel')} onPress={() => setOpen(false)} />
+          <Button variant="link" title={t('covers.cancel')} onPress={onClose} />
         </Card>
-      ) : (
-        <Button variant="link" title={hasCover ? t('covers.change') : t('covers.use')} onPress={() => setOpen(true)} />
-      )}
+      ) : null}
       <ErrorText>{cover.error}</ErrorText>
     </View>
   );
