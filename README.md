@@ -24,7 +24,7 @@ MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
 
 Before launch:
 - **Hosted database:** apply the migrations to the hosted Supabase in order (everything up to
-  `20261016000007_push.sql`).
+  the newest file in `supabase/migrations`).
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
