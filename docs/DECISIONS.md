@@ -248,7 +248,9 @@ Choices made during development where the decisions above don't say. Each one is
 - Colours: mint #3DBE95, pink #FF4F84, ink #1E1328 (dark: #4FD1A6, #FF6B97, #F7EEF3). Design file: "Logo: final".
 - Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
 
-## Calm theme (18 Oct 2026, design; v1 inclusion still open)
+## Calm theme (18 Oct 2026, design; in v1: PO, 22 Oct 2026)
+- **In v1**, built together with the Settings screen (Appearance: Auto · Light · Dark · Calm, remembered per device;
+  Auto follows the phone). Screens use colour roles, so Calm is a third palette plus its own cover colours.
 - **Name: "Calm" / „Спокойна“** (PO). Profile → Appearance: Auto · Light · Dark · Calm. Not "Easy mode": it should feel calmer, not simpler.
 - A muted theme for people sensitive to bright colours, next to Light and Dark. Feedback from a tester: pink and green
   swapping places between cards (pink cover + green progress, then the reverse) is confusing.
