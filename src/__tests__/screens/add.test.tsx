@@ -70,6 +70,11 @@ const words = {
     byHand: 'Add it by hand',
     link: 'AO3 link',
     badLink: 'That doesn’t look like an AO3 work link.',
+    chapters: 'Chapters',
+    add: 'Add to my library',
+    errorChapters: 'Enter the number of chapters (1 to 5000).',
+    errorTitle: 'Add the title.',
+    statusLabel: 'Add it as',
   },
   bg: {
     title: 'Добави история',
@@ -81,8 +86,13 @@ const words = {
     cantFind: 'Не я намираш?',
     noBooks: 'Не намерихме книги',
     byHand: 'Добави я ръчно',
-    link: 'Връзка към AO3',
-    badLink: 'Това не прилича на връзка към работа в AO3.',
+    link: 'Линк към AO3',
+    badLink: 'Това не прилича на линк към работа в AO3.',
+    chapters: 'Глави',
+    add: 'Добави в моята библиотека',
+    errorChapters: 'Въведи броя на главите (от 1 до 5000).',
+    errorTitle: 'Добави заглавието.',
+    statusLabel: 'Добави като',
   },
 } as const;
 
@@ -118,4 +128,66 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
     await fireEvent.changeText(await screen.findByLabelText(w.link), 'https://example.com/nope');
     await waitFor(() => expect(screen.getByText(w.badLink)).toBeOnTheScreen());
   });
+
+  it('a new fic: field errors show right under each field, warnings are optional', async () => {
+    await open(lang);
+    await fireEvent.press(await screen.findByRole('button', { name: w.fanfic }));
+    await fireEvent.changeText(await screen.findByLabelText(w.link), `https://archiveofourown.org/works/9${Date.now() % 1e8}`);
+    const chapters = await screen.findByLabelText(w.chapters, {}, { timeout: 8000 });
+    expect(screen.getByText(w.statusLabel)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'DNF' })).toBeOnTheScreen(); // every status, not only reading / want to read
+    // A wrong chapter count shows at once, without pressing save.
+    await fireEvent.changeText(chapters, '86292');
+    expect(await screen.findByText(w.errorChapters)).toBeOnTheScreen();
+    // Empty required fields show only once the reader tries to save; no error for archive warnings.
+    expect(screen.queryByText(w.errorTitle)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: w.add }));
+    expect(await screen.findByText(w.errorTitle)).toBeOnTheScreen();
+    expect(screen.queryByText(/Pick the archive warnings|Избери предупрежденията/)).toBeNull();
+  });
+});
+
+it('adding a fic adds its fandom to "Your fandoms"', async () => {
+  const fandom = `Followed Fandom ${run}`;
+  await open('en');
+  // renderRouter switches Jest to fake timers; waiting on the real database needs real ones.
+  jest.useRealTimers();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/8${Date.now() % 1e8}`);
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), 'Followed Fic');
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  // If it never saves, say what the screen shows (errors under fields, a save error).
+  const shown = () => JSON.stringify(screen.toJSON()).match(/"children":\["[^"]+"\]/g)?.join(' ') ?? '';
+  await waitFor(
+    async () => {
+      const added = await supabase.from('stories').select('id').eq('title', 'Followed Fic');
+      if (!added.data?.length) throw new Error(`not added; screen: ${shown()}`);
+      const me = (await supabase.auth.getUser()).data.user!.id;
+      const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
+      expect(data!.favourite_fandoms).toContain(fandom);
+    },
+    { timeout: 8000 },
+  );
+});
+
+it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', async () => {
+  const id = `7${Date.now() % 1e8}`;
+  const share =
+    `<a href="https://archiveofourown.org/works/${id}"><strong>The Lantern Keeper</strong></a> (45000 words) by ` +
+    '<a href="https://archiveofourown.org/users/inkwell_writer"><strong>inkwell_writer</strong></a><br />Chapters: 53/?<br />' +
+    'Fandom: <a href="x">Harry Potter - J. K. Rowling</a><br />Rating: Explicit<br />Warnings: Graphic Depictions Of Violence<br />' +
+    'Relationships: Hermione Granger/Draco Malfoy';
+  await open('en');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), share);
+  expect(await screen.findByText('Filled in from AO3’s Share text. Check it, then add.')).toBeOnTheScreen();
+  expect(await screen.findByDisplayValue('The Lantern Keeper', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('inkwell_writer')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('Harry Potter - J. K. Rowling')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('Hermione Granger/Draco Malfoy')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue('53')).toBeOnTheScreen();
+  expect(screen.getByDisplayValue(`https://archiveofourown.org/works/${id}`)).toBeOnTheScreen();
 });

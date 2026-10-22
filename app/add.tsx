@@ -6,6 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
+import { parseAo3Share } from '@/lib/ao3Share';
+import { addFavouriteFandom } from '@/lib/discover';
+import { statusKey } from '@/lib/library';
+import { finishStory } from '@/lib/story';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useLookup } from '@/lib/useLookup';
 import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult } from '@/lib/sources';
@@ -27,7 +32,7 @@ import { useT } from '@/i18n';
 type Translate = ReturnType<typeof useT>;
 
 export default function AddStory() {
-  const { c } = useTheme();
+  const { c, fonts } = useTheme();
   const t = useT();
   const { profile } = useAuth();
   const params = useLocalSearchParams<{ kind?: StoryKind }>();
@@ -41,7 +46,10 @@ export default function AddStory() {
         <Pressable accessibilityRole="button" accessibilityLabel={t('add.close')} onPress={() => router.back()} hitSlop={8} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Feather name="x" size={24} color={c.ink} />
         </Pressable>
-        <T v="h2" style={{ fontSize: 24 }}>{t('add.title')}</T>
+        {/* Screen titles are Sofia Sans (DECISIONS, "Fonts"): Unbounded ran off the screen in Bulgarian. */}
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, fontFamily: fonts.bodyBold, fontSize: 24, color: c.ink }}>
+          {t('add.title')}
+        </Text>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.l, gap: space.l, paddingBottom: space.xxl }}>
@@ -60,15 +68,65 @@ export default function AddStory() {
   );
 }
 
-/** Status for the new library entry: most people add what they're about to read. */
-function StatusPicker({ value, onChange }: { value: LibraryStatus; onChange: (s: LibraryStatus) => void }) {
+/**
+ * Status for the new library entry: most people add what they're about to read, but a book read
+ * long ago (or dropped) belongs on the shelf too (PO, phone test 20 Oct 2026). On Hold is for
+ * fanfiction only, as on the story page; on a WIP fic Finished reads "Caught up".
+ */
+function StatusPicker({
+  value,
+  onChange,
+  kind,
+  wip = false,
+}: {
+  value: LibraryStatus;
+  onChange: (s: LibraryStatus) => void;
+  kind: StoryKind;
+  wip?: boolean;
+}) {
   const t = useT();
+  const options: [LibraryStatus, string][] = [
+    ['currently_reading', t('add.statusReading')],
+    ['want_to_read', t('add.statusWant')],
+    ['finished', t(statusKey('finished', { kind, status: wip ? 'ongoing' : 'completed' }))],
+    ['dnf', t('library.status.dnf')],
+  ];
+  if (kind === 'fanfic') options.push(['on_hold', t('library.status.on_hold')]);
   return (
-    <View style={{ flexDirection: 'row', gap: space.s }}>
-      <Chip label={t('add.statusReading')} active={value === 'currently_reading'} onPress={() => onChange('currently_reading')} />
-      <Chip label={t('add.statusWant')} active={value === 'want_to_read'} onPress={() => onChange('want_to_read')} />
+    <View style={{ gap: space.s, marginTop: space.m }}>
+      <T v="label">{t('add.statusLabel')}</T>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+        {options.map(([s, label]) => (
+          <Chip key={s} label={label} active={value === s} onPress={() => onChange(s)} />
+        ))}
+      </View>
     </View>
   );
+}
+
+/**
+ * Chapter count check: a whole number from 1 to 5000. Optional for "Want to read": you may not
+ * have the book in hand yet; the count is asked on its page when you start (PO, 20 Oct 2026).
+ */
+function chaptersError(value: string, t: ReturnType<typeof useT>, optional = false): string | undefined {
+  if (optional && value.trim() === '') return undefined;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorChapters');
+}
+
+/**
+ * When to show a field's error: once the reader has left the field, or tried to save. A chapter
+ * count that is already wrong while typing (e.g. 86292) shows at once.
+ */
+function useFieldErrors() {
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+  return {
+    show: (name: string, error: string | undefined, value = '') =>
+      submitted || touched[name] || (name === 'chapters' && value.trim() !== '') ? error : undefined,
+    onBlur: (name: string) => () => setTouched((cur) => ({ ...cur, [name]: true })),
+    submit: () => setSubmitted(true),
+  };
 }
 
 /** Which edition the reader has: discussions are separate per language (PO, 15 Oct 2026). */
@@ -85,10 +143,29 @@ function LanguagePicker({ value, onChange }: { value: BookLanguage; onChange: (l
   );
 }
 
-async function finish(storyId: string, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
-  await addToLibrary(storyId, status);
+/**
+ * Adding a fic adds its fandom to "Your fandoms" (Discover follows it); the reader can remove it in
+ * Profile. Best effort: a failure here never stops the fic being added (PO, phone test 20 Oct 2026).
+ */
+async function followFandoms(fandoms: string[]) {
+  await Promise.all(fandoms.filter(Boolean).map((f) => addFavouriteFandom(f).catch(() => undefined)));
+}
+
+async function finish(story: Story, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
+  await addToLibrary(story.id, status);
   void track('story_added', { kind, source, status });
-  router.back();
+  if (status === 'finished') {
+    // Same as tapping Finished on the story page: a WIP is caught up to its published chapters,
+    // and the "You finished it!" screen follows (rate a book, The Epilogue, or "caught up").
+    const userId = (await supabase.auth.getSession()).data.session?.user.id;
+    if (userId) await finishStory(story, userId).catch(() => undefined);
+    void track('story_finished', { kind });
+    router.replace(`/finished/${story.id}`);
+    return;
+  }
+  // Opened from a link with nothing behind it: go Home instead of nowhere.
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
 }
 
 function friendly(e: unknown, t: Translate) {
@@ -190,8 +267,9 @@ function BookRow({ book, onPick }: { book: BookResult; onPick: (b: BookResult) =
           {[book.author, book.year, book.pages ? t('add.pages', { count: book.pages }) : null].filter(Boolean).join(' · ')}
         </T>
       </View>
-      <View style={{ width: 84 }}>
-        <Button title={t('add.add')} onPress={() => onPick(book)} />
+      {/* Sized by its label, never squeezed: "Добави" broke into two lines at a fixed width. */}
+      <View style={{ flexShrink: 0 }}>
+        <Button title={t('add.add')} accessibilityLabel={`${t('add.add')}: ${book.title}`} onPress={() => onPick(book)} />
       </View>
     </View>
   );
@@ -208,6 +286,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [saveError, setError] = useState('');
+  const fields = useFieldErrors();
 
   const found = useLookup(`${book.key}#${language}`, () => findStory({ openLibraryKey: book.key, language }));
   // undefined = still checking; null = new to Livami (or the check failed: we'll create it)
@@ -217,12 +296,13 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   async function save() {
     const n = Number(chapters);
     if (existing === undefined) return;
-    if (!existing && (!Number.isInteger(n) || n < 1 || n > 5000)) return setError(t('add.errorChapters'));
+    fields.submit();
+    if (!existing && chaptersError(chapters, t, status === 'want_to_read')) return;
     setBusy(true);
     setError('');
     try {
-      const story = existing ?? (await createBook(book, { chapters: n }, language));
-      await finish(story.id, status, 'book', 'open_library');
+      const story = existing ?? (await createBook(book, { chapters: chapters.trim() ? n : null }, language));
+      await finish(story, status, 'book', 'open_library');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -245,11 +325,19 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
         !existing && (
           <>
             <T v="muted">{t('add.firstEdition')}</T>
-            <Field label={t('add.chapters')} keyboardType="number-pad" value={chapters} onChangeText={setChapters} placeholder={t('add.chaptersPlaceholder')} />
+            <Field
+              label={status === 'want_to_read' ? t('add.chaptersOptional') : t('add.chapters')}
+              keyboardType="number-pad"
+              value={chapters}
+              onChangeText={setChapters}
+              onBlur={fields.onBlur('chapters')}
+              error={fields.show('chapters', chaptersError(chapters, t, status === 'want_to_read'), chapters)}
+              placeholder={t('add.chaptersPlaceholder')}
+            />
           </>
         )
       )}
-      <StatusPicker value={status} onChange={setStatus} />
+      <StatusPicker value={status} onChange={setStatus} kind="book" />
       <ErrorText>{error}</ErrorText>
       <Button title={t('add.addToLibrary')} onPress={save} loading={busy} disabled={existing === undefined} />
       <Button variant="link" title={t('add.backToResults')} onPress={onCancel} />
@@ -266,16 +354,22 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const fields = useFieldErrors();
+  const errors = {
+    title: title.trim() ? undefined : t('add.errorTitle'),
+    author: author.trim() ? undefined : t('add.errorAuthor'),
+    chapters: chaptersError(chapters, t, status === 'want_to_read'),
+  };
 
   async function save() {
     const n = Number(chapters);
-    if (!title.trim() || !author.trim()) return setError(t('add.errorTitleAuthor'));
-    if (!Number.isInteger(n) || n < 1 || n > 5000) return setError(t('add.errorChapters'));
+    fields.submit();
+    if (Object.values(errors).some(Boolean)) return;
     setBusy(true);
     setError('');
     try {
-      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: n, language });
-      await finish(story.id, status, 'book', 'manual');
+      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: chapters.trim() ? n : null, language });
+      await finish(story, status, 'book', 'manual');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -285,11 +379,18 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   return (
     <Card>
       <T v="h2">{t('add.manualTitle')}</T>
-      <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} />
-      <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} />
-      <Field label={t('add.chapters')} keyboardType="number-pad" value={chapters} onChangeText={setChapters} />
+      <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
+      <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} onBlur={fields.onBlur('author')} error={fields.show('author', errors.author)} />
+      <Field
+        label={status === 'want_to_read' ? t('add.chaptersOptional') : t('add.chapters')}
+        keyboardType="number-pad"
+        value={chapters}
+        onChangeText={setChapters}
+        onBlur={fields.onBlur('chapters')}
+        error={fields.show('chapters', errors.chapters, chapters)}
+      />
       <LanguagePicker value={language} onChange={setLanguage} />
-      <StatusPicker value={status} onChange={setStatus} />
+      <StatusPicker value={status} onChange={setStatus} kind="book" />
       <ErrorText>{error}</ErrorText>
       <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
       <Button variant="link" title={t('add.backToSearch')} onPress={onCancel} />
@@ -317,6 +418,36 @@ function AddFic() {
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const fields = useFieldErrors();
+  // Archive warnings are optional: AO3 shows them in the work's tags, and readers often don't spot them.
+  const errors = {
+    title: title.trim() ? undefined : t('add.errorTitle'),
+    author: author.trim() ? undefined : t('add.errorAuthor'),
+    fandom: fandom.trim() ? undefined : t('add.errorFandom'),
+    chapters: chaptersError(chapters, t),
+  };
+
+  const [filled, setFilled] = useState(false);
+
+  /** A plain link, or AO3's Share text: then everything it says is filled in (nothing is fetched from AO3). */
+  function onLink(value: string) {
+    const share = parseAo3Share(value);
+    if (!share) {
+      setLink(value);
+      setFilled(false);
+      return;
+    }
+    setLink(share.link);
+    setTitle(share.title);
+    setAuthor(share.author);
+    setFandom(share.fandom);
+    setShip(share.ship);
+    setComplete(share.complete);
+    setChapters(share.chapters ? String(share.chapters) : '');
+    if (share.rating) setRating(share.rating);
+    setWarnings(share.warnings);
+    setFilled(true);
+  }
 
   const canonical = normaliseAo3Link(link);
   const badLink = link.trim().length > 0 && !canonical;
@@ -332,18 +463,19 @@ function AddFic() {
 
   async function save() {
     if (!canonical) return setError(t('add.errorLink'));
+    if (!existing) {
+      fields.submit();
+      if (Object.values(errors).some(Boolean)) return;
+    }
     setBusy(true);
     setError('');
     try {
       if (existing) {
-        await finish(existing.id, status, 'fanfic', 'ao3');
+        await followFandoms(existing.fandoms);
+        await finish(existing, status, 'fanfic', 'ao3');
         return;
       }
       const n = Number(chapters);
-      if (!title.trim() || !author.trim()) throw new Error(t('add.errorTitleAuthor'));
-      if (!fandom.trim()) throw new Error(t('add.errorFandom'));
-      if (!Number.isInteger(n) || n < 1 || n > 5000) throw new Error(t('add.errorChapters'));
-      if (!warnings.length) throw new Error(t('add.errorWarnings'));
       const story = await createFic({
         ao3Link: canonical,
         title,
@@ -355,7 +487,8 @@ function AddFic() {
         rating,
         warnings,
       });
-      await finish(story.id, status, 'fanfic', 'ao3');
+      await followFandoms([fandom.trim()]);
+      await finish(story, status, 'fanfic', 'ao3');
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -368,11 +501,12 @@ function AddFic() {
         label={t('add.ao3Link')}
         placeholder={t('add.ao3Placeholder')}
         value={link}
-        onChangeText={setLink}
+        onChangeText={onLink}
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="url"
       />
+      <T v="muted">{filled ? t('add.ao3Filled') : t('add.ao3ShareHint')}</T>
       {checking && <T v="muted">{t('add.checking')}</T>}
       {badLink && <ErrorText>{t('add.badLink')}</ErrorText>}
 
@@ -388,9 +522,16 @@ function AddFic() {
       ) : (
         canonical && !checking && (
           <>
-            <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} />
-            <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} autoCapitalize="none" />
-            <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} />
+            <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
+            <Field
+              label={t('add.fieldAuthor')}
+              value={author}
+              onChangeText={setAuthor}
+              autoCapitalize="none"
+              onBlur={fields.onBlur('author')}
+              error={fields.show('author', errors.author)}
+            />
+            <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} onBlur={fields.onBlur('fandom')} error={fields.show('fandom', errors.fandom)} />
             <Field label={t('add.ship')} value={ship} onChangeText={setShip} />
 
             <T v="label">{t('add.ficStatus')}</T>
@@ -403,6 +544,8 @@ function AddFic() {
               keyboardType="number-pad"
               value={chapters}
               onChangeText={setChapters}
+              onBlur={fields.onBlur('chapters')}
+              error={fields.show('chapters', errors.chapters, chapters)}
             />
 
             <T v="label">{t('add.rating')}</T>
@@ -424,7 +567,7 @@ function AddFic() {
 
       {canonical && !checking && (
         <>
-          <StatusPicker value={status} onChange={setStatus} />
+          <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={existing ? existing.status === 'ongoing' : !complete} />
           <ErrorText>{error}</ErrorText>
           <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
         </>

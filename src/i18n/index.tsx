@@ -13,7 +13,15 @@ export const LANGUAGES: readonly Language[] = ['en', 'bg'];
 export const STORAGE_KEY = 'livami.language';
 
 const dictionaries: Record<Language, Record<MessageKey, Message>> = { en, bg };
-const pluralRules = { en: new Intl.PluralRules('en'), bg: new Intl.PluralRules('bg') };
+
+/**
+ * The plural form for a number. English and Bulgarian both have just "one" (exactly 1) and "other".
+ * Written out by hand: Hermes on iOS has no Intl.PluralRules, so `new Intl.PluralRules` crashes the
+ * app at start-up there (tests run in Node, which has it).
+ */
+export function pluralForm(n: number): 'one' | 'other' {
+  return n === 1 ? 'one' : 'other';
+}
 
 export type Params = Record<string, string | number>;
 
@@ -23,7 +31,7 @@ export function translate(language: Language, key: MessageKey, params: Params = 
   const text =
     typeof message === 'string'
       ? message
-      : (message[pluralRules[language].select(Number(params.count ?? 0))] ?? message.other);
+      : (message[pluralForm(Number(params.count ?? 0))] ?? message.other);
   return text.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
 }
 

@@ -19,7 +19,12 @@ export default function Home() {
   const t = useT();
   const { language } = useLanguage();
   const { session, profile } = useAuth();
-  const { entries, loading, error } = useMyLibrary(session?.user.id, 'currently_reading');
+  // The whole library, so Home can tell "nothing added yet" from "nothing being read right now".
+  const { entries: library, loading, error } = useMyLibrary(session?.user.id);
+  // A caught-up WIP comes back to Home when someone reports a new chapter ("Chapter 17 is out").
+  const newChapterOut = (e: (typeof library)[number]) =>
+    e.status === 'finished' && e.story.kind === 'fanfic' && e.story.status === 'ongoing' && (e.story.published_sections ?? 0) > e.progress_section;
+  const entries = library.filter((e) => e.status === 'currently_reading' || newChapterOut(e));
   const router = useRouter();
   const [version, setVersion] = useState(0);
   useFocusEffect(useCallback(() => setVersion((v) => v + 1), []));
@@ -36,6 +41,8 @@ export default function Home() {
     .filter((g) => g.items.length);
 
   const hintFor = (storyId: string) => {
+    const e = entries.find((x) => x.story_id === storyId);
+    if (e && newChapterOut(e)) return t('home.newChapter', { n: e.progress_section + 1 });
     const h = hintMap?.get(storyId);
     return h && h.new_comments > 0 ? t('notifications.newComments', { count: h.new_comments, chapter: h.section_number }) : undefined;
   };
@@ -64,15 +71,18 @@ export default function Home() {
           ))
         ) : (
           <Card>
-            <T v="h2">{t('home.emptyTitle')}</T>
-            <T v="muted">{t('home.emptyHint')}</T>
+            <T v="h2">{library.length ? t('home.idleTitle') : t('home.emptyTitle')}</T>
+            <T v="muted">{library.length ? t('home.idleHint') : t('home.emptyHint')}</T>
+            {library.length ? <Button variant="link" title={t('home.toLibrary')} onPress={() => router.navigate('/library')} /> : null}
           </Card>
         )}
         <ErrorText>{error}</ErrorText>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <T v="overline">{t('home.repliesTitle')}</T>
-          <Button variant="link" title={t('notifications.seeAll')} onPress={() => router.push('/notifications')} />
+          {replyItems?.length ? (
+            <Button variant="link" title={t('notifications.seeAll')} onPress={() => router.push('/notifications')} />
+          ) : null}
         </View>
         {replyItems?.length ? (
           replyItems.map((n) => <NotificationRow key={n.id} n={n} />)

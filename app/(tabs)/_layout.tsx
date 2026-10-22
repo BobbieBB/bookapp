@@ -17,15 +17,17 @@ function TabIcon({ name, label, focused }: { name: IconName; label: string; focu
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
         height: 44,
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         borderRadius: 999,
         backgroundColor: c.primary,
       }}
     >
       <Feather name={name} size={20} color={c.onPrimary} />
-      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.onPrimary }}>{label}</Text>
+      <Text numberOfLines={1} style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.onPrimary }}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -40,7 +42,9 @@ export default function TabsLayout() {
   });
   return (
     <Tabs
-      screenOptions={{
+      // The active tab gets more room than the others, so its pill (icon + label) always fits, also with
+      // the longer Bulgarian labels ("Библиотека"); the inactive tabs only show an icon.
+      screenOptions={({ navigation }) => ({
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {
@@ -48,6 +52,7 @@ export default function TabsLayout() {
           borderTopWidth: 0,
           height: 88,
           paddingTop: 12,
+          paddingHorizontal: 12,
           shadowColor: '#1E1328',
           shadowOffset: { width: 0, height: -1 },
           shadowOpacity: 0.06,
@@ -55,7 +60,8 @@ export default function TabsLayout() {
           elevation: 8,
         },
         tabBarIconStyle: { width: 'auto', height: 48 },
-      }}
+        tabBarItemStyle: { flex: navigation.isFocused() ? 2.4 : 1 },
+      })}
     >
       <Tabs.Screen name="index" options={tab(t('common.home'), 'home')} />
       <Tabs.Screen name="library" options={tab(t('common.library'), 'book-open')} />
