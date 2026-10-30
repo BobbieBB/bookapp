@@ -23,7 +23,8 @@ table. Anonymous users (`anon`) have no access at all.
 | `feedback` | In-app feedback | Author and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
-| `analytics_events` | Which features get used: an event name from a fixed list and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
+| `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
+| `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
@@ -133,6 +134,18 @@ Devices are added only through `claim_push_token` (at most 10 per reader) and fo
 `release_push_token`, which also works from a signed-out phone. Only migrations or the service role can
 change `push_settings`.
 
+## Orphan cover files
+
+A file in the private `covers` bucket is an orphan once no `custom_covers` row points to it: the
+account was deleted, or an old cover could not be removed when it was replaced. Once a day `pg_cron`
+runs `request_cover_sweep`, which (when `cover_sweep_settings.enabled` is on) asks the `sweep-covers`
+Edge Function to run, with the secret stored in Vault as `cover_sweep_secret` in the `x-sweep-secret`
+header. The function lists orphans with `orphan_cover_paths(older_than, limit)` (default: older than
+1 day, at most 500, oldest first), which only the service role may call, and removes them through the
+Storage API, 100 per request. The 1-day grace period protects a cover being uploaded at that moment:
+its file is stored before the `custom_covers` row that points to it. Only migrations or the service
+role can change `cover_sweep_settings`.
+
 ## Functions the app calls
 
 | Function | Purpose |
@@ -152,6 +165,7 @@ change `push_settings`.
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |
+| `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
 
 ## Tests
 

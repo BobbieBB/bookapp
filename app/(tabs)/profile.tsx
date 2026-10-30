@@ -234,6 +234,7 @@ export default function Profile() {
         <Card>
           <Button variant="link" title={t('safety.feedbackTitle')} onPress={() => router.push('/feedback')} />
           <Button variant="link" title={t('safety.blockedTitle')} onPress={() => router.push('/blocked')} />
+          {profile?.is_admin && <Button variant="link" title={t('admin.link')} onPress={() => router.push('/admin')} />}
         </Card>
 
         <Button variant="secondary" title={t('common.signOut')} onPress={signOut} />

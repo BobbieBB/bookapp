@@ -187,6 +187,10 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Orphan cover files (19 Oct 2026):** cover files nothing points to any more (a deleted account, an
+  old cover that could not be removed) are swept daily after a 1-day grace period, at most 500 a
+  day. The grace period keeps a cover that is being uploaded right now, whose file lands a moment
+  before the row that points to it.
 
 ## Bulgarian books: where the data comes from (18 Oct 2026, PO)
 - Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:
@@ -221,6 +225,13 @@ Choices made during development where the decisions above don't say. Each one is
 - The PO gets a small dashboard with 4–5 key numbers (weekly active readers, week-1 return, readers who reach a discussion,
   stories added by hand vs search, BG vs EN), so no SQL is needed.
 - Revisit a hosted tool (e.g. PostHog EU) only if the dashboard isn't enough once there are real readers.
+- The dashboard is Profile > Numbers, shown only to admins (`profiles.is_admin`). Each number is per week (Monday to Sunday, UTC)
+  and counted from `analytics_events` alone, so readers who switched analytics off are never in it:
+  *weekly active readers* = readers with any event that week; *week-1 return* = of the readers whose `sign_up` was that week, how
+  many had any event on days 7–13 after signing up, shown as "x of y" and "not yet" until the window has closed for all of them;
+  *readers who reach a discussion* = readers who opened a room (`room_opened`), commented or reacted; *stories added by hand vs
+  search* = `story_added` by `source` (Open Library search / by hand / AO3); *BG vs EN* = `story_added` by the book's edition
+  `language`, where AO3 fics and events from before this was recorded count as unknown.
 
 ## Push notifications (18 Oct 2026, PO)
 - v1 sends a push only for **replies to you and @mentions** (as in PR #13). Never comment text: "Maria replied in <story>, chapter 12".

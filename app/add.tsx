@@ -151,9 +151,16 @@ async function followFandoms(fandoms: string[]) {
   await Promise.all(fandoms.filter(Boolean).map((f) => addFavouriteFandom(f).catch(() => undefined)));
 }
 
-async function finish(story: Story, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
+// A book's edition language goes with the event (the PO's "BG vs EN"); AO3 fics have none.
+async function finish(
+  story: Story,
+  status: LibraryStatus,
+  kind: StoryKind,
+  source: 'open_library' | 'manual' | 'ao3',
+  language?: BookLanguage,
+) {
   await addToLibrary(story.id, status);
-  void track('story_added', { kind, source, status });
+  void track('story_added', language ? { kind, source, status, language } : { kind, source, status });
   if (status === 'finished') {
     // Same as tapping Finished on the story page: a WIP is caught up to its published chapters,
     // and the "You finished it!" screen follows (rate a book, The Epilogue, or "caught up").
@@ -302,7 +309,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     setError('');
     try {
       const story = existing ?? (await createBook(book, { chapters: chapters.trim() ? n : null }, language));
-      await finish(story, status, 'book', 'open_library');
+      await finish(story, status, 'book', 'open_library', language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -369,7 +376,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setError('');
     try {
       const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: chapters.trim() ? n : null, language });
-      await finish(story, status, 'book', 'manual');
+      await finish(story, status, 'book', 'manual', language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);

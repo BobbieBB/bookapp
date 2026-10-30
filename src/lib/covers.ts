@@ -53,6 +53,29 @@ export async function myCoverUrl(storyId: string): Promise<string | null> {
   return data.signedUrl;
 }
 
+/**
+ * Short-lived links to your covers for many stories at once (library rows), keyed by story id; stories
+ * without one are left out. One query and one signing request, however many rows there are.
+ */
+export async function myCoverUrls(storyIds: string[]): Promise<Record<string, string>> {
+  if (!storyIds.length) return {};
+  const { data, error } = await supabase.from('custom_covers').select('story_id, path').in('story_id', storyIds);
+  if (error) throw error;
+  if (!data.length) return {};
+  const { data: signed, error: signError } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrls(data.map((c) => c.path), SIGNED_URL_SECONDS);
+  if (signError) throw signError;
+  const storyOf = new Map(data.map((c) => [c.path, c.story_id]));
+  const urls: Record<string, string> = {};
+  for (const link of signed) {
+    // A file that can't be signed (gone from storage) just means the usual cover for that row.
+    const storyId = link.path ? storyOf.get(link.path) : undefined;
+    if (storyId && !link.error && link.signedUrl) urls[storyId] = link.signedUrl;
+  }
+  return urls;
+}
+
 /** Back to the usual cover (typographic, or Open Library's for books). */
 export async function removeCover(storyId: string) {
   const path = await currentPath(storyId);

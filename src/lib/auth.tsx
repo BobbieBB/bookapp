@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileState('loading');
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, display_name, reads_books, reads_fanfic')
+      .select('id, username, display_name, reads_books, reads_fanfic, is_admin')
       .eq('id', userId)
       .maybeSingle();
     if (id !== requestId.current) return;
