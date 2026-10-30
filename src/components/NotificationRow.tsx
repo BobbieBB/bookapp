@@ -12,7 +12,8 @@ export function NotificationRow({ n }: { n: Notification }) {
   const t = useT();
   const { language } = useLanguage();
   const { c, card } = useTheme();
-  const name = n.actor_username ?? '';
+  // No actor once they deleted their account.
+  const name = n.actor_username ?? t('account.deletedReader');
   const what = t(`notifications.${n.type}`, { name });
   const room = n.room_kind === 'epilogue' ? t('room.epilogue') : t('room.chapter', { n: n.section_number ?? 0 });
   const unread = n.read_at === null;

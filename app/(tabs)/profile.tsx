@@ -237,6 +237,7 @@ export default function Profile() {
         </Card>
 
         <Button variant="secondary" title={t('common.signOut')} onPress={signOut} />
+        <Button variant="link" title={t('account.deleteLink')} onPress={() => router.push('/delete-account')} />
       </ScrollView>
     </SafeAreaView>
   );
