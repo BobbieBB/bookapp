@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
@@ -109,8 +109,8 @@ describe('a book you are reading', () => {
 describe('a WIP fic you are caught up with', () => {
   it('shows fic details: fandom, ship, AO3 rating, archive warnings and a link to all tags', async () => {
     await open('en', wipId);
-    expect(screen.getByText('Good Omens')).toBeOnTheScreen();
-    expect(screen.getByText('Aziraphale/Crowley')).toBeOnTheScreen();
+    expect(screen.getByText(/^Fandom\s+Good Omens$/)).toBeOnTheScreen();
+    expect(screen.getByText(/^Ship\s+Aziraphale\/Crowley$/)).toBeOnTheScreen();
     expect(screen.getByText('Mature')).toBeOnTheScreen();
     expect(screen.getByText('Major character death')).toBeOnTheScreen();
     expect(screen.getByText('All tags on AO3 ↗')).toBeOnTheScreen();
@@ -120,7 +120,7 @@ describe('a WIP fic you are caught up with', () => {
 
   it('reports a newly published chapter when you finish it', async () => {
     await open('en', wipId);
-    await fireEvent.press(screen.getByText('Chapter 6 is out: I finished it'));
+    await fireEvent.press(screen.getByText('Chapter 6 is out: I read it'));
     expect(await screen.findByText('Finished chapter 6 of 6', {}, { timeout: 8000 })).toBeOnTheScreen();
     const story = (await supabase.from('stories').select('published_sections').eq('id', wipId).single().throwOnError()).data!;
     expect(story.published_sections).toBe(6);
@@ -176,5 +176,23 @@ describe('the discussion rooms on a story page', () => {
     expect(screen.queryByText('room 2')).toBeNull();
     await fireEvent.press(screen.getByTestId('room-chapter-1'));
     expect(await screen.findByText('room 1', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+});
+
+describe('a Want to read book added without its chapter count', () => {
+  it('asks for the count on its page, once', async () => {
+    const id = (await createManualBook({ title: `Count Later ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    expect(screen.getByText('How many chapters does it have?')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    await waitFor(
+      async () => {
+        const story = (await supabase.from('stories').select('total_sections').eq('id', id).single().throwOnError()).data!;
+        expect(story.total_sections).toBe(12);
+      },
+      { timeout: 8000 },
+    );
   });
 });

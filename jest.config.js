@@ -12,4 +12,6 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/supabase/'],
   // App tests talk to a real local Supabase stack, so give them more than the 5 s default.
   testTimeout: 30_000,
+  // On GitHub, failed tests also show as annotations on the checks (readable without the full log).
+  reporters: process.env.GITHUB_ACTIONS ? ['default', ['github-actions', { silent: false }], 'summary'] : ['default'],
 };

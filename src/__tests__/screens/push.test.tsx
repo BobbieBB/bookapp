@@ -113,7 +113,7 @@ describe('Profile without an EAS project', () => {
     try {
       await renderScreen('en', { profile: Profile }, '/profile');
       await fireEvent(await screen.findByLabelText('Notifications on this phone'), 'valueChange', true);
-      expect(await screen.findByText('Push notifications aren’t set up yet.')).toBeOnTheScreen();
+      expect(await screen.findByText('Notifications don’t work in this version of the app yet.')).toBeOnTheScreen();
     } finally {
       constants.expoConfig = { extra: { eas: { projectId: 'project-1' } } };
     }

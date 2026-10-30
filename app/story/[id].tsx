@@ -4,13 +4,13 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } 
 
 import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
-import { CoverActions, useCustomCover } from '@/components/CustomCover';
+import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
 import { isAo3Link } from '@/lib/links';
-import { progressLine } from '@/lib/library';
+import { progressLine, statusKey } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
 import {
@@ -23,13 +23,16 @@ import {
   nextChapter,
   pagePercent,
   reopen,
+  setBookChapterCount,
   setChapter,
   setPage,
   setStatus,
+  finishStory,
+  finishedFields,
   type MyEntry,
   type StoryDetails,
 } from '@/lib/story';
-import { STATUS_KEY, type LibraryEntry, type LibraryStatus } from '@/lib/types';
+import { type LibraryEntry, type LibraryStatus } from '@/lib/types';
 import { useLookup } from '@/lib/useLookup';
 import { coverColor, radius, softShadow, space, useTheme } from '@/theme';
 
@@ -96,6 +99,17 @@ function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | 
   );
 }
 
+/** "Fandom  Harry Potter": a quiet label, then the value, so fandom and ship can't be mixed up. */
+function LabelledLine({ label, value }: { label: string; value: string }) {
+  const { c, fonts } = useTheme();
+  return (
+    <Text style={{ fontSize: 16, lineHeight: 22, color: c.ink, fontFamily: fonts.body }}>
+      <Text style={{ fontFamily: fonts.bodyBold, color: c.muted }}>{label}  </Text>
+      {value}
+    </Text>
+  );
+}
+
 function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 'secondary' }) {
   const { c, isDark, fonts } = useTheme();
   return (
@@ -130,11 +144,14 @@ function StoryBody({
   const running = useRef(false);
   const [error, setError] = useState('');
   const [picking, setPicking] = useState(false);
+  const [countText, setCountText] = useState('');
+  const [countError, setCountError] = useState('');
   const [pending, setPending] = useState<{ base: MyEntry | null; patch: Partial<MyEntry> }>({ base: null, patch: {} });
   const entry = loaded && pending.base === loaded ? { ...loaded, ...pending.patch } : loaded;
   const [pageText, setPageText] = useState(entry?.progress_page?.toString() ?? '');
 
   const myCover = useCustomCover(story.id, loaded !== null);
+  const [coverOpen, setCoverOpen] = useState(false);
   const isFic = story.kind === 'fanfic';
   const count = chapterCount(story);
 
@@ -187,11 +204,13 @@ function StoryBody({
     <>
       <View style={{ flexDirection: 'row', gap: space.l }}>
         <View style={{ width: 96, gap: space.xs }}>
-          <Cover story={story} customUrl={myCover.url} />
-          {myCover.url ? <T v="muted">{t('covers.onlyYou')}</T> : null}
+          <View>
+            <Cover story={story} customUrl={myCover.url} />
+            {entry ? <CoverEditButton hasCover={!!myCover.url} onPress={() => setCoverOpen((o) => !o)} /> : null}
+          </View>
         </View>
         <View style={{ flex: 1, gap: space.xs }}>
-          <Text accessibilityRole="header" testID="story-title" style={{ fontFamily: fonts.display, fontSize: 26, letterSpacing: -0.5, color: c.ink }}>
+          <Text accessibilityRole="header" testID="story-title" style={{ fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 28, color: c.ink }}>
             {story.title}
           </Text>
           <T v="body">{story.author_name}</T>
@@ -205,16 +224,8 @@ function StoryBody({
             {story.status ? <Tag tone="secondary" label={story.status === 'ongoing' ? t('add.wip') : t('add.complete')} /> : null}
             {isRating(story.content_rating) ? <Tag label={t(RATING_LABEL[story.content_rating])} /> : null}
           </View>
-          {story.fandoms.map((f) => (
-            <T key={f} v="label">
-              {f}
-            </T>
-          ))}
-          {story.ships.map((s) => (
-            <T key={s} v="body">
-              {s}
-            </T>
-          ))}
+          {story.fandoms.length ? <LabelledLine label={t('story.fandom')} value={story.fandoms.join(', ')} /> : null}
+          {story.ships.length ? <LabelledLine label={t('story.ship')} value={story.ships.join(', ')} /> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {story.warnings.map((w) => (
               <Tag key={w} label={isWarning(w) ? t(WARNING_LABEL[w]) : w} />
@@ -230,7 +241,7 @@ function StoryBody({
 
       <ErrorText>{error}</ErrorText>
 
-      {entry ? <CoverActions cover={myCover} /> : null}
+      {entry ? <CoverActions cover={myCover} open={coverOpen} onClose={() => setCoverOpen(false)} /> : null}
 
       {entry && libraryEntry ? (
         <Card style={{ gap: space.m }}>
@@ -238,14 +249,44 @@ function StoryBody({
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
             {statuses.map((s) => (
-              <Chip key={s} label={t(STATUS_KEY[s])} active={entry.status === s} onPress={() => saved({ status: s }, () => setStatus(story.id, userId, s), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
+              <Chip key={s} label={t(statusKey(s, story))} active={entry.status === s} onPress={() => saved(s === 'finished' ? finishedFields(story) : { status: s }, () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
             ))}
           </View>
 
           <T v="label">{progressLine(libraryEntry, t)}</T>
 
+          {/* A Want to read book added without its chapter count: ask for it here, once. */}
+          {story.kind === 'book' && story.has_chapters && chapterCount(story) === null ? (
+            <View style={{ gap: space.s }}>
+              <T v="label">{t('story.countTitle')}</T>
+              <T v="muted">{t('story.countHint')}</T>
+              <Field
+                label={t('add.chapters')}
+                keyboardType="number-pad"
+                value={countText}
+                onChangeText={(v) => {
+                  setCountText(v);
+                  setCountError('');
+                }}
+                placeholder={t('add.chaptersPlaceholder')}
+                error={countError || undefined}
+              />
+              <Button
+                variant="secondary"
+                title={t('story.countSave')}
+                onPress={() => {
+                  const n = Number(countText);
+                  if (!Number.isInteger(n) || n < 1 || n > 5000) return setCountError(t('add.errorChapters'));
+                  void act(() => setBookChapterCount(story.id, n));
+                }}
+              />
+            </View>
+          ) : null}
+
+          {/* On a caught-up WIP you mostly wait: a new chapter is a quiet action, not the main button. */}
           {next ? (
             <Button
+              variant={next.newlyPublished ? 'secondary' : 'primary'}
               title={next.newlyPublished ? t('story.chapterOut', { n: next.chapter }) : t('story.finishChapter', { n: next.chapter })}
               onPress={() => saved({ progress_section: next.chapter }, async () => { await finishChapter(story.id, userId, next); void track('chapter_finished', { kind: story.kind }); })}
              

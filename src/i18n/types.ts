@@ -1,5 +1,5 @@
-/** A message: plain text, or plural forms picked with Intl.PluralRules for the language. */
-export type Message = string | ({ other: string } & Partial<Record<Intl.LDMLPluralRule, string>>);
+/** A message: plain text, or plural forms ("one" for exactly 1, "other" otherwise; see pluralForm). */
+export type Message = string | ({ other: string } & { one?: string });
 
 export type Messages = Record<string, Message>;
 

@@ -58,6 +58,14 @@ function RootStack() {
   if (signedIn && !profile && profileState === 'error') return <ProfileError />;
   const onboarded = signedIn && !!profile;
 
+  const pushed = {
+    headerShown: true,
+    title: '',
+    headerBackButtonDisplayMode: 'minimal' as const,
+    headerShadowVisible: false,
+    headerStyle: { backgroundColor: c.ground },
+    headerTintColor: c.ink,
+  };
   // Each screen is only reachable in the right state: signed out → sign-in,
   // signed in without a profile → onboarding, otherwise → the app.
   return (
@@ -73,8 +81,9 @@ function RootStack() {
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="add" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="story/[id]" />
-          <Stack.Screen name="finished/[id]" />
+          {/* Pages you open from a list get the native back chevron and stay clear of the status bar. */}
+          <Stack.Screen name="story/[id]" options={pushed} />
+          <Stack.Screen name="finished/[id]" options={pushed} />
           <Stack.Screen name="room/[storyId]/[room]" />
           <Stack.Screen name="blocked" />
           <Stack.Screen name="feedback" />

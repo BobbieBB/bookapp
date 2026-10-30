@@ -65,7 +65,8 @@ export function Button({
   );
 }
 
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+/** A labelled text input. With `error`, the border turns red and the message shows right under it. */
+export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string }) {
   const { c, fonts } = useTheme();
   return (
     <View style={{ gap: space.xs }}>
@@ -73,11 +74,12 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
       <TextInput
         placeholderTextColor={c.muted}
         accessibilityLabel={label}
+        accessibilityHint={error || undefined}
         style={{
           ...(props.multiline ? { minHeight: 120, paddingVertical: space.m, textAlignVertical: 'top' } : { height: 50 }),
           borderRadius: radius.s,
-          borderWidth: 1.5,
-          borderColor: c.hairline,
+          borderWidth: error ? 2 : 1.5,
+          borderColor: error ? c.danger : c.hairline,
           backgroundColor: c.surface,
           paddingHorizontal: space.m,
           fontSize: 16,
@@ -86,6 +88,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
         }}
         {...props}
       />
+      {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );
 }
@@ -93,9 +96,11 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
 export function Toggle({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
-      <Text style={{ fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.m, minHeight: 44 }}>
+      {/* The label wraps (Bulgarian labels are long); the switch keeps its size and never leaves the card. */}
+      <Text style={{ flex: 1, fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
+      <Switch
+        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
     </View>
   );
 }
@@ -154,6 +159,7 @@ export function Chip({ label, active, onPress, big }: { label: string; active: b
         paddingHorizontal: big ? 18 : 14,
         borderRadius: radius.pill,
         justifyContent: 'center',
+        alignItems: 'center', // centred also when the chip is stretched (Book / Fanfiction on Add)
         backgroundColor: active ? c.primary : c.surface,
         ...(active ? {} : softShadow(isDark, 'small')),
       }}

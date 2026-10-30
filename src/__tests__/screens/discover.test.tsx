@@ -92,11 +92,11 @@ describe('Discover', () => {
     expect(await screen.findByText(`story ${popularId}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
-  it('All fandoms searches every fandom in the app', async () => {
+  it('Search fandoms searches every fandom in the app', async () => {
     await as(reader);
     await renderScreen('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
-    await fireEvent.press(await screen.findByText('All fandoms', {}, { timeout: 8000 }));
-    await fireEvent.changeText(screen.getByLabelText('Search fandoms'), `library fandom ${run}`);
+    await fireEvent.press(await screen.findByText('Search fandoms', {}, { timeout: 8000 }));
+    await fireEvent.changeText(screen.getByLabelText('Fandom name, from 3 letters'), `library fandom ${run}`);
     await fireEvent.press(await screen.findByTestId(`fandom-hit-${FROM_LIBRARY}`, {}, { timeout: 8000 }));
     expect(await screen.findByText('Library Fandom Fic', {}, { timeout: 8000 })).toBeOnTheScreen();
   });

@@ -110,7 +110,7 @@ describe('Library', () => {
     await renderScreen('bg', Library);
     expect(await screen.findAllByText('Chaptered', {}, { timeout: 8000 })).not.toHaveLength(0);
     expect(screen.getByText('Моята библиотека')).toBeOnTheScreen();
-    for (const chip of ['Книги', 'Фенфикшън', 'Всички', 'Чета в момента', 'Искам да прочета', 'Прочетено', 'Недочетено']) {
+    for (const chip of ['Книги', 'Фенфикшън', 'Всички', 'Чета в момента', 'Искам да прочета', 'Прочетено', 'DNF']) {
       expect(screen.getByRole('button', { name: chip })).toBeOnTheScreen();
     }
     expect(screen.queryByRole('button', { name: 'На пауза' })).toBeNull();

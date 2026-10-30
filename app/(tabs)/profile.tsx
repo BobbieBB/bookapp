@@ -51,7 +51,7 @@ function YourFandoms() {
     <Card>
       <T v="h2">{t('profile.fandoms')}</T>
       <T v="muted">{t('profile.fandomsHint')}</T>
-      {shown.picked.length === 0 && <T v="muted">{t('profile.fandomsEmpty')}</T>}
+      {shown.picked.length === 0 && shown.suggested.length === 0 && <T v="muted">{t('profile.fandomsEmpty')}</T>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
         {shown.picked.map((fandom) => (
           <View
