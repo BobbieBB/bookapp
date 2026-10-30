@@ -1,8 +1,11 @@
 import { fireEvent, screen } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+import Home from '../../../app/(tabs)/index';
+import Library from '../../../app/(tabs)/library';
 import StoryScreen from '../../../app/story/[id]';
 import { renderScreen } from '../../../test/router';
+import { uploadCover } from '../../lib/covers';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -98,4 +101,36 @@ it('only for stories in your library', async () => {
 it('in Bulgarian', async () => {
   await renderScreen('bg', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
   expect(await screen.findByRole('button', { name: 'Моя собствена корица' }, { timeout: 8000 })).toBeOnTheScreen();
+});
+
+describe('in your Home and Library rows', () => {
+  beforeAll(async () => {
+    const covered = (await createManualBook({ title: 'Row With Cover', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(covered, 'currently_reading');
+    const bytes = Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0));
+    await uploadCover(covered, bytes.buffer, 'image/png');
+    const plain = (await createManualBook({ title: 'Row Without Cover', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(plain, 'currently_reading');
+  });
+
+  it('Home shows your cover, and the others stay typographic', async () => {
+    await renderScreen('en', { index: Home }, '/');
+    expect(await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Row With Cover cover')).toBeNull();
+    expect(screen.getByLabelText('Row Without Cover cover')).toBeOnTheScreen();
+  });
+
+  it('Library too, in Bulgarian', async () => {
+    await renderScreen('bg', { index: Library }, '/');
+    expect(await screen.findByLabelText('Твоята собствена корица за Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Корица на Row Without Cover')).toBeOnTheScreen();
+  });
+
+  it('an image that fails to load falls back to the typographic cover', async () => {
+    await renderScreen('en', { index: Library }, '/');
+    const image = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    await fireEvent(image, 'error', { nativeEvent: { error: 'gone' } });
+    expect(await screen.findByLabelText('Row With Cover cover')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Your own cover for Row With Cover')).toBeNull();
+  });
 });

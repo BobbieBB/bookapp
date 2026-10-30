@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddButton } from '@/components/AddButton';
+import { useMyCoverUrls } from '@/components/CustomCover';
 import { StoryRow } from '@/components/StoryRow';
 import { Card, Chip, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
@@ -20,6 +21,7 @@ export default function Library() {
   const [kind, setKind] = useState<StoryKind>(profile?.reads_books === false ? 'fanfic' : 'book');
   const [filter, setFilter] = useState<LibraryStatus | 'all'>('all');
   const { entries, loading, error } = useMyLibrary(session?.user.id);
+  const coverUrls = useMyCoverUrls(entries);
 
   // Books and fanfiction are always shown in separate sections (fandom etiquette).
   const shown = entries.filter((e) => e.story.kind === kind && (filter === 'all' || e.status === filter));
@@ -62,7 +64,7 @@ export default function Library() {
         {loading ? (
           <ActivityIndicator color={c.primary} />
         ) : shown.length ? (
-          shown.map((e) => <StoryRow key={e.story_id} entry={e} showStatus={filter === 'all'} />)
+          shown.map((e) => <StoryRow key={e.story_id} entry={e} showStatus={filter === 'all'} coverUrl={coverUrls[e.story_id]} />)
         ) : (
           <Card>
             <T v="h2">{kind === 'book' ? t('library.emptyBooks') : t('library.emptyFics')}</T>
