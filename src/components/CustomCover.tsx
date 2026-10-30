@@ -1,13 +1,14 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
+import { Pressable, View } from 'react-native';
 
 import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { myCoverUrl, myCoverUrls, removeCover, uploadCover } from '@/lib/covers';
-import { space } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 const COVER_WIDTH = 1200;
 const MAX_COVER_BYTES = 5 * 1024 * 1024; // the covers bucket's limit
@@ -132,37 +133,77 @@ export function useMyCoverUrls(entries: { story_id: string }[]): Record<string, 
   return urls;
 }
 
-/** The quiet link, the privacy explanation before picking, and the way back to the usual cover. */
-export function CoverActions({ cover }: { cover: ReturnType<typeof useCustomCover> }) {
+/** The small pencil on the cover: "Use my own cover" / "Change my cover" for screen readers. */
+export function CoverEditButton({ hasCover, onPress }: { hasCover: boolean; onPress: () => void }) {
   const t = useT();
-  const [explaining, setExplaining] = useState(false);
+  const { c } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={hasCover ? t('covers.change') : t('covers.use')}
+      onPress={onPress}
+      hitSlop={8}
+      style={{
+        position: 'absolute',
+        right: -10,
+        top: -10,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: c.surface,
+        borderWidth: 2,
+        borderColor: c.ground,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Feather name="edit-2" size={16} color={c.ink} />
+    </Pressable>
+  );
+}
 
-  if (cover.url) {
-    return (
-      <View>
-        <Button variant="link" title={t('covers.remove')} onPress={cover.remove} loading={cover.busy} />
-        <ErrorText>{cover.error}</ErrorText>
-      </View>
-    );
-  }
+/**
+ * Opened from the pencil on the cover. Before the first cover it explains why it stays private;
+ * with one, it offers another image or the usual cover, with the reminder that only you see it.
+ */
+export function CoverActions({
+  cover,
+  open,
+  onClose,
+}: {
+  cover: ReturnType<typeof useCustomCover>;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const hasCover = !!cover.url;
+
   return (
     <View style={{ gap: space.s }}>
-      {explaining ? (
+      {open ? (
         <Card style={{ gap: space.m }}>
-          <T v="body">{t('covers.explain')}</T>
+          <T v="body">{hasCover ? t('covers.onlyYou') : t('covers.explain')}</T>
           <Button
-            title={t('covers.choose')}
+            title={hasCover ? t('covers.chooseAnother') : t('covers.choose')}
             loading={cover.busy}
             onPress={async () => {
               await cover.choose();
-              setExplaining(false);
+              onClose();
             }}
           />
-          <Button variant="link" title={t('covers.cancel')} onPress={() => setExplaining(false)} />
+          {hasCover ? (
+            <Button
+              variant="link"
+              title={t('covers.remove')}
+              onPress={async () => {
+                await cover.remove();
+                onClose();
+              }}
+            />
+          ) : null}
+          <Button variant="link" title={t('covers.cancel')} onPress={onClose} />
         </Card>
-      ) : (
-        <Button variant="link" title={t('covers.use')} onPress={() => setExplaining(true)} />
-      )}
+      ) : null}
       <ErrorText>{cover.error}</ErrorText>
     </View>
   );

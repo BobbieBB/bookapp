@@ -22,7 +22,8 @@ export type Comment = {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
-  author: { id: string; username: string };
+  /** Null once the author has deleted their account (shown as "Deleted reader"). */
+  author: { id: string; username: string } | null;
   reactions: { emoji: Emoji; count: number; mine: boolean }[];
 };
 

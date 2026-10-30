@@ -7,7 +7,7 @@ import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { isAo3Link } from '@/lib/links';
 import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/reviews';
-import { loadStoryPage, type StoryDetails } from '@/lib/story';
+import { canComplete, loadStoryPage, markComplete, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
 
@@ -25,17 +25,20 @@ export default function FinishedScreen() {
     const { story, entry } = await loadStoryPage(id!, userId!);
     const finished = entry?.status === 'finished';
     const mine = finished && story.kind === 'book' ? await Promise.all([myRating(id!), myReview(id!)]) : null;
-    return { story, finished, mine };
+    return { story, finished, mine, progress: entry?.progress_section ?? 0 };
   });
 
   return (
-    <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l }}>
+    <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1 }}>
       {page.data ? (
-        <Finished story={page.data.story} finished={page.data.finished} rating={page.data.mine?.[0] ?? null} review={page.data.mine?.[1] ?? null} />
+        <Finished story={page.data.story} finished={page.data.finished} progress={page.data.progress} rating={page.data.mine?.[0] ?? null} review={page.data.mine?.[1] ?? null} />
       ) : page.error ? (
         <ErrorText>{t('finishing.loadFailed')}</ErrorText>
       ) : (
-        <ActivityIndicator color={c.primary} />
+        // Saving "Finished" and loading the page can take a moment: a clear spinner, not a blank screen.
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
+          <ActivityIndicator size="large" color={c.primary} accessibilityLabel={t('finishing.loading')} />
+        </View>
       )}
     </ScrollView>
   );
@@ -44,11 +47,13 @@ export default function FinishedScreen() {
 function Finished({
   story,
   finished,
+  progress,
   rating: savedRating,
   review: savedReview,
 }: {
   story: StoryDetails;
   finished: boolean;
+  progress: number;
   rating: number | null;
   review: { body: string; contains_spoilers: boolean } | null;
 }) {
@@ -56,6 +61,23 @@ function Finished({
   const t = useT();
   const [error, setError] = useState('');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
+  // A WIP fic marked Finished: you're caught up, but The Epilogue (spoilers for the whole story)
+  // only opens once it is complete, so don't offer a door that is locked.
+  const wip = story.kind === 'fanfic' && story.status === 'ongoing';
+  const [completing, setCompleting] = useState(false);
+
+  // The usual case: the reader just read the last chapter, but Livami still has it as a WIP.
+  async function complete() {
+    setCompleting(true);
+    setError('');
+    try {
+      await markComplete(story.id);
+      router.replace(`/room/${story.id}/epilogue`);
+    } catch {
+      setError(t('finishing.completeFailed'));
+      setCompleting(false);
+    }
+  }
 
   if (!finished) {
     return (
@@ -70,7 +92,9 @@ function Finished({
   return (
     <>
       <View accessible accessibilityRole="header" style={{ gap: space.s, paddingVertical: space.xl }}>
-        <Text style={{ fontFamily: fonts.moment, fontSize: 44, lineHeight: 50, color: c.ink }}>{t('finishing.title')}</Text>
+        <Text style={{ fontFamily: fonts.moment, fontSize: 44, lineHeight: 50, color: c.ink }}>
+          {wip ? t('finishing.caughtUpTitle') : t('finishing.title')}
+        </Text>
         <T v="h2">{story.title}</T>
       </View>
 
@@ -93,7 +117,20 @@ function Finished({
         <BookRating storyId={story.id} rating={savedRating} review={savedReview} />
       )}
 
-      <Button title={t('finishing.epilogue')} onPress={() => router.push(`/room/${story.id}/epilogue`)} />
+      {wip ? (
+        <>
+          <T v="body">{t('finishing.caughtUpHint')}</T>
+          {canComplete(story, progress) ? (
+            <View style={{ gap: space.s }}>
+              <T v="label">{t('finishing.completeQuestion')}</T>
+              <Button title={t('finishing.markComplete')} onPress={complete} loading={completing} />
+            </View>
+          ) : null}
+          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={() => router.back()} />
+        </>
+      ) : (
+        <Button title={t('finishing.epilogue')} onPress={() => router.replace(`/room/${story.id}/epilogue`)} />
+      )}
     </>
   );
 }

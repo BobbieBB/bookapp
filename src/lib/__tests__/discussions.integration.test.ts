@@ -93,7 +93,7 @@ it('comments, one level of replies, and reactions', async () => {
   let comments = await loadComments(ch2);
   expect(comments.find((x) => x.id === top.id)?.reactions).toEqual([{ emoji: '🔥', count: 1, mine: true }]);
   expect(comments.find((x) => x.id === reply.id)?.parent_id).toBe(top.id);
-  expect(comments.find((x) => x.id === top.id)?.author.username).toBe(`ahead_${run}`);
+  expect(comments.find((x) => x.id === top.id)?.author?.username).toBe(`ahead_${run}`);
 
   await toggleReaction(top.id, '🔥', true);
   comments = await loadComments(ch2);

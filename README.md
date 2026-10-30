@@ -12,19 +12,19 @@ the whole story.
 
 ## Status
 
-MVP v1 feature-complete in code (PRs #3–#13, each building on the one before), pending review and
-merge. In the app:
+MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
 - **Basics:** sign up, onboarding and the English/Bulgarian UI.
 - **Stories:** adding books (Open Library) and fics (AO3 link), and the story page with reading
   progress and WIP chapters.
 - **Discussions:** chapter discussions and The Epilogue with replies, reactions and live updates.
 - **After reading:** "You finished it!", book ratings and reviews.
 - **Home and Discover:** Home with replies and @mentions, notifications, and Discover by fandom.
-- **Safety:** report, block, feedback and "Authors are welcome".
+- **Safety:** report, block, feedback, "Authors are welcome" and deleting your account.
 - **Extras:** private custom covers, push notifications and first-party analytics.
 
 Before launch:
-- **Hosted database:** apply the migrations to the hosted Supabase in order.
+- **Hosted database:** apply the migrations to the hosted Supabase in order (everything up to
+  the newest file in `supabase/migrations`).
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.

@@ -38,7 +38,7 @@ function ReviewCard({ review }: { review: Review }) {
   const hidden = review.contains_spoilers && !revealed;
   return (
     <Card>
-      <T v="label">{review.author.username}</T>
+      <T v="label">{review.author?.username ?? t('account.deletedReader')}</T>
       {hidden ? (
         <Pressable accessibilityRole="button" onPress={() => setRevealed(true)} style={{ minHeight: 44, justifyContent: 'center' }}>
           <T v="muted">{t('finishing.spoilerHidden')}</T>

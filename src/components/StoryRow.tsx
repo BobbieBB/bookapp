@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { T } from '@/components/ui';
-import { progressLine, sectionTotal } from '@/lib/library';
+import { progressLine, sectionTotal, statusKey } from '@/lib/library';
 import type { LibraryEntry } from '@/lib/types';
-import { STATUS_KEY } from '@/lib/types';
 import { useT } from '@/i18n';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
 
-const COVER = { width: 64, height: 92, borderRadius: 10 };
+const COVER = { width: 76, height: 110, borderRadius: 10 };
 
 export function StoryRow({
   entry,
@@ -30,9 +29,15 @@ export function StoryRow({
   const s = entry.story;
   const total = sectionTotal(entry);
   const pct =
-    entry.status === 'finished' ? 100 : total ? Math.min(100, Math.round((entry.progress_section / total) * 100)) : 0;
-  const subtitle =
-    s.kind === 'fanfic' ? [s.author_name, s.fandoms[0], s.ships[0]].filter(Boolean).join(' · ') : s.author_name;
+    entry.status === 'finished' && !(s.kind === 'fanfic' && s.status === 'ongoing') ? 100 : total ? Math.min(100, Math.round((entry.progress_section / total) * 100)) : 0;
+  // Only the author under the title: a fandom next to it read like a co-author (PO, 20 Oct 2026).
+  // The status line says only what the empty/filled bar doesn't: no "Not started", no "Finished · Finished".
+  const statusLine =
+    entry.status === 'finished'
+      ? progressLine(entry, tr) // "Finished", or "Caught up · 16 of 16 chapters" on a WIP
+      : [showStatus ? tr(statusKey(entry.status, s)) : null, entry.progress_section > 0 ? progressLine(entry, tr) : null]
+          .filter(Boolean)
+          .join(' · ');
   const cover = coverColor(s.id, t.isDark);
   // The link that failed to load, so a broken image falls back to the typographic cover (a new link
   // for the same story, after a reload, gets another try).
@@ -44,7 +49,7 @@ export function StoryRow({
       accessibilityRole="link"
       accessibilityLabel={s.title}
       onPress={() => router.push({ pathname: '/story/[id]', params: { id: s.id } })}
-      style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
+      style={[t.card, { flexDirection: 'row', alignItems: 'flex-start', gap: 14, padding: space.m }]}
     >
       {/* The reader's own cover if they set one (only they see it); otherwise the typographic cover.
           Fics never get a public cover (fanart is someone else's work). */}
@@ -64,13 +69,13 @@ export function StoryRow({
             backgroundColor: cover.bg,
             ...softShadow(t.isDark, 'small'),
             justifyContent: 'space-between',
-            padding: 6,
+            padding: 7,
           }}
         >
-          <Text numberOfLines={4} style={{ fontFamily: fonts.moment, fontSize: 15, lineHeight: 15, color: cover.fg }}>
+          <Text numberOfLines={5} style={{ fontFamily: fonts.moment, fontSize: 14, lineHeight: 15, color: cover.fg }}>
             {s.title}
           </Text>
-          <Text numberOfLines={2} style={{ fontFamily: fonts.bodyBold, fontSize: 8, lineHeight: 9, letterSpacing: 0.2, color: cover.fg }}>
+          <Text numberOfLines={1} style={{ fontFamily: fonts.bodyBold, fontSize: 8, lineHeight: 9, letterSpacing: 0.2, color: cover.fg }}>
             {s.author_name.toUpperCase()}
           </Text>
         </View>
@@ -80,12 +85,9 @@ export function StoryRow({
           {s.title}
         </T>
         <T v="muted" numberOfLines={1}>
-          {subtitle}
+          {s.author_name}
         </T>
-        <T v="label">
-          {showStatus ? `${tr(STATUS_KEY[entry.status])} · ` : ''}
-          {progressLine(entry, tr)}
-        </T>
+        {statusLine ? <T v="label">{statusLine}</T> : null}
         {hint ? <T v="muted">{hint}</T> : null}
         <View
           style={{
