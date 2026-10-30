@@ -208,7 +208,7 @@ describe('the story_added event', () => {
     docs = [{ key: `/works/OL${run}W`, title: `Found Book ${run}`, author_name: ['Someone'], first_publish_year: 2001 }];
     await open('en');
     await fireEvent.changeText(await screen.findByLabelText('Search'), 'found');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Add' }, { timeout: 3000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: `Add: Found Book ${run}` }, { timeout: 3000 }));
     await fireEvent.press(await screen.findByRole('button', { name: 'English' }));
     await fireEvent.changeText(await screen.findByLabelText('Chapters'), '9');
     await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
