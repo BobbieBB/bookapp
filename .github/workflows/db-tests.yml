@@ -40,6 +40,6 @@ jobs:
       - name: Start local Supabase
         run: |
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector
-          supabase status -o env | sed -n 's/^API_URL="\(.*\)"$/EXPO_PUBLIC_SUPABASE_URL=\1/p; s/^PUBLISHABLE_KEY="\(.*\)"$/EXPO_PUBLIC_SUPABASE_KEY=\1/p' >> "$GITHUB_ENV"
+          supabase status -o env | sed -n 's/^API_URL="\(.*\)"$/EXPO_PUBLIC_SUPABASE_URL=\1/p; s/^PUBLISHABLE_KEY="\(.*\)"$/EXPO_PUBLIC_SUPABASE_KEY=\1/p; s/^SECRET_KEY="\(.*\)"$/SUPABASE_SECRET_KEY=\1/p' >> "$GITHUB_ENV"
       - run: npm run typecheck
       - run: npm test

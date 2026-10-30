@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { router, useFocusEffect, useRouter } from 'expo-router';
 
-import { Card, Chip, ErrorText, Field, T } from '@/components/ui';
+import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
@@ -75,10 +75,16 @@ function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
   const { loading, data, error } = useLookup(trimmed.length >= 3 ? trimmed : null, () => searchFandoms(trimmed), SEARCH_DELAY_MS);
   return (
     <View style={{ gap: space.s }}>
-      <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} />
+      <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} autoFocus />
       {trimmed !== '' && loading && <T v="muted">{t('discover.searching')}</T>}
       {error !== undefined && <ErrorText>{t('discover.error')}</ErrorText>}
-      {data?.length === 0 && <T v="muted">{t('discover.noHits')}</T>}
+      {data?.length === 0 && (
+        // Cold start: Livami only knows fandoms of fics readers have added, so invite them to add one.
+        <Card style={{ gap: space.s }}>
+          <T v="muted">{t('discover.noHits')}</T>
+          <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
+        </Card>
+      )}
       {data?.map((hit) => (
         <Pressable
           key={hit.fandom}
@@ -147,22 +153,39 @@ export default function Discover() {
               <T v="overline">{t('discover.yourFandoms')}</T>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
                 {shownChips.map((fandom) => (
-                  <Chip key={fandom} label={fandom} active={selected === fandom} onPress={() => setSelected(selected === fandom ? null : fandom)} />
+                  <Chip
+                    key={fandom}
+                    label={fandom}
+                    active={selected === fandom}
+                    onPress={() => {
+                      // One choice at a time: picking a fandom closes the search.
+                      setSelected(selected === fandom ? null : fandom);
+                      setSearching(false);
+                    }}
+                  />
                 ))}
-                <Chip label={t('discover.allFandoms')} active={searching} onPress={() => setSearching(!searching)} />
+                <Chip
+                  label={t('discover.allFandoms')}
+                  active={searching}
+                  onPress={() => {
+                    setSearching(!searching);
+                    setSelected(null);
+                  }}
+                />
               </View>
               {searching && <FandomSearch onPick={pick} />}
             </View>
 
             <View style={{ gap: space.s }}>
-              <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected }) : t('discover.lively')}</T>
+              <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected.toUpperCase() }) : t('discover.lively')}</T>
               {feed.error !== undefined ? (
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
                 <ActivityIndicator color={c.primary} accessibilityLabel={t('discover.loading')} />
               ) : feed.data.length === 0 ? (
-                <Card>
+                <Card style={{ gap: space.s }}>
                   <T v="muted">{t('discover.empty')}</T>
+                  <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
                 </Card>
               ) : (
                 <>

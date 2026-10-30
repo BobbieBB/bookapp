@@ -93,6 +93,11 @@ export async function disablePush(): Promise<void> {
   await releasePendingPushToken();
 }
 
+/** The account is deleted, and its devices with it on the server: this phone just forgets its token. */
+export async function forgetPushDevice(): Promise<void> {
+  await AsyncStorage.multiRemove([PUSH_TOKEN_KEY, PENDING_RELEASE_KEY]);
+}
+
 /** Tells the server to forget a device that was turned off while offline (call on every start). */
 export async function releasePendingPushToken(): Promise<void> {
   const pending = await AsyncStorage.getItem(PENDING_RELEASE_KEY);

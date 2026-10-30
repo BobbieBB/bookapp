@@ -1,4 +1,4 @@
-import { myCoverUrl, removeCover, uploadCover } from '../covers';
+import { myCoverUrl, myCoverUrls, removeCover, uploadCover } from '../covers';
 import { addToLibrary, createManualBook } from '../stories';
 import { supabase } from '../supabase';
 
@@ -86,6 +86,18 @@ it('covers are never public, and nobody else can delete yours', async () => {
   await as(owner);
   const { data: still } = await supabase.storage.from('covers').download(path);
   expect(still).not.toBeNull();
+});
+
+it('your covers for many stories at once, in one go', async () => {
+  await as(owner);
+  const plain = (await createManualBook({ title: 'No Cover', author: 'x', chapters: 1, language: 'en' })).id;
+  await addToLibrary(plain, 'want_to_read');
+  const urls = await myCoverUrls([storyId, plain]);
+  expect(Object.keys(urls)).toEqual([storyId]);
+  expect((await fetch(urls[storyId])).status).toBe(200);
+  expect(await myCoverUrls([])).toEqual({});
+  await as(other);
+  expect(await myCoverUrls([storyId])).toEqual({}); // never someone else's
 });
 
 it('only images', async () => {

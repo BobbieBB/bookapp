@@ -1,5 +1,5 @@
 import { translate, type Language } from '../../i18n';
-import { progressLine, sectionTotal } from '../library';
+import { progressLine, sectionTotal, statusKey } from '../library';
 import type { LibraryEntry, LibraryStatus } from '../types';
 
 function entry(
@@ -54,6 +54,19 @@ describe.each([
   it('says so when nothing is read yet, and when the story is finished', () => {
     expect(line(language, entry({ published_sections: 10 }, { section: 0 }))).toBe(want.notStarted);
     expect(line(language, entry({ published_sections: 10 }, { section: 10, status: 'finished' }))).toBe(want.done);
+  });
+});
+
+describe('a WIP fic marked Finished is "Caught up"', () => {
+  const wip = { kind: 'fanfic' as const, status: 'ongoing' as const, published_sections: 16 };
+  it('names the status "Caught up" only on a WIP', () => {
+    expect(statusKey('finished', wip)).toBe('library.status.caughtUp');
+    expect(statusKey('finished', { kind: 'fanfic', status: 'completed' })).toBe('library.status.finished');
+    expect(statusKey('currently_reading', wip)).toBe('library.status.currently_reading');
+  });
+  it('shows how far, in both languages', () => {
+    expect(line('en', entry(wip, { section: 16, status: 'finished' }))).toBe('Caught up · 16 of 16 chapters');
+    expect(line('bg', entry(wip, { section: 16, status: 'finished' }))).toBe('Стигнах докрай · 16 от 16 глави');
   });
 });
 

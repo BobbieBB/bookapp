@@ -11,18 +11,19 @@ table. Anonymous users (`anon`) have no access at all.
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
 | `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public` |
 | `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
-| `comments` | Comments and replies (one level of `parent_id`) | Only readers who unlocked that discussion |
+| `comments` | Comments and replies (one level of `parent_id`); `author_id` is empty once the author deleted their account | Only readers who unlocked that discussion |
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
 | `discussion_follows` | Followed / muted discussions, last read time | You |
 | `blocks` | Users you blocked | You |
 | `notifications` | Replies, reactions and @mentions — **never the comment text** | You |
 | `ratings` | 0.5–5 in half steps, **books only** (fanfiction is never rated) | Everyone |
-| `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3) | Everyone (spoilers blurred in the app) |
+| `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3); `user_id` is empty once the author deleted their account | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
 | `feedback` | In-app feedback | Author and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
+| `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
@@ -98,6 +99,25 @@ other, and neither gets notifications from the other. A no longer sees B's react
   with them before hiding the fic.
 - Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day.
 
+## Deleting an account
+
+`delete_my_account(erase_comments)` deletes only the signed-in reader's own account (docs/DECISIONS.md,
+"Deleting an account: what happens to comments"). It deletes the `auth.users` row; every table that
+holds the reader's data references it, or `profiles`, with `on delete cascade`: profile, library and
+progress, custom covers, ratings, reactions, follows, blocks, notifications, reports they filed,
+analytics events and opt-out, push tokens. Six keys are `on delete set null` instead, and keep the row
+without its owner: `comments.author_id` and `reviews.user_id` (shown as "Deleted reader"),
+`stories.created_by` (the story is shared with its other readers), `feedback.user_id`,
+`removal_requests.requester_id` and `notifications.actor_id` (other readers keep their reply and
+mention notifications, signed "Deleted reader"). With `erase_comments`, the reader's comments are first
+soft-deleted (the text is erased, the place in the thread stays) and their reviews deleted. Removal
+requests also lose their contact details. The function locks the reader's profile row first, so a
+comment being posted from another device at the same moment is erased too, or refused. A comment's
+author can never be changed, except to empty by that `set null`. Queries compare authors with
+`is distinct from`, so a comment without an author still counts as new, can be reported and replied to.
+Storage files can't be removed from SQL: the app removes the reader's `covers/<user id>/` files before
+calling the function, and goes on if that fails.
+
 ## Push notifications
 
 When a reply or @mention notification is created, `notifications_send_push` builds one Expo push per
@@ -114,6 +134,18 @@ Devices are added only through `claim_push_token` (at most 10 per reader) and fo
 `release_push_token`, which also works from a signed-out phone. Only migrations or the service role can
 change `push_settings`.
 
+## Orphan cover files
+
+A file in the private `covers` bucket is an orphan once no `custom_covers` row points to it: the
+account was deleted, or an old cover could not be removed when it was replaced. Once a day `pg_cron`
+runs `request_cover_sweep`, which (when `cover_sweep_settings.enabled` is on) asks the `sweep-covers`
+Edge Function to run, with the secret stored in Vault as `cover_sweep_secret` in the `x-sweep-secret`
+header. The function lists orphans with `orphan_cover_paths(older_than, limit)` (default: older than
+1 day, at most 500, oldest first), which only the service role may call, and removes them through the
+Storage API, 100 per request. The 1-day grace period protects a cover being uploaded at that moment:
+its file is stored before the `custom_covers` row that points to it. Only migrations or the service
+role can change `cover_sweep_settings`.
+
 ## Functions the app calls
 
 | Function | Purpose |
@@ -124,6 +156,7 @@ change `push_settings`.
 | `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
 | `my_notifications(limit)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now |
 | `mark_notifications_read()` | Mark all your notifications read |
+| `delete_my_account(erase_comments)` | Delete your own account for good (see Deleting an account) |
 | `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |
 | `my_fandoms()` | Discover's YOUR FANDOMS: picked ones, then fandoms of fics in your library (max 6); the starter list if none |
 | `suggested_fandoms()` | Fandoms of fics in your library you haven't picked (Profile's "+" chips) |

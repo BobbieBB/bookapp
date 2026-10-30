@@ -1,4 +1,4 @@
-import { canComplete, canReopen, nextChapter, pagePercent, type ProgressStory } from '../story';
+import { canComplete, canReopen, finishedFields, nextChapter, pagePercent, type ProgressStory } from '../story';
 
 const book = (o: Partial<ProgressStory> = {}): ProgressStory => ({
   kind: 'book',
@@ -111,5 +111,16 @@ describe('canReopen: undoing a completion within 7 days', () => {
   it('never for books, or fics that were complete when added', () => {
     expect(canReopen(book({ completed_at: null }), 20, now)).toBe(false);
     expect(canReopen(wip({ status: 'completed', total_sections: 5, completed_at: null }), 5, now)).toBe(false);
+  });
+});
+
+describe('finishedFields: what "Finished" saves', () => {
+  it('on a WIP fic, also catches progress up to the last published chapter', () => {
+    expect(finishedFields(wip())).toEqual({ status: 'finished', progress_section: 5 });
+  });
+  it('anywhere else, only the status', () => {
+    expect(finishedFields(book())).toEqual({ status: 'finished' });
+    expect(finishedFields(wip({ status: 'completed', total_sections: 5 }))).toEqual({ status: 'finished' });
+    expect(finishedFields(wip({ published_sections: null }))).toEqual({ status: 'finished' });
   });
 });

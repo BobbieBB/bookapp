@@ -187,6 +187,10 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Orphan cover files (19 Oct 2026):** cover files nothing points to any more (a deleted account, an
+  old cover that could not be removed) are swept daily after a 1-day grace period, at most 500 a
+  day. The grace period keeps a cover that is being uploaded right now, whose file lands a moment
+  before the row that points to it.
 
 ## Bulgarian books: where the data comes from (18 Oct 2026, PO)
 - Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:
@@ -211,6 +215,8 @@ Choices made during development where the decisions above don't say. Each one is
   scripts. It is narrow, so body text is 15 px rather than 14.
 - **Cormorant Garamond** italic stays for "moments" (The Epilogue, typographic covers); it has Cyrillic.
 - One font set for both languages: no per-language switch. Replaces the "Fonts for Bulgarian" dev default (Onest) from PR #4.
+- **Bulgarian Cyrillic letterforms** (д like g, т like m, и like u), which Sofia Sans shows when the app is in Bulgarian, stay:
+  the PO likes them (20 Oct 2026, phone test). No switch to the Russian-style forms.
 
 ## Analytics: first-party, with an opt-out (18 Oct 2026, PO)
 - Confirms the PR #12 approach: our own `analytics_events` table, a fixed list of events, short non-content properties, never
@@ -239,6 +245,7 @@ Choices made during development where the decisions above don't say. Each one is
 - Address the reader as "ти". **Gender-neutral**: rephrase so no gendered form is needed ("За първи път ли си тук?", "Никой още не
   е добавял това издание", "добави я ръчно"), never masculine-by-default and no "сам/а" slashes.
 - Use the words readers actually use, even loanwords: фенфикшън, фик, kudos, **Ship**, **WIP**, **DNF**, линк (not "връзка").
+  **Фендъм** (not „фандом“), 20 Oct 2026. Discover's "Lively in your fandoms" is **„Горещо в твоите фендъми“** (not the literal „Оживено“). („Връзка“ stays only for an internet connection: „Провери връзката си“.)
 - AO3 ratings and archive warnings stay **in English, exactly as on AO3**, so readers match them at a glance; only the headings are
   Bulgarian ("Рейтинг в AO3", "Предупреждения в AO3").
 
@@ -252,7 +259,9 @@ Choices made during development where the decisions above don't say. Each one is
 - Colours: mint #3DBE95, pink #FF4F84, ink #1E1328 (dark: #4FD1A6, #FF6B97, #F7EEF3). Design file: "Logo: final".
 - Still to do: final vector files with the text converted to outlines, and the 1024 px app icon for Expo.
 
-## Calm theme (18 Oct 2026, design; v1 inclusion still open)
+## Calm theme (18 Oct 2026, design; in v1: PO, 22 Oct 2026)
+- **In v1**, built together with the Settings screen (Appearance: Auto · Light · Dark · Calm, remembered per device;
+  Auto follows the phone). Screens use colour roles, so Calm is a third palette plus its own cover colours.
 - **Name: "Calm" / „Спокойна“** (PO). Profile → Appearance: Auto · Light · Dark · Calm. Not "Easy mode": it should feel calmer, not simpler.
 - A muted theme for people sensitive to bright colours, next to Light and Dark. Feedback from a tester: pink and green
   swapping places between cards (pink cover + green progress, then the reverse) is confusing.
@@ -272,3 +281,61 @@ Choices made during development where the decisions above don't say. Each one is
 - **Always deleted:** profile, library and progress, ratings, reactions, follows, blocks, notifications, custom covers
   (including the files in Storage `covers/<user id>/`), analytics events, push tokens.
 - The screen says plainly, before confirming, what stays and what goes. Deletion cannot be undone.
+- How it was built (19 Oct 2026): erasing a book review deletes it (a review is not part of a thread,
+  so there is no place to keep). Kept without a name, as before: a story the reader added (other readers
+  have it in their libraries), feedback and removal requests they sent (a removal request also loses the
+  contact details; feedback keeps its text), and other readers' reply and
+  mention notifications from them. Reports the reader filed, or about them as a reader, go with the account; reports about their
+  comments stay with the comments. "This comment was deleted" is now also what a comment deleted by its
+  author shows. Cover files that can't be removed at deletion are left for a later sweep.
+
+## Finishing a WIP fic (20 Oct 2026, PO, from the phone test)
+- **"Finished" on a WIP** means "I've read every chapter published so far": progress moves to the last published chapter,
+  so those discussions open. The screen says **"You're caught up!"** and does not offer The Epilogue, which opens only
+  once the story is complete (spoiler rules 3 and 7).
+- On that screen a caught-up reader is asked **"Is the story complete on AO3?"**; yes marks it complete (the same
+  caught-up rule and 7-day undo as before) and opens The Epilogue directly. This is the usual case: the reader has just
+  read the last chapter of a fic that was added while it was still being written.
+- **When someone else marks a fic complete**, everyone with it in their library gets an in-app notification
+  "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Card for v1.
+- **Wording on a WIP:** the Finished status reads **"Caught up"** / „Стигнах докрай“ (same status in the database), with
+  "Caught up · 16 of 16 chapters" under it. "Chapter 17 is out: I read it" is a secondary button there (you mostly wait),
+  and when someone reports a new chapter the fic shows on Home again with "Chapter 17 is out".
+
+## Moderation in v1 (20 Oct 2026, PO)
+- **Readers can flag a wrong chapter count** ("Wrong chapter count?" on a book page, with the right number). Once a count is
+  set, only a moderator changes it.
+- **The PO gets an email** at support@livami.app for moderation work: **at once** for reports and author removal requests
+  (Apple expects action on reports within 24 hours), **a daily digest** for feedback and chapter-count requests. Sent by the
+  database (pg_net) through an email service (Resend), from an @livami.app address; the API key lives only in Supabase.
+- **A minimal "Moderation" screen in the app, admins only:** open items newest first, with one or two actions each
+  (report → hide the comment / dismiss; author request → hide the fic / dismiss; chapter count → accept / dismiss).
+  Not in v1: stats, history, notes, banning (block and hide comments instead).
+- Why v1: Apple requires reporting, blocking and timely action for apps with user content, and the PO moderates from her phone.
+
+## Chapter counts for books (20 Oct 2026, PO)
+- No public source gives chapter counts (Open Library and Google Books don't), and editions differ. So:
+  1. **The community fills it once per edition** (already: the first reader enters it, everyone after gets it).
+  2. **Open Library's table of contents as a suggestion** where an edition has one: the field comes pre-filled
+     ("Open Library lists 47 chapters. Is that right?") and the reader confirms or corrects it.
+  3. **A seeded list of ~100 popular books** (BookTok / romantasy and Bulgarian bestsellers), researched and reviewed by
+     the PO before launch, so the first readers rarely see an empty field.
+- **What counts as a chapter:** everything the book presents as its own chapter, prologue and epilogue included
+  (interludes too when they are separate sections), so readers can check it against the book's contents.
+
+## Filling in a fic from AO3 (20 Oct 2026, PO)
+- Typing a fic's details by hand was the hardest part of the phone test. Livami still **never fetches from AO3** (AO3/OTW
+  oppose scraping; its terms bar commercial scraping and disrupting the site).
+- **v1: AO3's Share text.** On AO3 the reader taps Share, copies the text and pastes it into the AO3 link field; Livami reads
+  link, title, author(s), chapters so far / complete, fandom, rating, archive warnings and the first relationship, and the
+  reader checks and adds. A plain link still works as before.
+- **With TestFlight: share from Safari to Livami** (share extension): iOS hands over the link and the page title
+  ("Title - Chapter 1 - Author - Fandom [Archive of Our Own]"), which fills title, author and fandom.
+- Not doing: Livami opening the AO3 page itself (a grey area with AO3, and often blocked).
+
+## Real fics stay out of the repo and AI tools (20 Oct 2026, PO)
+- Tests, examples, docs, Trello and conversations with AI tools use **invented** works and authors only. No real fic text,
+  summaries, titles or authors are copied into them, and AI tools don't open fic pages on AO3.
+- To show a format (e.g. AO3's Share text), replace the title, author and summary with invented ones first.
+- Why: authors in the fandom don't want their work fed to AI without consent; Livami is on the authors' side
+  ("Authors are welcome here").

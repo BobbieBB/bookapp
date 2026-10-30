@@ -1,8 +1,11 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+import Home from '../../../app/(tabs)/index';
+import Library from '../../../app/(tabs)/library';
 import StoryScreen from '../../../app/story/[id]';
 import { renderScreen } from '../../../test/router';
+import { uploadCover } from '../../lib/covers';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -43,27 +46,31 @@ beforeAll(async () => {
   notMineId = (await createManualBook({ title: 'Not Mine', author: 'x', chapters: 2, language: 'en' })).id;
 });
 
-it('explains why the cover is private before you pick, then shows yours with a note', async () => {
+it('explains why the cover is private before you pick, then offers to change it', async () => {
   mockSaved = PNG_BASE64;
   pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///cover.png', mimeType: 'image/png' }] });
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  await fireEvent.press(await screen.findByText('Use my own cover', {}, { timeout: 8000 }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my own cover' }, { timeout: 8000 }));
   expect(
     screen.getByText(
       'A cover just for you. Only you will see this cover. We never share it or show it to other readers, because the art belongs to the person who made it.',
     ),
   ).toBeOnTheScreen();
   await fireEvent.press(screen.getByText('Choose an image'));
-  expect(await screen.findByText('Only you see this cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Change my cover' }, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.queryByText('Only you see this cover.')).toBeNull(); // no permanent note under the cover
   expect(screen.queryByText('We couldn’t save your cover. Please try again.')).toBeNull();
   const { data } = await supabase.from('custom_covers').select('path').eq('story_id', mineId).single().throwOnError();
   expect(data!.path.startsWith(`${me}/`)).toBe(true);
 });
 
-it('you can go back to the usual cover', async () => {
+it('"Change my cover" reminds you it is private and lets you go back to the usual cover', async () => {
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  await fireEvent.press(await screen.findByText('Remove my cover', {}, { timeout: 8000 }));
-  await waitFor(() => expect(screen.queryByText('Only you see this cover')).toBeNull(), { timeout: 8000 });
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change my cover' }, { timeout: 8000 }));
+  expect(screen.getByText('Only you see this cover.')).toBeOnTheScreen();
+  expect(screen.getByText('Choose another image')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByText('Remove my cover'));
+  expect(await screen.findByRole('button', { name: 'Use my own cover' }, { timeout: 8000 })).toBeOnTheScreen();
   const { data } = await supabase.from('custom_covers').select('path').eq('story_id', mineId).maybeSingle().throwOnError();
   expect(data).toBeNull();
 });
@@ -72,7 +79,7 @@ it('an image still too big after resizing gets a clear message', async () => {
   mockSaved = 'A'.repeat(7 * 1024 * 1024); // ~5.25 MB once decoded
   pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///huge.jpg', mimeType: 'image/jpeg' }] });
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  await fireEvent.press(await screen.findByText('Use my own cover', {}, { timeout: 8000 }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my own cover' }, { timeout: 8000 }));
   await fireEvent.press(screen.getByText('Choose an image'));
   expect(await screen.findByText('That image is too big. Try a smaller one.', {}, { timeout: 8000 })).toBeOnTheScreen();
 });
@@ -80,18 +87,50 @@ it('an image still too big after resizing gets a clear message', async () => {
 it('cancelling the picker changes nothing', async () => {
   pick.mockResolvedValueOnce({ canceled: true, assets: null });
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  await fireEvent.press(await screen.findByText('Use my own cover', {}, { timeout: 8000 }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Use my own cover' }, { timeout: 8000 }));
   await fireEvent.press(screen.getByText('Choose an image'));
-  expect(screen.queryByText('Only you see this cover')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Change my cover' })).toBeNull();
 });
 
 it('only for stories in your library', async () => {
   await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${notMineId}`);
   await screen.findByTestId('story-title', {}, { timeout: 8000 });
-  expect(screen.queryByText('Use my own cover')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Use my own cover' })).toBeNull();
 });
 
 it('in Bulgarian', async () => {
   await renderScreen('bg', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
-  expect(await screen.findByText('Моя собствена корица', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(await screen.findByRole('button', { name: 'Моя собствена корица' }, { timeout: 8000 })).toBeOnTheScreen();
+});
+
+describe('in your Home and Library rows', () => {
+  beforeAll(async () => {
+    const covered = (await createManualBook({ title: 'Row With Cover', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(covered, 'currently_reading');
+    const bytes = Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0));
+    await uploadCover(covered, bytes.buffer, 'image/png');
+    const plain = (await createManualBook({ title: 'Row Without Cover', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(plain, 'currently_reading');
+  });
+
+  it('Home shows your cover, and the others stay typographic', async () => {
+    await renderScreen('en', { index: Home }, '/');
+    expect(await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Row With Cover cover')).toBeNull();
+    expect(screen.getByLabelText('Row Without Cover cover')).toBeOnTheScreen();
+  });
+
+  it('Library too, in Bulgarian', async () => {
+    await renderScreen('bg', { index: Library }, '/');
+    expect(await screen.findByLabelText('Твоята собствена корица за Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Корица на Row Without Cover')).toBeOnTheScreen();
+  });
+
+  it('an image that fails to load falls back to the typographic cover', async () => {
+    await renderScreen('en', { index: Library }, '/');
+    const image = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    await fireEvent(image, 'error', { nativeEvent: { error: 'gone' } });
+    expect(await screen.findByLabelText('Row With Cover cover')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Your own cover for Row With Cover')).toBeNull();
+  });
 });

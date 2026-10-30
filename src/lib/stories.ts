@@ -43,7 +43,8 @@ async function insertStory(row: Record<string, unknown>, existing: () => Promise
 }
 
 /** How a new book's discussions are split: by chapters, or by 25-page parts. */
-export type BookSplit = { chapters: number } | { pages: number };
+/** Chapters known, or `null` for "not yet" (a Want to read book: set later on its page), or pages. */
+export type BookSplit = { chapters: number | null } | { pages: number };
 
 export async function createBook(book: BookResult, split: BookSplit, language: BookLanguage): Promise<Story> {
   return insertStory(
@@ -70,7 +71,7 @@ export async function createBook(book: BookResult, split: BookSplit, language: B
 export async function createManualBook(b: {
   title: string;
   author: string;
-  chapters: number;
+  chapters: number | null;
   language: BookLanguage;
 }): Promise<Story> {
   const { data, error } = await supabase

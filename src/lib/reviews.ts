@@ -7,7 +7,8 @@ export type Review = {
   body: string;
   contains_spoilers: boolean;
   created_at: string;
-  author: { id: string; username: string };
+  /** Null once the author has deleted their account (shown as "Deleted reader"). */
+  author: { id: string; username: string } | null;
 };
 
 async function me() {
