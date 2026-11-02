@@ -33,7 +33,8 @@ Before launch:
   store it twice: `supabase secrets set COVER_SWEEP_SECRET=<secret>`, and in the SQL Editor
   `select vault.create_secret('<secret>', 'cover_sweep_secret');`. If the two differ, the nightly sweep
   gets a 401. Then switch it on: `update cover_sweep_settings set url =
-  'https://<project>.supabase.co/functions/v1/sweep-covers', enabled = true;`.
+  'https://<project>.supabase.co/functions/v1/sweep-covers', enabled = true where id;` (its one row's
+  key is `true`).
 - **Admin:** make the PO an admin, which Profile → Numbers needs: `update public.profiles set
   is_admin = true where id = (select id from auth.users where email = '<PO e-mail>');`.
 - **Copy:** a native read of the Bulgarian copy.
