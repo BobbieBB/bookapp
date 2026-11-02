@@ -180,6 +180,8 @@ Choices made during development where the decisions above don't say. Each one is
   leaves at 07:00 UTC and covers the last 24 hours. A report e-mail carries its kind, reason, story title and the
   reporter's text (cut at 500 characters), never who reported; a removal-request e-mail carries the AO3 link and the
   author's contact, because the PO answers authors herself. No reader's address is ever included.
+  Immediate e-mails are limited only by the per-reader report limits (about 20 an hour per reader): on Resend's free
+  tier (100 a day) a few busy readers could use up the day. Use a paid plan, or ask for a cap.
 - **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
   (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only

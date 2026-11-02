@@ -79,7 +79,8 @@ begin
         '',
         'Open Moderation in the app to hide it or dismiss the report.'));
   exception when others then
-    raise warning 'e-mail for report % not sent: %', new.id, sqlerrm;
+    -- (sqlstate only: an error text could echo the request headers, and the API key with them)
+    raise warning 'e-mail for report % not sent (%)', new.id, sqlstate;
   end;
   return new;
 end $$;
@@ -109,7 +110,7 @@ begin
         '',
         'Reply to the contact above. Open Moderation in the app to hide the fic or dismiss the request.'));
   exception when others then
-    raise warning 'e-mail for removal request % not sent: %', new.id, sqlerrm;
+    raise warning 'e-mail for removal request % not sent (%)', new.id, sqlstate;
   end;
   return new;
 end $$;
