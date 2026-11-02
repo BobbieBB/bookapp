@@ -45,6 +45,7 @@ let hideReportId: string;
 let dismissReportId: string;
 let countRequestId: string;
 let feedbackId: string;
+let refuseCountId: string;
 
 const openId = (table: string, column: string, value: string) =>
   sql(`select id from public.${table} where ${column} = '${value}' and status = 'open' limit 1;`).trim();
@@ -68,6 +69,12 @@ beforeAll(async () => {
   await reportComment(dismissCommentId, 'spam');
   await requestChapterCount(storyId, 12);
   await sendFeedback('idea', 'Please add dark mode');
+  const refuseBookId = (await createManualBook({ title: 'Refused Book', author: 'x', chapters: 4, language: 'en' })).id;
+  await addToLibrary(refuseBookId, 'finished');
+  await requestChapterCount(refuseBookId, 7);
+  refuseCountId = openId('chapter_count_requests', 'story_id', refuseBookId);
+  // The book loses its count after the request: accepting it is refused, and the request stays open.
+  sql(`update public.stories set total_sections = null where id = '${refuseBookId}';`);
   hideReportId = openId('reports', 'comment_id', hideCommentId);
   dismissReportId = openId('reports', 'comment_id', dismissCommentId);
   countRequestId = openId('chapter_count_requests', 'story_id', storyId);
@@ -100,8 +107,8 @@ describe('as an admin', () => {
     expect(within(item).getByText('This comment is rude')).toBeOnTheScreen();
     expect(within(item).getByText('Harassment')).toBeOnTheScreen();
     expect(within(item).getByText('Insults everyone in the thread')).toBeOnTheScreen();
-    expect(within(item).getByRole('button', { name: 'Hide the comment' })).toBeOnTheScreen();
-    expect(within(item).getByRole('button', { name: 'Dismiss' })).toBeOnTheScreen();
+    expect(within(item).getByRole('button', { name: /^Hide the comment/ })).toBeOnTheScreen();
+    expect(within(item).getByRole('button', { name: /^Dismiss/ })).toBeOnTheScreen();
     expect(within(item).queryByText(/reports$/)).toBeNull(); // one report: no count
   });
 
@@ -111,7 +118,7 @@ describe('as an admin', () => {
     expect(within(count).getByText('Chapter count')).toBeOnTheScreen();
     expect(within(count).getByText('4 → 12 chapters')).toBeOnTheScreen();
     expect(within(count).getByText(reader.username)).toBeOnTheScreen();
-    expect(within(count).getByRole('button', { name: 'Accept the new count' })).toBeOnTheScreen();
+    expect(within(count).getByRole('button', { name: /^Accept the new count/ })).toBeOnTheScreen();
     const feedback = await card('feedback', feedbackId);
     expect(within(feedback).getByText('Please add dark mode')).toBeOnTheScreen();
     expect(within(feedback).getByText('Idea')).toBeOnTheScreen();
@@ -122,15 +129,22 @@ describe('as an admin', () => {
     const item = await card('comment_report', hideReportId);
     expect(within(item).getByText('Докладван коментар')).toBeOnTheScreen();
     expect(within(item).getByText('Тормоз')).toBeOnTheScreen();
-    expect(within(item).getByRole('button', { name: 'Скрий коментара' })).toBeOnTheScreen();
-    expect(within(item).getByRole('button', { name: 'Отхвърли' })).toBeOnTheScreen();
+    expect(within(item).getByRole('button', { name: /^Скрий коментара/ })).toBeOnTheScreen();
+    expect(within(item).getByRole('button', { name: /^Отхвърли/ })).toBeOnTheScreen();
     expect(within(await card('chapter_count', countRequestId)).getByText('4 → 12 глави')).toBeOnTheScreen();
+  });
+
+  it('names each button after its card, so a screen reader can tell them apart', async () => {
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const item = await card('comment_report', hideReportId);
+    expect(within(item).getByRole('button', { name: `Hide the comment: Reported comment, Moderated Book, ${troll.username}` })).toBeOnTheScreen();
+    expect(within(item).getByRole('button', { name: `Dismiss: Reported comment, Moderated Book, ${troll.username}` })).toBeOnTheScreen();
   });
 
   it('Hide takes the report off the list and hides the comment', async () => {
     await renderScreen('en', { moderation: Moderation }, '/moderation');
     const item = await card('comment_report', hideReportId);
-    await fireEvent.press(within(item).getByRole('button', { name: 'Hide the comment' }));
+    await fireEvent.press(within(item).getByRole('button', { name: /^Hide the comment/ }));
     await waitFor(() => expect(screen.queryByTestId(`queue-comment_report-${hideReportId}`)).toBeNull(), { timeout: 8000 });
     expect(sql(`select is_hidden from public.comments where id = '${hideCommentId}';`).trim()).toBe('t');
     expect(screen.getByTestId(`queue-comment_report-${dismissReportId}`)).toBeOnTheScreen(); // the others stay
@@ -139,7 +153,7 @@ describe('as an admin', () => {
   it('Dismiss takes an item off the list and leaves the comment alone', async () => {
     await renderScreen('en', { moderation: Moderation }, '/moderation');
     const item = await card('comment_report', dismissReportId);
-    await fireEvent.press(within(item).getByRole('button', { name: 'Dismiss' }));
+    await fireEvent.press(within(item).getByRole('button', { name: /^Dismiss/ }));
     await waitFor(() => expect(screen.queryByTestId(`queue-comment_report-${dismissReportId}`)).toBeNull(), { timeout: 8000 });
     expect(sql(`select is_hidden from public.comments where id = '${dismissCommentId}';`).trim()).toBe('f');
   });
@@ -147,9 +161,18 @@ describe('as an admin', () => {
   it('Accept sets the new chapter count and the item goes', async () => {
     await renderScreen('en', { moderation: Moderation }, '/moderation');
     const item = await card('chapter_count', countRequestId);
-    await fireEvent.press(within(item).getByRole('button', { name: 'Accept the new count' }));
+    await fireEvent.press(within(item).getByRole('button', { name: /^Accept the new count/ }));
     await waitFor(() => expect(screen.queryByTestId(`queue-chapter_count-${countRequestId}`)).toBeNull(), { timeout: 8000 });
     expect(sql(`select total_sections from public.stories where id = '${storyId}';`).trim()).toBe('12');
+  });
+
+  it('a count the book cannot take is refused with its own message, and the request stays', async () => {
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const item = await card('chapter_count', refuseCountId);
+    await fireEvent.press(within(item).getByRole('button', { name: /^Accept the new count/ }));
+    expect(await within(item).findByText(/can’t take that count/, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(within(item).queryByText(/already dealt with/)).toBeNull();
+    expect(screen.getByTestId(`queue-chapter_count-${refuseCountId}`)).toBeOnTheScreen();
   });
 
   it('a failed action stays on the card with a reason', async () => {
@@ -161,7 +184,7 @@ describe('as an admin', () => {
     const item = await card('removal_request', requestId);
     expect(within(item).getByText('author@example.test')).toBeOnTheScreen();
     expect(within(item).getByText(link)).toBeOnTheScreen();
-    await fireEvent.press(within(item).getByRole('button', { name: 'Hide the fic' }));
+    await fireEvent.press(within(item).getByRole('button', { name: /^Hide the fic/ }));
     expect(await within(item).findByText(/No fic in the app matches this link/, {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByTestId(`queue-removal_request-${requestId}`)).toBeOnTheScreen();
   });

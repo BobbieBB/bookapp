@@ -204,6 +204,7 @@ select test.ok((select is_hidden from public.stories where id = '58000000-0000-0
   and (select status from public.removal_requests where id = '5d000000-0000-0000-0000-000000000001') = 'actioned', 'hide hides the fic and actions the request');
 select test.ok(test.error_of($$select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000002', 'hide')$$)
   = 'no fic in the app matches this link: dismiss the request', 'a request whose fic is not in the app cannot be hidden');
+select test.ok(test.state_of($$select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000002', 'hide')$$) = 'MD001', '... with its own code');
 select test.ok((select status from public.removal_requests where id = '5d000000-0000-0000-0000-000000000002') = 'open', '... and stays open');
 select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000003', 'hide');
 select test.ok((select is_hidden from public.stories where id = '58000000-0000-0000-0000-000000000003')
@@ -243,6 +244,14 @@ select test.ok((select status from public.library_entries where user_id = '00000
 select test.ok(not exists (select 1 from public.library_entries le join public.stories s on s.id = le.story_id where le.progress_section > s.total_sections), 'nobody is beyond the end of a book');
 select test.ok(test.error_of($$select public.moderation_resolve('chapter_count', '5f000000-0000-0000-0000-000000000003', 'accept')$$) = 'this item is already resolved', 'accept once');
 select test.ok((select count(*) from test.mq) = 1, 'only the untouched request is left in the queue');
+
+-- A book that has lost its count cannot take one: refused with its own code, and the request stays open.
+select test.logout();
+update public.stories set total_sections = null where id = '58000000-0000-0000-0000-000000000004';
+select test.login('00000000-0000-0000-0000-0000000008ad');
+select test.ok(test.state_of($$select public.moderation_resolve('chapter_count', '5f000000-0000-0000-0000-000000000004', 'accept')$$) = 'MD002',
+  'a book that cannot take the count is refused with its own code');
+select test.ok((select status from public.chapter_count_requests where id = '5f000000-0000-0000-0000-000000000004') = 'open', '... and the request stays open');
 
 select test.logout();
 \o

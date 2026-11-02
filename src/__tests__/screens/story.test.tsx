@@ -277,11 +277,31 @@ describe('a wrong chapter count', () => {
     expect(screen.getByLabelText('The right number of chapters')).toBeOnTheScreen(); // the form stays
   });
 
-  it('shows a general failure for anything else (the same number as now is refused)', async () => {
+  it('does not send the count the book already has', async () => {
     const id = await ownBook('Same');
     await open('en', id);
     await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
     await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '10');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('That’s already the count')).toBeOnTheScreen();
+    expect(await requests(id)).toEqual([]);
+  });
+
+  it('in Bulgarian, the same count is named too', async () => {
+    const id = await ownBook('Same BG');
+    await open('bg', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Грешен брой глави?' }));
+    await fireEvent.changeText(screen.getByLabelText('Правилният брой глави'), '10');
+    await fireEvent.press(screen.getByRole('button', { name: 'Изпрати' }));
+    expect(await screen.findByText('Това вече е броят')).toBeOnTheScreen();
+  });
+
+  it('shows a general failure for anything else (the book left your library meanwhile)', async () => {
+    const id = await ownBook('Left');
+    await open('en', id);
+    await supabase.from('library_entries').delete().eq('story_id', id).eq('user_id', me).throwOnError();
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '12');
     await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
     expect(await screen.findByText('We couldn’t send that. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
   });

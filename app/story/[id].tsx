@@ -135,7 +135,7 @@ function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 's
  * send the link is gone for this visit. The link sits under the title; the form, which needs
  * room, opens full width under the header (see `WrongChapterCountForm`).
  */
-function useWrongChapterCount(storyId: string) {
+function useWrongChapterCount(storyId: string, current: number | null) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -147,6 +147,8 @@ function useWrongChapterCount(storyId: string) {
     if (sending) return;
     const invalid = chaptersError(text, t);
     if (invalid) return setError(invalid);
+    // The database refuses the count the book already has; say so instead of a vague failure.
+    if (Number(text) === current) return setError(t('moderation.wrongCountSame'));
     setSending(true);
     setError('');
     try {
@@ -240,7 +242,7 @@ function StoryBody({
   const [coverOpen, setCoverOpen] = useState(false);
   const isFic = story.kind === 'fanfic';
   const count = chapterCount(story);
-  const wrongCount = useWrongChapterCount(story.id);
+  const wrongCount = useWrongChapterCount(story.id, story.total_sections);
 
   /**
    * Runs one action at a time (a second tap while one is saving is ignored, so actions never

@@ -57,3 +57,6 @@ export async function requestChapterCount(storyId: string, proposed: number): Pr
   const { error } = await supabase.from('chapter_count_requests').insert({ story_id: storyId, proposed });
   if (error) throw error;
 }
+
+/** The Postgres error code of a failure (Supabase errors carry it as `code`). */
+export const errorCode = (error: unknown) => (error as { code?: string } | null)?.code;
