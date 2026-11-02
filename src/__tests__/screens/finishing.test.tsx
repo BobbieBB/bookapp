@@ -120,6 +120,17 @@ describe('finishing', () => {
     expect(screen.getByText('Back to the story')).toBeOnTheScreen();
   });
 
+  it('Back to the story opens the story even when Finished replaced the Add screen (not whatever was under it)', async () => {
+    await as(me);
+    const id = await fic(false);
+    const routes = { index: () => <Text>home</Text>, add: () => <Text>add</Text>, ...finishedRoutes };
+    await renderScreen('en', routes, '/');
+    await act(async () => router.push('/add'));
+    await act(async () => router.replace(`/finished/${id}`)); // as Add does once the fic is in the library
+    await fireEvent.press(await screen.findByText('Back to the story', {}, { timeout: 8000 }));
+    expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
   it('caught up on a WIP that has ended on AO3: mark it complete and go straight into The Epilogue', async () => {
     await as(me);
     const id = await fic(false);

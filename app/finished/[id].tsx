@@ -126,7 +126,7 @@ function Finished({
               <Button title={t('finishing.markComplete')} onPress={complete} loading={completing} />
             </View>
           ) : null}
-          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={() => router.back()} />
+          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={() => router.replace(`/story/${story.id}`)} />
         </>
       ) : (
         <Button title={t('finishing.epilogue')} onPress={() => router.replace(`/room/${story.id}/epilogue`)} />
