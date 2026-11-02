@@ -7,7 +7,7 @@
 - `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics opt-out, security).
 - `terms.md`: Terms of Use (eligibility, accounts, content licence, community rules, moderation, fanfiction stance, IP/takedown, termination, liability, governing law).
 
-Both were derived from the code at `origin/main` (migrations up to `20261020000000`, `src/lib/analytics.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Markers: `[after PR #24 merge]` (moderation e-mail via Resend) and `[after PR #20 merge]` (daily orphan-cover sweep), must be resolved at merge time: remove them if the PR merges as described, or delete the passages if it does not.
+Both were derived from the code at `origin/main` (migrations up to `20261020000000`, `src/lib/analytics.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Markers `[after PR #20 merge]` (daily orphan-cover sweep), `[after PR #23 merge]` (Moderation screen, chapter-count requests) and `[after PR #24 merge]` (moderation e-mail via Resend) must be resolved when each PR merges: remove the marker if the PR merges as described, or delete the passage if it does not.
 
 ## Bulgarian versions
 
@@ -35,7 +35,7 @@ Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documen
 
 **Engineering confirms** (see "Code checks" below)
 - Supabase project region (EU?); Supabase log and backup retention.
-- Settings menu paths quoted in the policy ("Delete account", "Help us improve the app", push switch).
+- Settings menu paths quoted in the policy ("Delete my account", "Help us improve the app", "Notifications on this phone").
 - No additional SDKs (crash reporting, ads) are added before release.
 
 ## Code checks: where the code differed from what the brief expected
