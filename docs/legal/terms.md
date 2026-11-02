@@ -55,8 +55,8 @@ Be kind. Do not:
 
 ## 6. Reporting, blocking and moderation
 
-- **Report** any comment, review or reader that breaks these rules. You can block a reader: you no longer see each other's comments, reviews, reactions or notifications, and neither of you can reply to the other.
-- We look at reports and author removal requests as fast as we can and aim to act within **24 hours** [TO CONFIRM: the product owner is the only moderator today; the aim must be realistic, include weekends and holidays, or say "within 24 hours on a best-effort basis"]. Reports and removal requests reach the product owner by e-mail [after PR #24 merge] and through an admin-only Moderation screen.
+- **Report** any comment or reader that breaks these rules. [TO CONFIRM: reviews can be reported once the report button ships; the app currently lets you report comments and readers only.] You can block a reader: you no longer see each other's comments, reviews, reactions or notifications, and neither of you can reply to the other.
+- We look at reports and author removal requests as fast as we can and aim to act within **24 hours** [TO CONFIRM: the product owner is the only moderator today; the aim must be realistic, include weekends and holidays, or say "within 24 hours on a best-effort basis"]. Reports and removal requests reach the product owner by e-mail [after PR #24 merge] and through an admin-only Moderation screen [after PR #23 merge].
 - Moderation may hide a comment or a story, or dismiss a report. [TO CONFIRM: the migrations have an `is_suspended` flag on profiles, but the DECISIONS doc says v1 has no banning (block and hide comments instead). State here only what exists at launch.]
 - We tell the person affected and give a reason where the law requires it [TO CONFIRM: Digital Services Act duties for hosting services: notice-and-action mechanism, statement of reasons, point of contact, complaint handling, and what applies to a micro/small enterprise].
 - Reports may contain personal data; see the Privacy Policy.

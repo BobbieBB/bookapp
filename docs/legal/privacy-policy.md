@@ -21,6 +21,7 @@ EU representative: not needed while the operator is established in the EU [TO CO
 ## 2. The short version
 
 - Livami is a reading app. We keep what you need to use it: your account, your library, your reading progress, what you post.
+- Other signed-in readers can see your Name and the rest of your profile (what you read, favourite genres and fandoms, join date), your book ratings, and, by default, your library (section 13). Nothing is public to people who are not signed in.
 - We do **not** show ads, do **not** sell your data and do **not** share it for advertising.
 - Our analytics are our own, record which features are used (never what you write or read), and you can switch them off in Profile ("Help us improve the app").
 - You can delete your account inside the app. You choose whether your comments stay (without your name) or are erased.
@@ -31,7 +32,7 @@ EU representative: not needed while the operator is established in the EU [TO CO
 | Feature | Data | Why (GDPR legal basis, Art. 6) |
 |---|---|---|
 | **Account** | E-mail address and password (the password is handled by Supabase Auth and stored hashed; we never see it). Your account ID and sign-up time. | Contract: to provide your account. |
-| **Profile** | Your unique Name (letters, numbers, underscore), whether you read books and/or fanfiction, favourite genres and fandoms. Your Name is shown to other signed-in readers. | Contract. |
+| **Profile** | Your unique Name (letters, numbers, underscore), whether you read books and/or fanfiction, favourite genres and fandoms. The whole profile row (Name, whether you read books/fanfiction, favourite genres and fandoms, join date and a suspension flag) can be read by any signed-in reader. Your Name is shown everywhere. | Contract. |
 | **Library and progress** | The stories you added to your library, their status (e.g. reading, finished, DNF, on hold), the last chapter you finished, an optional page number, favourite flag, start and finish dates. Your progress decides which discussions you may open. | Contract. |
 | **Visibility of your library** | Each library entry carries a visibility setting. In the database the default is "public", which lets other signed-in readers read that entry. | Contract. [TO CONFIRM: whether the app currently shows other readers' libraries anywhere and whether any screen lets you change this setting. The code searched has no screen that sets it; if nothing displays libraries, state that plainly here; if something does, the default must probably be private for GDPR "data protection by default".] |
 | **Stories you add** | Title, author, fandom, chapter counts, AO3 link and similar details you type or paste. Stories are shared with other readers; we record who added a story. | Contract; legitimate interests (running a shared catalogue). |
@@ -41,10 +42,11 @@ EU representative: not needed while the operator is established in the EU [TO CO
 | **Author removal requests** | The AO3 work link, a message, and **the contact details you give** (e-mail or other way to reach you), so we can check the request with you. | Legitimate interests (respecting authors' rights); legal obligation where it applies. |
 | **Feedback** | Your message, its type (problem, idea, other) and the app version. The database also has a "device" field, but the app currently does not fill it in. | Legitimate interests (fixing and improving the app). |
 | **Notifications in the app** | Records that someone replied, mentioned or reacted, and who. **Never the comment text.** | Contract. |
-| **Push notifications** (only if you switch them on) | Your device's push token (issued by Expo), the platform (iOS/Android) and the app language. A push says who replied, in which story and chapter, **never the comment text**. Several replies within 10 minutes are bundled into one push. | Consent (you accept your phone's permission prompt; you can withdraw it in Profile or in phone settings). |
-| **Custom covers** (optional) | An image you upload (JPEG, PNG or WebP, up to 5 MB) and which story it belongs to. It is stored in a private bucket in a folder named after your account ID. Only you can see it; we do not show it to others. Image files may contain hidden metadata such as location (EXIF); [TO CONFIRM: whether the app strips metadata before upload; the code read does not appear to]. | Contract (you ask for the feature). |
+| **Push notifications** (only if you switch them on) | Your device's push token (issued by Expo), the platform (iOS/Android) and the app language. A push says who replied, in which story and chapter, **never the comment text**. Several replies within 10 minutes are bundled into one push. | Consent (you accept your phone's permission prompt; you can withdraw it in Profile ("Notifications on this phone") or in phone settings). |
+| **Custom covers** (optional) | An image you choose from your photo library (the app asks for photo-library permission) and which story it belongs to. Before upload the app resizes it to 1200 px wide and re-encodes it as a JPEG (quality 0.8), so what is stored is always a JPEG. It is stored in a private bucket in a folder named after your account ID (the bucket also accepts PNG/WebP up to 5 MB). Only you can see it; we do not show it to others. Re-encoding very likely removes hidden metadata such as location (EXIF) [TO CONFIRM: by a test on iOS and Android]. | Contract (you ask for the feature). |
 | **Analytics** | Event name from a fixed list (for example app opened, sign-up, chapter finished, comment posted, language changed), a few short non-content values (such as kind, language, count), app version, platform, time. Linked to your account so we can see whether people come back. **Never** titles, comment text or other people's IDs. Limited to 300 events per hour per reader. | Legitimate interests (understanding which features work). You have the right to object, and we give a switch (section 9). [TO CONFIRM: legitimate interests vs. consent. Under the ePrivacy Directive, storing or reading information on your device may need consent. Here events are sent from the app to our server rather than cookies, but counsel should decide; the safer choice is opt-in.] |
 | **Technical data** | Our hosting provider and the services below see your IP address and basic request data when the app connects. | Legitimate interests (security, operation). [TO CONFIRM: Supabase log retention.] |
+| **Chapter counts** | The first reader to add a book enters its chapter count (the database function `set_book_chapter_count`); it is stored with the book and visible to all readers. [after PR #23 merge] Readers can also flag a wrong count: we store who asked, the proposed number, the story and the status; deleted with your account. | Contract; legitimate interests (a correct shared catalogue). |
 | **Searches for books** | See section 5 (Open Library). | Contract. |
 
 We do **not** collect: your real name, phone number, contact list, precise location, advertising ID, payment data, or the text of any fanfiction. [TO CONFIRM: no crash-reporting or other SDKs are added before release; none were found in `package.json`.]
@@ -56,7 +58,7 @@ We do **not** collect: your real name, phone number, contact list, precise locat
 | **Supabase** (database, authentication, file storage, realtime) | Processor | Everything in section 3 | [TO CONFIRM: hosting region of the Supabase project; ideally an EU region, e.g. Frankfurt. Not stated in the repo.] |
 | **Expo** (push notification service, `exp.host`) | Processor | Push token, and the push message (title "Livami", who replied, story, chapter, link). Only if you enabled pushes. | [TO CONFIRM: Expo is US-based; see section 7] |
 | **Apple (APNs) and Google (FCM)** | Independent controllers for delivery to your phone | The push message, via Expo | Worldwide |
-| **Resend** (e-mail) [after PR #24 merge] | Processor | We send moderation e-mails **to ourselves**. They contain report details (what was reported, reason, details you wrote) and an author's contact details from removal requests. They do **not** contain reader e-mail addresses. | [TO CONFIRM: Resend region and DPA] |
+| **Resend** (e-mail) [after PR #24 merge] | Processor | We send moderation e-mails **to ourselves**. Immediate e-mails contain report details (what was reported, the story title, the reason, details you wrote) and an author's contact details from removal requests. A daily digest at 07:00 UTC contains feedback (type and the first 160 characters of the text) and chapter-count requests (story title and proposed count). They do **not** contain reader e-mail addresses. | [TO CONFIRM: Resend region and DPA] |
 | **Apple App Store / Google Play** | Independent controllers | Their own data about your download and purchases, under their own policies. We do not get your Apple/Google identity. | Worldwide |
 | Authorities, courts | As required by law | Only where legally required | |
 
@@ -66,7 +68,7 @@ We have data processing agreements with processors [TO CONFIRM: sign and keep th
 
 When you search for a book, the app sends your **search text** (title, author or ISBN) directly from your phone to **Open Library** (openlibrary.org, run by the Internet Archive, a US non-profit). Your phone's IP address is visible to them in the usual way. The request identifies the app as `Livami/<version>` with a link to the project page, **not** with your name, account or e-mail address. Searches start after you type 3 characters and pause. Book cover images shown from Open Library are loaded from `covers.openlibrary.org` in the same way. Open Library is a separate controller under its own policy: https://openlibrary.org/ [TO CONFIRM: link to its current privacy policy].
 
-We never contact AO3 from the app. When you paste an AO3 link, it is only tidied up and looked up in our own database; the details are read from text you paste yourself.
+The app makes no network calls to AO3. When you paste an AO3 link, it is only tidied up and looked up in our own database; the details are read from text you paste yourself. If you tap an AO3 link, it opens AO3 in your browser, and AO3 then handles your data under its own policy.
 
 [TO CONFIRM: the project-page link in the User-Agent currently points to a GitHub repository page. Decide whether that is still the intended public identifier and whether the repository is public.]
 
@@ -82,6 +84,8 @@ We never contact AO3 from the app. When you paste an AO3 link, it is only tidied
 | Stories you added | Stay (other readers have them), without your name as the creator. |
 | Notifications other readers received from you | Stay, signed "Deleted reader". |
 | Cover files | Removed by the app when you delete your account. If that step fails, leftovers are removed by a daily clean-up. [after PR #20 merge] |
+| Chapter-count requests [after PR #23 merge] | Deleted with your account |
+| Moderation e-mail log (request ID, kind, status; no content) [after PR #24 merge] | 30 days |
 | Backups | [TO CONFIRM: Supabase backup retention. Deleted data may remain in backups for a limited time.] |
 | Server logs | [TO CONFIRM] |
 
@@ -91,7 +95,7 @@ Some recipients are in, or may access data from, the United States or elsewhere:
 
 ## 8. Deleting your account, and what happens to your content
 
-Go to **Profile > Delete account** [TO CONFIRM: exact menu path and wording in the final build]. Before you confirm, the screen tells you what stays and what goes. **Deletion cannot be undone.**
+Go to **Profile > "Delete my account"** (Bulgarian: "Изтрий акаунта ми"). [TO CONFIRM: menu path in the final build.] Before you confirm, the screen tells you what stays and what goes. **Deletion cannot be undone.**
 
 **Always deleted:** your profile, library and progress, ratings, reactions, follows, blocks, notifications, reports you filed, custom covers (including the files), analytics events and opt-out record, and push tokens. All your sessions are ended.
 
@@ -111,8 +115,8 @@ Under the GDPR you have the right to: access your data; correct it; erase it; re
 
 How to use them:
 - **Delete your account:** in the app (section 8).
-- **Switch analytics off:** Profile > "Help us improve the app". When it is off, nothing is recorded; the setting is saved on your account and follows you to other devices. A device that has not yet picked up the change is still blocked by the database from recording anything. Past events are deleted when you delete your account [TO CONFIRM: also offer deletion of past events on opt-out, or on request].
-- **Turn off push notifications:** in Profile or in your phone settings.
+- **Switch analytics off:** Profile > "Help us improve the app" (Bulgarian: "Помогни ни да подобрим приложението"). When it is off, nothing is recorded; the setting is saved on your account and follows you to other devices. A device that has not yet picked up the change is still blocked by the database from recording anything. Past events are deleted when you delete your account [TO CONFIRM: also offer deletion of past events on opt-out, or on request].
+- **Turn off push notifications:** in Profile ("Notifications on this phone") or in your phone settings.
 - **Correct your Name, genres, fandoms:** in Profile.
 - **Everything else (access, copy, correction, restriction, objection):** write to support@livami.app. We reply within one month (GDPR Art. 12). [TO CONFIRM: there is no in-app data export today. Decide whether to build one or fulfil requests by hand.]
 
@@ -126,7 +130,7 @@ Fanfiction on AO3 can be rated General, Teen, Mature or Explicit. Livami links t
 
 ## 11. Security
 
-Data is sent over encrypted connections. Access to each table is controlled in the database by Row Level Security: anonymous visitors have no access, and you can read other readers' content only as the app's rules allow (for example, comments in a chapter only after you finished it). Your custom covers are in a private bucket and only reachable by short-lived signed links (valid for one hour). The service key for e-mail sending stays only in Supabase and is not in the app. No system is perfectly secure. If a breach puts your rights at risk, we will notify you and the authority as the law requires (GDPR Arts. 33-34). [TO CONFIRM: breach procedure and responsible person; admin accounts use strong sign-in/2FA.]
+Data is sent over encrypted connections. Access to each table is controlled in the database by Row Level Security: anonymous visitors have no access, and you can read other readers' content only as the app's rules allow (for example, comments in a chapter only after you finished it). Your Name, profile, book ratings and (by default) library entries are readable by every signed-in reader, by design (section 13). Your custom covers are in a private bucket and only reachable by short-lived signed links (valid for one hour). The service key for e-mail sending stays only in Supabase and is not in the app. No system is perfectly secure. If a breach puts your rights at risk, we will notify you and the authority as the law requires (GDPR Arts. 33-34). [TO CONFIRM: breach procedure and responsible person; admin accounts use strong sign-in/2FA.]
 
 ## 12. Ads, selling, tracking
 
@@ -134,7 +138,7 @@ No advertising, no ad networks, no sale or sharing of personal data for advertis
 
 ## 13. Content that is public inside the app
 
-Your Name, comments, reviews and ratings can be seen by other signed-in readers. Everything is behind login and is not meant to be indexed by search engines. Please do not post personal information about yourself or others.
+Other signed-in readers can see: your Name and whole profile (what you read, favourite genres and fandoms, join date); your comments (in chapters they unlocked), reviews and **individual book ratings**; and your **library**, because each library entry is public by default in the database (status, progress, favourite flag, dates). No screen was found that lets you change this [TO CONFIRM: privacy-by-default; make libraries private by default, or show an in-app setting, before launch]. Fanfiction ratings are private to the rater. Everything is behind login and is not meant to be indexed by search engines. Please do not post personal information about yourself or others.
 
 ## 14. Changes to this policy
 

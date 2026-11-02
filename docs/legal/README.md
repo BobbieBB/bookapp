@@ -7,7 +7,7 @@
 - `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics opt-out, security).
 - `terms.md`: Terms of Use (eligibility, accounts, content licence, community rules, moderation, fanfiction stance, IP/takedown, termination, liability, governing law).
 
-Both were derived from the code at `origin/main` (migrations up to `20261020000000`, `src/lib/analytics.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Two markers, `[after PR #24 merge]` (moderation e-mail via Resend) and `[after PR #20 merge]` (daily orphan-cover sweep), must be resolved at merge time: remove them if the PR merges as described, or delete the passages if it does not.
+Both were derived from the code at `origin/main` (migrations up to `20261020000000`, `src/lib/analytics.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Markers: `[after PR #24 merge]` (moderation e-mail via Resend) and `[after PR #20 merge]` (daily orphan-cover sweep), must be resolved at merge time: remove them if the PR merges as described, or delete the passages if it does not.
 
 ## Bulgarian versions
 
@@ -23,7 +23,7 @@ Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documen
 5. Analytics basis: legitimate interests with opt-out (as in DECISIONS) vs. opt-in consent.
 6. Promises in the terms: no AI training on user content, one account per person, 24-hour moderation target.
 7. Whether to offer an in-app data export (none today) and deletion of past analytics on opt-out.
-8. Whether to strip image metadata (EXIF) from custom covers (the code does not appear to).
+8. Test that custom covers lose EXIF: the app resizes to 1200 px and re-encodes as JPEG 0.8 (`CustomCover.tsx`), which very likely drops it.
 
 **Lawyer decides**
 1. GDPR basis for analytics and for keeping comments as "Deleted reader" after deletion; the age of digital consent in Bulgaria (understood to be 14; verify).
@@ -45,7 +45,9 @@ Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documen
 - No age check, no password-reset flow and no data-export feature were found in the code.
 - Library entries default to `visibility = public` and the RLS lets any signed-in reader read public entries; no screen that changes it was found.
 - Open Library's `User-Agent` carries the GitHub project URL, not an e-mail (DECISIONS says "app name and contact email", the dev default says project page). The policy follows the code.
-- Moderation e-mail (Resend) and the orphan-cover sweep are in open PRs, not in `main`, so they are marked.
+- Moderation e-mail (Resend, PR #24), the Moderation screen and chapter-count requests (PR #23) and the orphan-cover sweep (PR #20) are not in `main`, so they are marked.
+- Reviews cannot be reported yet (`src/lib/safety.ts` has `reportComment` and `reportUser` only); a fix is planned.
+- Profiles, per-user book ratings and public library entries are readable by every signed-in reader (`init.sql` profiles_read, ratings_read, library_read).
 
 ## Sign-off
 
