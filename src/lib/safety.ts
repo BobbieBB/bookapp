@@ -12,6 +12,12 @@ async function check(query: PromiseLike<{ error: unknown }>) {
   if (error) throw error;
 }
 
+/** A report is filed once per reader and target: filing it again is already done, not a failure (unique violation). */
+async function checkReport(query: PromiseLike<{ error: { code?: string } | null }>) {
+  const { error } = await query;
+  if (error && error.code !== '23505') throw error;
+}
+
 const cleanDetails = (details?: string) => (details?.trim() ? details.trim() : null);
 
 export async function sendFeedback(kind: FeedbackKind, body: string) {
@@ -42,16 +48,16 @@ export async function reportComment(commentId: string, reason: ReportReason, det
   const { data, error } = await supabase.from('comments').select('id').eq('id', commentId).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('That comment is not available.');
-  await check(supabase.from('reports').insert({ comment_id: commentId, reason, details: cleanDetails(details) }));
+  await checkReport(supabase.from('reports').insert({ comment_id: commentId, reason, details: cleanDetails(details) }));
 }
 
-/** Another reader's review (the database refuses your own, a hidden one, and a second report of the same review). */
+/** Another reader's review (the database refuses your own and a hidden one; a second report of the same review counts as done). */
 export async function reportReview(reviewId: string, reason: ReportReason, details?: string) {
-  await check(supabase.from('reports').insert({ review_id: reviewId, reason, details: cleanDetails(details) }));
+  await checkReport(supabase.from('reports').insert({ review_id: reviewId, reason, details: cleanDetails(details) }));
 }
 
 export async function reportUser(userId: string, reason: ReportReason, details?: string) {
-  await check(supabase.from('reports').insert({ reported_user_id: userId, reason, details: cleanDetails(details) }));
+  await checkReport(supabase.from('reports').insert({ reported_user_id: userId, reason, details: cleanDetails(details) }));
 }
 
 export async function block(userId: string) {

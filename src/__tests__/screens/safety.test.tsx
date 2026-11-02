@@ -75,6 +75,18 @@ describe('in a discussion', () => {
     expect((await rows('reports', 'reporter_id')).map((r) => [r.comment_id, r.reason])).toEqual([[trollCommentId, 'harassment']]);
   });
 
+  it('reporting a comment you already reported says thanks again, not an error', async () => {
+    await as(me);
+    await renderScreen('en', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
+    const card = await screen.findByTestId(`comment-${trollCommentId}`, {}, { timeout: 8000 });
+    await fireEvent.press(within(card).getByLabelText(`Report comment by ${troll.username}`)); // reported in the first test
+    await fireEvent.press(screen.getByText('Spam'));
+    await fireEvent.press(screen.getByText('Send report'));
+    expect(await screen.findByText('Thanks. A moderator will take a look.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('Something went wrong. Try again in a moment.')).toBeNull();
+    expect((await rows('reports', 'reporter_id')).filter((r) => r.comment_id === trollCommentId)).toHaveLength(1);
+  });
+
   it('a review can be reported, and your own cannot', async () => {
     await as(troll);
     const bookId = (await createManualBook({ title: 'Reviewed Safe Book', author: 'x', chapters: 2, language: 'en' })).id;

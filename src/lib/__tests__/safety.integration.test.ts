@@ -70,7 +70,7 @@ it('reporting a reader', async () => {
   expect(data).toEqual({ reported_user_id: other.id, reason: 'harassment' });
 });
 
-it('reporting a review: another reader’s yes, your own no, and once only', async () => {
+it('reporting a review: another reader’s yes, your own no, and a repeat is quietly accepted', async () => {
   await as(other);
   const book = await createManualBook({ title: 'Reviewed', author: 'x', chapters: 2, language: 'en' });
   await addToLibrary(book.id, 'finished');
@@ -82,7 +82,9 @@ it('reporting a review: another reader’s yes, your own no, and once only', asy
   await reportReview(theirs, 'harassment', 'Aimed at readers');
   const { data } = await supabase.from('reports').select('review_id, reason, details').eq('reporter_id', me.id).eq('review_id', theirs).single().throwOnError();
   expect(data).toEqual({ review_id: theirs, reason: 'harassment', details: 'Aimed at readers' });
-  await expect(reportReview(theirs, 'spam')).rejects.toMatchObject({ code: '23505' }); // already reported
+  await reportReview(theirs, 'spam'); // already reported: done, not an error
+  const again = await supabase.from('reports').select('reason').eq('reporter_id', me.id).eq('review_id', theirs).throwOnError();
+  expect(again.data).toEqual([{ reason: 'harassment' }]);
 });
 
 it('reporting a comment you cannot see (a room you have not unlocked) fails', async () => {
