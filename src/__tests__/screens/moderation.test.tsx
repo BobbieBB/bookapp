@@ -2,7 +2,9 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react-nativ
 
 import Profile from '../../../app/(tabs)/profile';
 import Moderation from '../../../app/moderation';
+import { ModerationQueue } from '../../components/ModerationQueue';
 import { setAdmin, sql } from '../../../test/database';
+import { renderIn } from '../../../test/i18n';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
 import { requestChapterCount } from '../../lib/moderation';
@@ -163,15 +165,6 @@ describe('as an admin', () => {
     expect(await within(item).findByText(/No fic in the app matches this link/, {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByTestId(`queue-removal_request-${requestId}`)).toBeOnTheScreen();
   });
-
-  it('says so when there is nothing to moderate', async () => {
-    sql(`update public.reports set status = 'dismissed' where status = 'open';
-         update public.removal_requests set status = 'dismissed' where status = 'open';
-         update public.feedback set status = 'dismissed' where status = 'open';
-         update public.chapter_count_requests set status = 'dismissed' where status = 'open';`);
-    await renderScreen('en', { moderation: Moderation }, '/moderation');
-    expect(await screen.findByText('Nothing to moderate', {}, { timeout: 8000 })).toBeOnTheScreen();
-  });
 });
 
 describe('as a reader who is not an admin', () => {
@@ -188,6 +181,20 @@ describe('as a reader who is not an admin', () => {
   it('the screen itself refuses', async () => {
     await renderScreen('en', { moderation: Moderation }, '/moderation');
     expect(await screen.findByText('The moderation queue is only for the Livami team.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByTestId(/^queue-/)).toBeNull();
+  });
+});
+
+// The queue is shared with every other test file running at the same time, so "nothing open" can't be
+// produced in the database from here; the list is rendered with no items instead. That the database
+// returns only open items is covered by supabase/tests/moderation.test.sql.
+describe('an empty queue', () => {
+  it.each([
+    ['en', 'Nothing to moderate'],
+    ['bg', 'Няма нищо за модериране'],
+  ] as const)('says so in %s', async (language, text) => {
+    await renderIn(language, <ModerationQueue items={[]} onResolved={() => undefined} />);
+    expect(await screen.findByText(text)).toBeOnTheScreen();
     expect(screen.queryByTestId(/^queue-/)).toBeNull();
   });
 });
