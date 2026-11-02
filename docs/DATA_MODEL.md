@@ -7,7 +7,7 @@ table. Anonymous users (`anon`) have no access at all.
 
 | Table | What it holds | Who can read |
 |---|---|---|
-| `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms | Logged-in users |
+| `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick | Logged-in users |
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
 | `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public` |
 | `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
@@ -116,6 +116,18 @@ author can never be changed, except to empty by that `set null`. Queries compare
 `is distinct from`, so a comment without an author still counts as new, can be reported and replied to.
 Storage files can't be removed from SQL: the app removes the reader's `covers/<user id>/` files before
 calling the function, and goes on if that fails.
+
+## Terms and age
+
+`profiles.terms_version` is the version of the terms and privacy policy the reader accepted (the app's
+`TERMS_VERSION`, `src/lib/legal.ts`), `terms_accepted_at` when, and `age_confirmed` their yes to "I'm at
+least {MIN_AGE}" (docs/DECISIONS.md, "Terms and age: ticked at sign-up"). No birth date is stored. The
+trigger `profiles_guard_terms` stamps `terms_accepted_at` with the server's time whenever a version is
+set or changes, on insert too, and ignores any time the app sends; otherwise the time never changes,
+not even for the database owner (and readers have no update grant on it). A version needs
+`age_confirmed`, and neither the version nor the age tick can be taken back (errors use SQLSTATE
+`LV001`); leaving means deleting the account. Profiles from before this have no version, and the app
+asks those readers once, like everyone after a `TERMS_VERSION` bump.
 
 ## Push notifications
 
