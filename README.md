@@ -28,6 +28,13 @@ Before launch:
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
+- **Password reset e-mail:** in the Supabase dashboard (Auth → Email templates → Reset password), use the
+  subject from `[auth.email.template.recovery]` in `supabase/config.toml` and paste the body of
+  `supabase/templates/recovery.html`. It must show the code (`{{ .Token }}`): the app asks
+  for the code and has no link handling.
+- **E-mail sending:** set custom SMTP under Auth → SMTP settings (the Resend account works); Supabase's own
+  mailer only sends to the team's addresses. Then set the hosted e-mail rate limit (Auth → Rate limits); the
+  `email_sent` value in `supabase/config.toml` is for the local stack only.
 - **Copy:** a native read of the Bulgarian copy.
 
 Planning lives on the Trello board *Book club app*.
@@ -47,6 +54,7 @@ Planning lives on the Trello board *Book club app*.
 app/                  Screens (Expo Router: one file = one screen)
   (tabs)/             Home, Library, Profile
   sign-in.tsx         Sign up / sign in
+  reset-password.tsx  Forgot password: a code by e-mail, then a new password
   onboarding.tsx      Username and what you read
 src/
   lib/                Supabase client, auth, data helpers, types
@@ -54,6 +62,7 @@ src/
   theme.ts            Colours and spacing (prototype palette)
 supabase/
   migrations/         SQL migrations (schema, functions, RLS policies)
+  templates/          Auth e-mails (the password reset code)
   tests/              SQL tests for spoiler rules and privacy
 test/                 Jest environment and helpers for the app tests
 docs/
