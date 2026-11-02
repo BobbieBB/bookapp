@@ -31,16 +31,19 @@ create policy moderation_email_settings_admin_read on public.moderation_email_se
 -- One row per e-mail handed to pg_net. pg_net sends after the transaction commits, so a refusal from
 -- Resend (a key without a verified domain, an used-up quota) shows up only in net._http_response, which
 -- pg_net empties after a few hours. moderation_email_check copies the answers here, and the Moderation
--- screen warns the PO when they are bad.
+-- screen warns the PO when they are bad. A report's mail names its report, so a later report on the same
+-- target knows the PO has been told.
 create table public.moderation_email_log (
   id          bigint generated always as identity primary key,
   request_id  bigint not null,
   kind        text not null check (kind in ('report', 'removal', 'digest', 'other')),
   created_at  timestamptz not null default now(),
   checked     boolean not null default false,
-  status_code int
+  status_code int,
+  report_id   uuid references public.reports (id) on delete set null
 );
 create index moderation_email_log_unchecked_idx on public.moderation_email_log (created_at) where not checked;
+create index moderation_email_log_report_idx on public.moderation_email_log (report_id) where report_id is not null;
 alter table public.moderation_email_log enable row level security;
 revoke all on public.moderation_email_log from public, anon, authenticated;
 
@@ -55,7 +58,9 @@ revoke execute on function public.moderation_email_clean(text) from public, anon
 -- Send one plain-text e-mail through Resend, with the API key from Supabase Vault (`resend_api_key`).
 -- Does nothing while sending is off, without pg_net or Vault (plain Postgres), and warns when the key
 -- is not stored yet. Returns whether it was handed to pg_net. pg_net sends after the transaction commits.
-create or replace function public.send_moderation_email(p_subject text, p_text text, p_kind text default 'other')
+-- `p_report` is the report a report's mail is about (logged with it).
+create or replace function public.send_moderation_email(p_subject text, p_text text, p_kind text default 'other',
+                                                        p_report uuid default null)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare
   settings public.moderation_email_settings;
@@ -78,10 +83,10 @@ begin
                              'subject', p_subject, 'text', p_text),
           jsonb_build_object('Authorization', 'Bearer ' || api_key, 'Content-Type', 'application/json'),
           10000;
-  insert into public.moderation_email_log (request_id, kind) values (request, p_kind);
+  insert into public.moderation_email_log (request_id, kind, report_id) values (request, p_kind, p_report);
   return true;
 end $$;
-revoke execute on function public.send_moderation_email(text, text, text) from public, anon, authenticated, service_role;
+revoke execute on function public.send_moderation_email(text, text, text, uuid) from public, anon, authenticated, service_role;
 
 -- Copy Resend's answers from pg_net into the log (hourly: pg_net keeps them only a few hours). A request
 -- with no answer after 2 hours counts as lost; a timeout as no answer. Log rows are kept 30 days.
@@ -102,7 +107,9 @@ end $$;
 revoke execute on function public.moderation_email_check() from public, anon, authenticated, service_role;
 
 -- For the Moderation screen (admins only): how many e-mails failed in the last 24 hours, and with what
--- status code (null: no answer). Zero while sending is off, so a switched-off setup never warns.
+-- status code (null: no answer). Zero while sending is off, so a switched-off setup never warns. Only
+-- failures sent after the latest mail that went through (2xx) count: once the key or the domain is
+-- fixed, the warning goes with the first good send instead of hanging on for a day.
 create or replace function public.moderation_email_health()
 returns table (failures int, last_status int, to_address text)
 language plpgsql stable security definer set search_path = public as $$
@@ -118,6 +125,8 @@ begin
     left join public.moderation_email_log f
       on f.checked and (f.status_code is null or f.status_code not between 200 and 299)
          and f.created_at > now() - interval '24 hours'
+         and f.created_at > coalesce((select max(ok.created_at) from public.moderation_email_log ok
+                                      where ok.checked and ok.status_code between 200 and 299), '-infinity')
     group by s.enabled, s.to_address;
 end $$;
 revoke execute on function public.moderation_email_health() from public, anon;
@@ -132,9 +141,14 @@ declare
   story text;
 begin
   -- One e-mail per target is enough: a pile-on (or one reader filing many) must not eat Resend's quota
-  -- or bury the PO. The queue shows how many reported it.
+  -- or bury the PO. The queue shows how many reported it. Only an open report that was really mailed
+  -- counts: one filed while sending was off, or whose mail Resend refused, told the PO nothing. (A log
+  -- row still waiting for Resend's answer counts as mailed. Log rows go after 30 days, so a report open
+  -- that long no longer keeps the target quiet: the next one is a reminder.)
   if exists (select 1 from public.reports o
+             join public.moderation_email_log l on l.report_id = o.id
              where o.id <> new.id and o.status = 'open'
+               and (not l.checked or l.status_code between 200 and 299)
                and (o.comment_id = new.comment_id or o.review_id = new.review_id or o.reported_user_id = new.reported_user_id)) then
     return new;
   end if;
@@ -156,7 +170,7 @@ begin
              then 'Reporter says: ' || left(public.moderation_email_clean(new.details), 500) end,
         '',
         'Open Moderation in the app to hide it or dismiss the report.'),
-      'report');
+      'report', new.id);
   exception when others then
     -- (sqlstate only: an error text could echo the request headers, and the API key with them)
     raise warning 'e-mail for report % not sent (%)', new.id, sqlstate;

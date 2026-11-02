@@ -25,7 +25,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
 | `moderation_email_settings` | Whether moderation e-mail is sent, to which address and from which (one row; off until set up) | Admins |
-| `moderation_email_log` | Every moderation e-mail handed to pg_net and Resend's answer (status code), kept 30 days | Nobody (read through `moderation_email_health`) |
+| `moderation_email_log` | Every moderation e-mail handed to pg_net and Resend's answer (status code), and the report a report's e-mail is about; kept 30 days | Nobody (read through `moderation_email_health`) |
 | `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
@@ -156,8 +156,9 @@ role can change `cover_sweep_settings`.
 The PO is e-mailed about moderation work, from the database through Resend (`pg_net`), only when
 `moderation_email_settings.enabled` is on and the API key is in Vault as `resend_api_key`. Without
 `pg_net` or Vault the functions do nothing; without the key they raise a warning. Two triggers send at
-once: `reports_send_email` (kind, reason, story title, the reporter's text cut at 500 characters; only for the
-first open report on a comment, review or reader) and `removal_requests_send_email` (story, AO3 link, the
+once: `reports_send_email` (kind, reason, story title, the reporter's text cut at 500 characters; only while no
+other open report on the same comment, review or reader was mailed: one filed while sending was off, or whose
+mail Resend refused, does not count) and `removal_requests_send_email` (story, AO3 link, the
 author's contact and message, so the PO can reply). Reader-written text has its control characters turned into
 spaces, so it cannot add lines to the mail. A failed hand-over is a warning (with the SQLSTATE only), never a
 failed insert. `moderation_digest()` runs from `pg_cron` every day at 07:00 UTC (job `moderation-digest`) and
@@ -166,7 +167,7 @@ sends one e-mail with the open feedback and chapter-count requests that came aft
 none. pg_net answers after the commit, so `moderation_email_check()` (hourly, job `moderation-email-check`) copies
 Resend's status codes from `net._http_response` into `moderation_email_log`; a request with no answer after 2 hours
 counts as lost. `moderation_email_health()` (admins only, 42501 otherwise) returns the failures of the last 24
-hours, the latest status code and the recipient, and zero while sending is off; the Moderation screen warns on it.
+hours that came after the latest e-mail that went through (2xx), the latest status code and the recipient, and zero while sending is off; the Moderation screen warns on it.
 `send_moderation_email`, `moderation_digest` and `moderation_email_check` can be called by nobody but the
 database owner (not even `service_role`). No e-mail names the reporter or contains a reader's address. Only
 migrations or the service role can change `moderation_email_settings`.

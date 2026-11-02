@@ -41,7 +41,18 @@ function actionLabel(kind: QueueKind, action: QueueAction): MessageKey {
   return 'moderation.dismiss';
 }
 
-function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => void }) {
+// A button's name says which card it belongs to: the story and the person, or (feedback, a reader
+// report without a story) the reason and the start of the text, so two cards never sound the same.
+const EXCERPT_IN_LABEL = 40;
+
+function excerptStart(text: string) {
+  if (text.length <= EXCERPT_IN_LABEL) return text;
+  const cut = text.slice(0, EXCERPT_IN_LABEL);
+  const word = cut.lastIndexOf(' ');
+  return `${(word > 0 ? cut.slice(0, word) : cut).trimEnd()}…`;
+}
+
+function QueueCard({ item, onDone, onResolved }: { item: QueueItem; onDone: () => void; onResolved: () => void }) {
   const t = useT();
   const { language } = useLanguage();
   const [busy, setBusy] = useState(false);
@@ -53,7 +64,8 @@ function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => vo
     setError('');
     try {
       await resolve(item.kind, item.id, action);
-      onResolved(); // the card stays busy until the reload takes it off the list
+      // Dealt with: the card leaves now, even if the reload that follows fails.
+      onDone();
     } catch (e) {
       // MD001 / MD002: refused for a reason this item has (see moderation_resolve); the item stays.
       const failure = errorCode(e);
@@ -70,6 +82,10 @@ function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => vo
 
   const reasonKey = item.reason ? REASON_LABEL[item.reason] : undefined;
   const reporters = item.reporter_count ?? 0;
+  const target =
+    [item.story_title, item.subject].filter(Boolean).join(', ') ||
+    [reasonKey ? t(reasonKey) : null, item.excerpt ? excerptStart(item.excerpt) : null].filter(Boolean).join(', ') ||
+    t(KIND_LABEL[item.kind]);
 
   return (
     <Card>
@@ -96,7 +112,7 @@ function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => vo
             accessibilityLabel={t('moderation.actionLabel', {
               action: t(actionLabel(item.kind, action)),
               kind: t(KIND_LABEL[item.kind]),
-              target: [item.story_title, item.subject].filter(Boolean).join(', ') || t(KIND_LABEL[item.kind]),
+              target,
             })}
             disabled={busy}
             onPress={() => act(action)}
@@ -107,15 +123,31 @@ function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => vo
   );
 }
 
-/** The open items as cards, or "Nothing to moderate". `onResolved` reloads the queue. */
+const itemKey = (item: QueueItem) => `${item.kind}-${item.id}`;
+
+/**
+ * The open items as cards, or "Nothing to moderate". `onResolved` reloads the queue. An item acted on
+ * leaves the list straight away ("An item leaves the list once you act on it"), not when the reload
+ * comes back: if the reload fails the old list stays on screen, and the item would linger in it.
+ */
 export function ModerationQueue({ items, onResolved }: { items: QueueItem[]; onResolved: () => void }) {
   const t = useT();
-  if (items.length === 0) return <T v="muted">{t('moderation.empty')}</T>;
+  const [done, setDone] = useState<ReadonlySet<string>>(new Set());
+  const open = items.filter((item) => !done.has(itemKey(item)));
+  if (open.length === 0) return <T v="muted">{t('moderation.empty')}</T>;
   return (
     <>
       <T v="muted">{t('moderation.intro')}</T>
-      {items.map((item) => (
-        <QueueCard key={`${item.kind}-${item.id}`} item={item} onResolved={onResolved} />
+      {open.map((item) => (
+        <QueueCard
+          key={itemKey(item)}
+          item={item}
+          onDone={() => {
+            setDone((before) => new Set(before).add(itemKey(item)));
+            onResolved();
+          }}
+          onResolved={onResolved}
+        />
       ))}
     </>
   );

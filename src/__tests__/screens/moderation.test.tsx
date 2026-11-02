@@ -7,7 +7,7 @@ import { setAdmin, sql } from '../../../test/database';
 import { renderIn } from '../../../test/i18n';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
-import { requestChapterCount } from '../../lib/moderation';
+import { fetchQueue, requestChapterCount } from '../../lib/moderation';
 import { reportComment, sendFeedback } from '../../lib/safety';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
@@ -139,6 +139,37 @@ describe('as an admin', () => {
     const item = await card('comment_report', hideReportId);
     expect(within(item).getByRole('button', { name: `Hide the comment: Reported comment, Moderated Book, ${troll.username}` })).toBeOnTheScreen();
     expect(within(item).getByRole('button', { name: `Dismiss: Reported comment, Moderated Book, ${troll.username}` })).toBeOnTheScreen();
+  });
+
+  it('feedback buttons are named after the feedback, not "Feedback" twice', async () => {
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const item = await card('feedback', feedbackId);
+    expect(within(item).getByRole('button', { name: 'Done: Feedback, Idea, Please add dark mode' })).toBeOnTheScreen();
+    expect(within(item).getByRole('button', { name: 'Dismiss: Feedback, Idea, Please add dark mode' })).toBeOnTheScreen();
+  });
+
+  it('long feedback names its buttons after the start of it, cut at a word', async () => {
+    const longId = sql(
+      `insert into public.feedback (user_id, kind, body) values ('${reader.id}', 'problem', 'The reading list will not scroll on my phone at all, whatever I try') returning id;`,
+    ).split('\n')[0];
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const item = await card('feedback', longId);
+    expect(within(item).getByRole('button', { name: 'Done: Feedback, Problem, The reading list will not scroll on my…' })).toBeOnTheScreen();
+  });
+
+  it('a card that was dealt with leaves the list even when the list cannot be reloaded', async () => {
+    const doneId = sql(
+      `insert into public.feedback (user_id, kind, body) values ('${reader.id}', 'problem', 'The chapter list will not scroll on my phone at all, whatever I try') returning id;`,
+    ).split('\n')[0];
+    const items = (await fetchQueue()).filter((i) => i.id === doneId || i.id === feedbackId);
+    expect(items).toHaveLength(2);
+    // The reload after the action never comes (it failed): nothing gives the list new items.
+    await renderIn('en', <ModerationQueue items={items} onResolved={() => undefined} />);
+    const item = await card('feedback', doneId);
+    await fireEvent.press(within(item).getByRole('button', { name: /^Done/ }));
+    await waitFor(() => expect(screen.queryByTestId(`queue-feedback-${doneId}`)).toBeNull(), { timeout: 8000 });
+    expect(sql(`select status from public.feedback where id = '${doneId}';`).trim()).toBe('actioned');
+    expect(screen.getByTestId(`queue-feedback-${feedbackId}`)).toBeOnTheScreen(); // the others stay
   });
 
   it('Hide takes the report off the list and hides the comment', async () => {
