@@ -9,6 +9,9 @@ create table public.moderation_email_settings (
   enabled      boolean not null default false,
   to_address   text not null default 'support@livami.app',
   from_address text not null default 'Livami <moderation@livami.app>',
+  -- how far the daily digest has sent: each run covers what came after this, so nothing is mailed twice
+  -- and a skipped day is caught up (null: the last 24 hours)
+  digest_sent_through timestamptz,
   constraint moderation_email_settings_to check (to_address ~ '^[^[:space:]<>@,;]+@[^[:space:]<>@,;]+\.[^[:space:]<>@,;]+$'),
   -- "name <address>" or a bare address (Resend accepts both); no line breaks or second recipients
   constraint moderation_email_settings_from check (
@@ -25,33 +28,100 @@ grant select on public.moderation_email_settings to authenticated;
 create policy moderation_email_settings_admin_read on public.moderation_email_settings for select to authenticated
   using (public.is_admin());
 
+-- One row per e-mail handed to pg_net. pg_net sends after the transaction commits, so a refusal from
+-- Resend (a key without a verified domain, an used-up quota) shows up only in net._http_response, which
+-- pg_net empties after a few hours. moderation_email_check copies the answers here, and the Moderation
+-- screen warns the PO when they are bad.
+create table public.moderation_email_log (
+  id          bigint generated always as identity primary key,
+  request_id  bigint not null,
+  kind        text not null check (kind in ('report', 'removal', 'digest', 'other')),
+  created_at  timestamptz not null default now(),
+  checked     boolean not null default false,
+  status_code int
+);
+create index moderation_email_log_unchecked_idx on public.moderation_email_log (created_at) where not checked;
+alter table public.moderation_email_log enable row level security;
+revoke all on public.moderation_email_log from public, anon, authenticated;
+
+-- Reader-written text goes into a plain-text mail: a line break could forge a "Link:" or "Reply to"
+-- line, so every control character becomes a space.
+create or replace function public.moderation_email_clean(p_text text)
+returns text language sql immutable set search_path = '' as $$
+  select btrim(regexp_replace(p_text, '[[:cntrl:]]+', ' ', 'g'))
+$$;
+revoke execute on function public.moderation_email_clean(text) from public, anon, authenticated, service_role;
+
 -- Send one plain-text e-mail through Resend, with the API key from Supabase Vault (`resend_api_key`).
 -- Does nothing while sending is off, without pg_net or Vault (plain Postgres), and warns when the key
--- is not stored yet. pg_net sends after the transaction commits.
-create or replace function public.send_moderation_email(p_subject text, p_text text)
-returns void language plpgsql security definer set search_path = public as $$
+-- is not stored yet. Returns whether it was handed to pg_net. pg_net sends after the transaction commits.
+create or replace function public.send_moderation_email(p_subject text, p_text text, p_kind text default 'other')
+returns boolean language plpgsql security definer set search_path = public as $$
 declare
   settings public.moderation_email_settings;
   api_key text;
+  request bigint;
 begin
   select * into settings from public.moderation_email_settings;
   if not coalesce(settings.enabled, false) or to_regproc('net.http_post') is null
      or to_regclass('vault.decrypted_secrets') is null then
-    return;
+    return false;
   end if;
   execute 'select decrypted_secret from vault.decrypted_secrets where name = $1' into api_key using 'resend_api_key';
   if api_key is null then
     raise warning 'moderation e-mail not sent: no resend_api_key in Vault';
-    return;
+    return false;
   end if;
-  execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := $4)'
+  execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := $4)' into request
     using 'https://api.resend.com/emails',
           jsonb_build_object('from', settings.from_address, 'to', jsonb_build_array(settings.to_address),
                              'subject', p_subject, 'text', p_text),
           jsonb_build_object('Authorization', 'Bearer ' || api_key, 'Content-Type', 'application/json'),
           10000;
+  insert into public.moderation_email_log (request_id, kind) values (request, p_kind);
+  return true;
 end $$;
-revoke execute on function public.send_moderation_email(text, text) from public, anon, authenticated;
+revoke execute on function public.send_moderation_email(text, text, text) from public, anon, authenticated, service_role;
+
+-- Copy Resend's answers from pg_net into the log (hourly: pg_net keeps them only a few hours). A request
+-- with no answer after 2 hours counts as lost; a timeout as no answer. Log rows are kept 30 days.
+create or replace function public.moderation_email_check()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if to_regclass('net._http_response') is not null then
+    execute $q$
+      update public.moderation_email_log l
+      set checked = true, status_code = case when r.timed_out then null else r.status_code end
+      from net._http_response r
+      where r.id = l.request_id and not l.checked
+    $q$;
+  end if;
+  update public.moderation_email_log set checked = true where not checked and created_at < now() - interval '2 hours';
+  delete from public.moderation_email_log where created_at < now() - interval '30 days';
+end $$;
+revoke execute on function public.moderation_email_check() from public, anon, authenticated, service_role;
+
+-- For the Moderation screen (admins only): how many e-mails failed in the last 24 hours, and with what
+-- status code (null: no answer). Zero while sending is off, so a switched-off setup never warns.
+create or replace function public.moderation_email_health()
+returns table (failures int, last_status int, to_address text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  return query
+    select case when s.enabled then count(f.id)::int else 0 end,
+           case when s.enabled then (array_agg(f.status_code order by f.created_at desc, f.id desc))[1] end,
+           s.to_address
+    from public.moderation_email_settings s
+    left join public.moderation_email_log f
+      on f.checked and (f.status_code is null or f.status_code not between 200 and 299)
+         and f.created_at > now() - interval '24 hours'
+    group by s.enabled, s.to_address;
+end $$;
+revoke execute on function public.moderation_email_health() from public, anon;
+grant execute on function public.moderation_email_health() to authenticated;
 
 -- A new report: what kind, why, where, and the reporter's own words. Never who reported it, and no
 -- reader's e-mail address.
@@ -61,6 +131,13 @@ declare
   target text;
   story text;
 begin
+  -- One e-mail per target is enough: a pile-on (or one reader filing many) must not eat Resend's quota
+  -- or bury the PO. The queue shows how many reported it.
+  if exists (select 1 from public.reports o
+             where o.id <> new.id and o.status = 'open'
+               and (o.comment_id = new.comment_id or o.review_id = new.review_id or o.reported_user_id = new.reported_user_id)) then
+    return new;
+  end if;
   -- A failure to send must never lose the report.
   begin
     select case when new.comment_id is not null then 'comment'
@@ -74,17 +151,19 @@ begin
       '[Livami] New report: ' || new.reason,
       concat_ws(E'\n',
         'Report on a ' || target || '. Reason: ' || new.reason || '.',
-        case when story is not null then 'Story: ' || story end,
-        case when nullif(btrim(new.details), '') is not null then 'Reporter says: ' || left(btrim(new.details), 500) end,
+        case when story is not null then 'Story: ' || public.moderation_email_clean(story) end,
+        case when nullif(public.moderation_email_clean(new.details), '') is not null
+             then 'Reporter says: ' || left(public.moderation_email_clean(new.details), 500) end,
         '',
-        'Open Moderation in the app to hide it or dismiss the report.'));
+        'Open Moderation in the app to hide it or dismiss the report.'),
+      'report');
   exception when others then
     -- (sqlstate only: an error text could echo the request headers, and the API key with them)
     raise warning 'e-mail for report % not sent (%)', new.id, sqlstate;
   end;
   return new;
 end $$;
-revoke execute on function public.reports_send_email() from public, anon, authenticated;
+revoke execute on function public.reports_send_email() from public, anon, authenticated, service_role;
 
 create trigger reports_send_email after insert on public.reports
   for each row execute function public.reports_send_email();
@@ -103,61 +182,79 @@ begin
       '[Livami] Author removal request',
       concat_ws(E'\n',
         'An author asks for their fic to be removed.',
-        case when story is not null then 'Story: ' || story end,
-        case when coalesce(new.story_url, link) is not null then 'Link: ' || coalesce(new.story_url, link) end,
-        'Contact: ' || btrim(new.contact),
-        case when nullif(btrim(new.message), '') is not null then 'Message: ' || left(btrim(new.message), 500) end,
+        case when story is not null then 'Story: ' || public.moderation_email_clean(story) end,
+        case when coalesce(new.story_url, link) is not null then 'Link: ' || public.moderation_email_clean(coalesce(new.story_url, link)) end,
+        'Contact: ' || public.moderation_email_clean(new.contact),
+        case when nullif(public.moderation_email_clean(new.message), '') is not null
+             then 'Message: ' || left(public.moderation_email_clean(new.message), 500) end,
         '',
-        'Reply to the contact above. Open Moderation in the app to hide the fic or dismiss the request.'));
+        'Reply to the contact above. Open Moderation in the app to hide the fic or dismiss the request.'),
+      'removal');
   exception when others then
     raise warning 'e-mail for removal request % not sent (%)', new.id, sqlstate;
   end;
   return new;
 end $$;
-revoke execute on function public.removal_requests_send_email() from public, anon, authenticated;
+revoke execute on function public.removal_requests_send_email() from public, anon, authenticated, service_role;
 
 create trigger removal_requests_send_email after insert on public.removal_requests
   for each row execute function public.removal_requests_send_email();
 
--- The daily digest: open feedback and chapter-count requests from the last 24 hours, in one e-mail.
--- Nothing is sent on a quiet day.
+-- The daily digest: open feedback and chapter-count requests that came after the last digest (the first
+-- time: the last 24 hours), in one e-mail. Nothing is sent on a quiet day, nothing is mailed twice, and a
+-- skipped day is caught up. The window moves on in the same transaction as the send, and only when the
+-- mail was really handed over (or sending is on and there was nothing to say).
 create or replace function public.moderation_digest()
 returns void language plpgsql security definer set search_path = public as $$
 declare
+  settings public.moderation_email_settings;
+  since timestamptz;
+  upto timestamptz := now();
   feedback_lines text[];
   count_lines text[];
+  sent boolean := false;
 begin
-  select array_agg('- ' || f.kind || ': ' || left(replace(f.body, E'\n', ' '), 160) || case when char_length(f.body) > 160 then '…' else '' end
+  select * into settings from public.moderation_email_settings for update;
+  if not coalesce(settings.enabled, false) then
+    return;
+  end if;
+  since := coalesce(settings.digest_sent_through, upto - interval '24 hours');
+
+  select array_agg('- ' || f.kind || ': ' || left(public.moderation_email_clean(f.body), 160)
+                   || case when char_length(public.moderation_email_clean(f.body)) > 160 then '…' else '' end
                    order by f.created_at)
     into feedback_lines
   from public.feedback f
-  where f.status = 'open' and f.created_at > now() - interval '24 hours';
+  where f.status = 'open' and f.created_at > since and f.created_at <= upto;
 
-  select array_agg('- ' || s.title || ': ' || x.proposed || ' chapters (now ' || coalesce(s.total_sections::text, 'not set') || ')'
-                   order by x.created_at)
+  select array_agg('- ' || public.moderation_email_clean(s.title) || ': ' || x.proposed || ' chapters (now '
+                   || coalesce(s.total_sections::text, 'not set') || ')' order by x.created_at)
     into count_lines
   from public.chapter_count_requests x
   join public.stories s on s.id = x.story_id
-  where x.status = 'open' and x.created_at > now() - interval '24 hours';
+  where x.status = 'open' and x.created_at > since and x.created_at <= upto;
 
-  if feedback_lines is null and count_lines is null then
-    return;
+  if feedback_lines is not null or count_lines is not null then
+    sent := public.send_moderation_email(
+      '[Livami] Moderation digest: ' || coalesce(cardinality(feedback_lines), 0) || ' feedback, '
+        || coalesce(cardinality(count_lines), 0) || ' chapter-count requests',
+      concat_ws(E'\n',
+        'New since the last digest.',
+        case when feedback_lines is not null then E'\nFeedback (' || cardinality(feedback_lines) || '):' end,
+        array_to_string(feedback_lines, E'\n'),
+        case when count_lines is not null then E'\nChapter-count requests (' || cardinality(count_lines) || '):' end,
+        array_to_string(count_lines, E'\n'),
+        E'\nOpen Moderation in the app.'),
+      'digest');
   end if;
-  perform public.send_moderation_email(
-    '[Livami] Moderation digest: ' || coalesce(cardinality(feedback_lines), 0) || ' feedback, '
-      || coalesce(cardinality(count_lines), 0) || ' chapter-count requests',
-    concat_ws(E'\n',
-      'Open in the last 24 hours.',
-      case when feedback_lines is not null then E'\nFeedback (' || cardinality(feedback_lines) || '):' end,
-      array_to_string(feedback_lines, E'\n'),
-      case when count_lines is not null then E'\nChapter-count requests (' || cardinality(count_lines) || '):' end,
-      array_to_string(count_lines, E'\n'),
-      E'\nOpen Moderation in the app.'));
+  if sent or (feedback_lines is null and count_lines is null) then
+    update public.moderation_email_settings set digest_sent_through = upto;
+  end if;
 end $$;
-revoke execute on function public.moderation_digest() from public, anon, authenticated;
+revoke execute on function public.moderation_digest() from public, anon, authenticated, service_role;
 
 -- pg_net makes the HTTP call after the transaction commits; pg_cron sends the digest every day at
--- 07:00 UTC (Supabase only).
+-- 07:00 UTC and reads back Resend's answers every hour (Supabase only).
 do $$
 begin
   if exists (select 1 from pg_available_extensions where name = 'pg_net') then
@@ -166,5 +263,7 @@ begin
   if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
     create extension if not exists pg_cron;
     perform cron.schedule('moderation-digest', '0 7 * * *', 'select public.moderation_digest()');
+    -- Resend's answers are copied out of pg_net's short-lived table every hour
+    perform cron.schedule('moderation-email-check', '17 * * * *', 'select public.moderation_email_check()');
   end if;
 end $$;
