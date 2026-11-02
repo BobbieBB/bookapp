@@ -160,7 +160,9 @@ async function finish(
     const userId = (await supabase.auth.getSession()).data.session?.user.id;
     if (userId) await finishStory(story, userId).catch(() => undefined);
     void track('story_finished', { kind });
-    router.replace(`/finished/${story.id}`);
+    // The story replaces Add and Finished sits on top, so Back from Finished always lands on the story.
+    router.replace(`/story/${story.id}`);
+    router.push(`/finished/${story.id}`);
     return;
   }
   // Opened from a link with nothing behind it: go Home instead of nowhere.

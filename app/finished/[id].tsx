@@ -67,6 +67,13 @@ function Finished({
   const [completing, setCompleting] = useState(false);
 
   // The usual case: the reader just read the last chapter, but Livami still has it as a WIP.
+  // Finished is always opened on top of the story (the Finished chip, or Add): Back is the way, and a deep link
+  // with nothing behind it goes to the story instead of nowhere.
+  function backToStory() {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/story/${story.id}`);
+  }
+
   async function complete() {
     setCompleting(true);
     setError('');
@@ -84,7 +91,7 @@ function Finished({
       <View style={{ gap: space.m }}>
         <T v="h2">{story.title}</T>
         <T v="body">{t('finishing.notFinished')}</T>
-        <Button title={t('finishing.backToStory')} onPress={() => router.replace(`/story/${story.id}`)} />
+        <Button title={t('finishing.backToStory')} onPress={backToStory} />
       </View>
     );
   }
@@ -126,7 +133,7 @@ function Finished({
               <Button title={t('finishing.markComplete')} onPress={complete} loading={completing} />
             </View>
           ) : null}
-          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={() => router.replace(`/story/${story.id}`)} />
+          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={backToStory} />
         </>
       ) : (
         <Button title={t('finishing.epilogue')} onPress={() => router.replace(`/room/${story.id}/epilogue`)} />
