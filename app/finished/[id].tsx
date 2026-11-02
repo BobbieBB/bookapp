@@ -232,7 +232,7 @@ function RateButton({ value, rating, onRate }: { value: number; rating: number |
         backgroundColor: lit ? c.primary : 'transparent',
       }}
     >
-      <Text importantForAccessibility="no" style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: lit ? c.surface : c.ink }}>
+      <Text importantForAccessibility="no" style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: lit ? c.onPrimary : c.ink }}>
         {`${value}★`}
       </Text>
     </Pressable>

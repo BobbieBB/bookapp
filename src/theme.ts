@@ -28,6 +28,7 @@ const light = {
   accent: '#4E4459', // small headings and links
   progress: '#FF4F84', // progress bar fill: books
   progressAlt: '#3DBE95', // progress bar fill: fanfiction
+  thumb: '#FFFFFF', // switch thumb (the platform default is teal on web and Android)
 };
 
 const dark: typeof light = {
@@ -53,6 +54,7 @@ const dark: typeof light = {
   accent: '#B4A6BD',
   progress: '#FF6B97',
   progressAlt: '#4FD1A6',
+  thumb: '#F7EEF3',
 };
 
 // "Calm": one warm beige family, no pink and no green, for readers sensitive to bright colours. Every
@@ -80,6 +82,7 @@ const calm: typeof light = {
   accent: '#7A5F45',
   progress: '#8A7258',
   progressAlt: '#8A7258',
+  thumb: '#FBFAF7',
 };
 
 export const palettes = { light, dark, calm };

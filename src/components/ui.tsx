@@ -100,7 +100,7 @@ export function Toggle({ label, value, onChange, disabled }: { label: string; va
       {/* The label wraps (Bulgarian labels are long); the switch keeps its size and never leaves the card. */}
       <Text style={{ flex: 1, fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
       <Switch
-        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
+        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} thumbColor={c.thumb} ios_backgroundColor={c.track} accessibilityLabel={label} />
     </View>
   );
 }
