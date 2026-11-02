@@ -291,6 +291,10 @@ Choices made during development where the decisions above don't say. Each one is
 - **Every progress bar looks the same:** taupe #8A7258 on a sand track #EAE6DE, never coloured per story.
 - Contrast stays WCAG AA or better (body text 13:1, buttons 8:1).
 - (A parchment variant was tried the same day and dropped: the PO preferred this beige.)
+- **Built (2 Nov 2026).** `calm` in `src/theme.ts` has the same roles as Light and Dark, plus `accent`, `progress` and
+  `progressAlt` (the bars; both taupe in Calm). Appearance lives in Profile as a card next to Language (there is no Settings
+  screen), stored per device under `livami.appearance`; `isDark` stays true for Dark only. Measured from the hexes: ink on cards
+  13.4:1, on the ground 12.4:1, button text on sand 8.5:1. Mood, not copy: the reaction emoji (❤️ …) keep their own colours.
 
 ## Deleting an account: what happens to comments (19 Oct 2026, PO)
 - Required before the App Store (Apple 5.1.1(v): account deletion inside the app) and by GDPR.

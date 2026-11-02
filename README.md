@@ -13,7 +13,7 @@ the whole story.
 ## Status
 
 MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
-- **Basics:** sign up, onboarding and the English/Bulgarian UI.
+- **Basics:** sign up, onboarding and the English/Bulgarian UI. Profile → Appearance: Auto, Light, Dark or Calm (a beige look without pink or green), remembered per device.
 - **Stories:** adding books (Open Library) and fics (AO3 link), and the story page with reading
   progress and WIP chapters.
 - **Discussions:** chapter discussions and The Epilogue with replies, reactions and live updates.
