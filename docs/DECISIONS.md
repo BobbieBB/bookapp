@@ -176,6 +176,10 @@ fic auto-fill from AO3 (only with OTW permission).
 
 ## Dev defaults (pending PO review)
 Choices made during development where the decisions above don't say. Each one is easy to change.
+- **Moderation e-mail (2 Nov 2026):** goes to support@livami.app from `Livami <moderation@livami.app>`; the daily digest
+  leaves at 07:00 UTC and covers the last 24 hours. A report e-mail carries its kind, reason, story title and the
+  reporter's text (cut at 500 characters), never who reported; a removal-request e-mail carries the AO3 link and the
+  author's contact, because the PO answers authors herself. No reader's address is ever included.
 - **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
   (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only

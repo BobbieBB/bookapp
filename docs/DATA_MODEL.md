@@ -24,6 +24,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `chapter_count_requests` | A reader's "Wrong chapter count?" for a book that has a count: the proposed number (1–5000) and a status; one open request per reader and book; no update or delete | You and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
+| `moderation_email_settings` | Whether moderation e-mail is sent, to which address and from which (one row; off until set up) | Admins |
 | `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
@@ -148,6 +149,19 @@ header. The function lists orphans with `orphan_cover_paths(older_than, limit)` 
 Storage API, 100 per request. The 1-day grace period protects a cover being uploaded at that moment:
 its file is stored before the `custom_covers` row that points to it. Only migrations or the service
 role can change `cover_sweep_settings`.
+
+## Moderation e-mail
+
+The PO is e-mailed about moderation work, from the database through Resend (`pg_net`), only when
+`moderation_email_settings.enabled` is on and the API key is in Vault as `resend_api_key`. Without
+`pg_net` or Vault the functions do nothing; without the key they raise a warning. Two triggers send at
+once: `reports_send_email` (kind, reason, story title, the reporter's text cut at 500 characters) and
+`removal_requests_send_email` (story, AO3 link, the author's contact and message, so the PO can
+reply). A failed send is a warning, never a failed insert. `moderation_digest()` runs from `pg_cron`
+every day at 07:00 UTC (job `moderation-digest`) and sends one e-mail with the open feedback and
+chapter-count requests from the last 24 hours, or nothing when there are none. `send_moderation_email`
+and `moderation_digest` can be called by nobody but the database owner. No e-mail names the reporter or
+contains a reader's address. Only migrations or the service role can change `moderation_email_settings`.
 
 ## Functions the app calls
 

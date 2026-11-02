@@ -28,6 +28,10 @@ Before launch:
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
+- **Moderation e-mail:** create a Resend account, verify the `livami.app` domain (the DNS records Resend
+  shows), store the API key in Vault with `select vault.create_secret('<key>', 'resend_api_key');`, then
+  `update moderation_email_settings set enabled = true where id;`. Check that the `moderation-digest` job
+  shows up under Integrations → Cron.
 - **Copy:** a native read of the Bulgarian copy.
 
 Planning lives on the Trello board *Book club app*.
