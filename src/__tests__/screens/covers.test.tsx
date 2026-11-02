@@ -127,10 +127,12 @@ describe('in your Home and Library rows', () => {
     await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
     await act(async () => router.push(`/story/${mineId}`));
     await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    // A covered story added meanwhile: once its cover shows, Home's rows and their links have reloaded.
+    const arrived = (await createManualBook({ title: 'Arrived While Away', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(arrived, 'currently_reading');
+    await uploadCover(arrived, Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0)).buffer, 'image/png');
     await act(async () => router.back());
-    await screen.findByLabelText('Row Without Cover cover', {}, { timeout: 8000 });
-    // Home reloads its rows on focus; give the cover links time to arrive again before comparing.
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await screen.findByLabelText('Your own cover for Arrived While Away', {}, { timeout: 8000 });
     expect(screen.getByLabelText('Your own cover for Row With Cover').props.source.uri).toBe(before);
   });
 

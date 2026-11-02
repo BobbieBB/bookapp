@@ -6,6 +6,9 @@ import { supabase } from './supabase';
 const BUCKET = 'covers';
 const TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const SIGNED_URL_SECONDS = 60 * 60;
+// Story ids per covers query and signing request: short enough for the request URL, and far below the
+// 1000 rows the API returns (supabase/config.toml max_rows) and the 1000 paths Storage signs at once.
+const IDS_PER_BATCH = 100;
 // Signed links are remembered per file and handed out again until shortly before they run out: the
 // lists reload on every focus, and a newly signed link (a new URL) makes the image load all over again.
 const RENEW_BEFORE_MS = 5 * 60 * 1000;
@@ -84,16 +87,20 @@ export async function myCoverUrl(storyId: string): Promise<string | null> {
 
 /**
  * Short-lived links to your covers for many stories at once (library rows), keyed by story id; stories
- * without one are left out. One query and at most one signing request, however many rows there are.
+ * without one are left out. The ids go in batches: a whole library's worth would not fit in one request
+ * URL, and both the API and Storage's signing stop at 1000 at a time. Links still remembered are not
+ * signed again.
  */
 export async function myCoverUrls(storyIds: string[]): Promise<Record<string, string>> {
-  if (!storyIds.length) return {};
-  // All your covers (row-level security keeps it to yours), then the ones these rows want: a whole
-  // library's worth of ids in the query itself would not fit in the request URL.
-  const { data, error } = await supabase.from('custom_covers').select('story_id, path');
+  const batches: string[][] = [];
+  for (let i = 0; i < storyIds.length; i += IDS_PER_BATCH) batches.push(storyIds.slice(i, i + IDS_PER_BATCH));
+  const found = await Promise.all(batches.map(coverUrlsFor));
+  return Object.assign({}, ...found);
+}
+
+async function coverUrlsFor(storyIds: string[]): Promise<Record<string, string>> {
+  const { data: covers, error } = await supabase.from('custom_covers').select('story_id, path').in('story_id', storyIds);
   if (error) throw error;
-  const wanted = new Set(storyIds);
-  const covers = data.filter((c) => wanted.has(c.story_id));
   const urls: Record<string, string> = {};
   const toSign: string[] = [];
   for (const c of covers) {

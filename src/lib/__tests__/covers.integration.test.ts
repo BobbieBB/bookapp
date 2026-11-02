@@ -1,5 +1,6 @@
 import { forgetCoverLinks, myCoverUrl, myCoverUrls, removeCover, uploadCover } from '../covers';
 import { addToLibrary, createManualBook } from '../stories';
+import { sql } from '../../../test/database';
 import { supabase } from '../supabase';
 
 // Private custom covers in Supabase Storage (docs/DECISIONS.md, "Custom covers"): only you ever
@@ -109,6 +110,32 @@ it('a whole library of rows at once, however long', async () => {
   const urls = await myCoverUrls(ids);
   expect(Object.keys(urls)).toEqual([storyId]);
   expect((await fetch(urls[storyId])).status).toBe(200);
+});
+
+it('more covers than the API returns in one go (1000 rows) all come back', async () => {
+  // A reader with 1100 covers, set up in SQL: stories, library entries, and a file record for each
+  // (signing only needs Storage to know the file, not its bytes).
+  const many = await signUp('covermany');
+  const rows = sql(`
+    with s as (
+      insert into public.stories (kind, title, author_name, language)
+      select 'book', 'Many ' || i, 'x', 'en' from generate_series(1, 1100) i returning id
+    ), e as (
+      insert into public.library_entries (user_id, story_id, status)
+      select '${many.id}', id, 'want_to_read' from s returning story_id
+    ), o as (
+      insert into storage.objects (bucket_id, name, owner, metadata)
+      select 'covers', '${many.id}/' || story_id || '-x.png', '${many.id}', '{"mimetype": "image/png"}'::jsonb from e
+      returning name
+    )
+    insert into public.custom_covers (user_id, story_id, path)
+    select '${many.id}', split_part(split_part(name, '/', 2), '-x.png', 1)::uuid, name from o returning story_id;
+  `);
+  const ids = rows.split('\n').filter((line) => /^[0-9a-f-]{36}$/.test(line));
+  expect(ids).toHaveLength(1100);
+  await as(many);
+  const urls = await myCoverUrls(ids);
+  expect(Object.keys(urls)).toHaveLength(1100);
 });
 
 it('the same link again while it is still good, not a new one on every look', async () => {
