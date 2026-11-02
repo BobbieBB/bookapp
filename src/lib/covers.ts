@@ -22,6 +22,11 @@ function rememberLink(path: string, url: string) {
   links.set(path, { url, until: Date.now() + SIGNED_URL_SECONDS * 1000 - RENEW_BEFORE_MS });
 }
 
+/** Forgets a link whose image failed to load (offline, say), so the next look signs a new one and tries again. */
+export function forgetCoverLink(url: string) {
+  for (const [path, link] of links) if (link.url === url) links.delete(path);
+}
+
 /** Forgets every remembered cover link (on sign-out: they belong to the reader who signed them). */
 export function forgetCoverLinks() {
   links.clear();

@@ -134,6 +134,20 @@ describe('in your Home and Library rows', () => {
     expect(screen.getByLabelText('Your own cover for Row With Cover').props.source.uri).toBe(before);
   });
 
+  it('a cover that failed to load is tried again, with a new link, when you come back to Home', async () => {
+    await renderScreen('en', { index: Home, 'story/[id]': StoryScreen }, '/');
+    const image = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    const failed = image.props.source.uri;
+    await fireEvent(image, 'error', { nativeEvent: { error: 'offline' } });
+    expect(await screen.findByLabelText('Row With Cover cover')).toBeOnTheScreen();
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+    await act(async () => router.push(`/story/${mineId}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    await act(async () => router.back());
+    const again = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    expect(again.props.source.uri).not.toBe(failed);
+  });
+
   it('Library too, in Bulgarian', async () => {
     await renderScreen('bg', { index: Library }, '/');
     expect(await screen.findByLabelText('Твоята собствена корица за Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
