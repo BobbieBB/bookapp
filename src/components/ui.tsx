@@ -93,6 +93,9 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
   );
 }
 
+// react-native-web paints the ON thumb from `activeThumbColor` (default teal); React Native's types don't list it.
+const WEB_ON_THUMB = (color: string) => ({ activeThumbColor: color }) as object;
+
 export function Toggle({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
   return (
@@ -100,7 +103,7 @@ export function Toggle({ label, value, onChange, disabled }: { label: string; va
       {/* The label wraps (Bulgarian labels are long); the switch keeps its size and never leaves the card. */}
       <Text style={{ flex: 1, fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
       <Switch
-        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} thumbColor={c.thumb} ios_backgroundColor={c.track} accessibilityLabel={label} />
+        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} thumbColor={c.thumb} {...WEB_ON_THUMB(c.thumb)} ios_backgroundColor={c.track} accessibilityLabel={label} />
     </View>
   );
 }
