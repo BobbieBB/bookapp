@@ -195,6 +195,7 @@ export function CoverActions({
             <Button
               variant="link"
               title={t('covers.remove')}
+              loading={cover.busy}
               onPress={async () => {
                 await cover.remove();
                 onClose();
