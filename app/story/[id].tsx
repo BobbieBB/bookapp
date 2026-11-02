@@ -366,11 +366,17 @@ function StoryBody({
               <Button
                 variant="secondary"
                 title={t('story.countSave')}
+                loading={busy}
                 onPress={() => {
                   const n = Number(countText);
                   const invalid = chaptersError(countText, t);
                   if (invalid) return setCountError(invalid);
-                  void act(() => setBookChapterCount(story.id, n));
+                  // Another reader may have set it first ("cannot set…"): not an error, the reload shows their count.
+                  void act(() =>
+                    setBookChapterCount(story.id, n).catch((e: unknown) => {
+                      if (!/^cannot set/i.test(e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e))) throw e;
+                    }),
+                  );
                 }}
               />
             </View>
