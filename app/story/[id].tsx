@@ -12,11 +12,13 @@ import { useAuth } from '@/lib/auth';
 import { isAo3Link } from '@/lib/links';
 import { progressLine, statusKey } from '@/lib/library';
 import { track } from '@/lib/analytics';
+import { requestChapterCount } from '@/lib/moderation';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
 import {
   canComplete,
   canReopen,
   chapterCount,
+  chaptersError,
   finishChapter,
   loadStoryPage,
   markComplete,
@@ -127,6 +129,64 @@ function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 's
   );
 }
 
+/**
+ * "Wrong chapter count?": once a count is set only a moderator changes it, so a reader who sees
+ * a wrong one sends the right number (PO, 20 Oct 2026). One link, one field; after a successful
+ * send the link is gone for this visit.
+ */
+function WrongChapterCount({ storyId }: { storyId: string }) {
+  const { c, fonts } = useTheme();
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function send() {
+    if (sending) return;
+    const invalid = chaptersError(text, t);
+    if (invalid) return setError(invalid);
+    setSending(true);
+    setError('');
+    try {
+      await requestChapterCount(storyId, Number(text));
+      setSent(true);
+    } catch (e) {
+      // 23505: you already have an open request for this book. Anything else (not allowed, too many today) is a plain failure.
+      setError((e as { code?: string } | null)?.code === '23505' ? t('moderation.wrongCountDuplicate') : t('moderation.wrongCountFailed'));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sent) return <T v="muted">{t('moderation.wrongCountThanks')}</T>;
+  if (!open) {
+    return (
+      <Pressable accessibilityRole="link" onPress={() => setOpen(true)} style={{ minHeight: 44, justifyContent: 'center' }}>
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('moderation.wrongCount')}</Text>
+      </Pressable>
+    );
+  }
+  return (
+    <View style={{ gap: space.s }}>
+      <Field
+        label={t('moderation.wrongCountField')}
+        keyboardType="number-pad"
+        value={text}
+        onChangeText={(v) => {
+          setText(v);
+          setError('');
+        }}
+        placeholder={t('add.chaptersPlaceholder')}
+        error={error || undefined}
+      />
+      <Button title={t('moderation.wrongCountSend')} onPress={send} loading={sending} />
+      <Button variant="link" title={t('moderation.wrongCountCancel')} onPress={() => { setOpen(false); setText(''); setError(''); }} />
+    </View>
+  );
+}
+
 function StoryBody({
   story,
   entry: loaded,
@@ -215,6 +275,7 @@ function StoryBody({
           </Text>
           <T v="body">{story.author_name}</T>
           {story.has_chapters && count ? <T v="muted">{t('common.chapters', { count })}</T> : null}
+          {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCount storyId={story.id} /> : null}
         </View>
       </View>
 
@@ -276,7 +337,8 @@ function StoryBody({
                 title={t('story.countSave')}
                 onPress={() => {
                   const n = Number(countText);
-                  if (!Number.isInteger(n) || n < 1 || n > 5000) return setCountError(t('add.errorChapters'));
+                  const invalid = chaptersError(countText, t);
+                  if (invalid) return setCountError(invalid);
                   void act(() => setBookChapterCount(story.id, n));
                 }}
               />

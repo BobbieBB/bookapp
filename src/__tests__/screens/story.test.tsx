@@ -196,3 +196,93 @@ describe('a Want to read book added without its chapter count', () => {
     );
   });
 });
+
+// "Wrong chapter count?" (docs/DECISIONS.md, "Moderation in v1"): a reader with the book in their library
+// can say the count is wrong; a moderator decides.
+describe('a wrong chapter count', () => {
+  const requests = async (storyId: string) =>
+    (await supabase.from('chapter_count_requests').select('proposed, status').eq('story_id', storyId).eq('requester_id', me).throwOnError()).data!;
+
+  async function ownBook(title: string, status: 'currently_reading' | 'want_to_read' = 'currently_reading') {
+    const id = (await createManualBook({ title: `${title} ${run}`, author: 'x', chapters: 10, language: 'en' })).id;
+    await addToLibrary(id, status);
+    return id;
+  }
+
+  it('is offered on a counted book in your library', async () => {
+    await open('en', bookId);
+    expect(screen.getByRole('link', { name: 'Wrong chapter count?' })).toBeOnTheScreen();
+  });
+
+  it('is not offered on a book that is not in your library, a fic, or a book without a count', async () => {
+    const stranger = (await createManualBook({ title: `Not Mine ${run}`, author: 'x', chapters: 4, language: 'en' })).id;
+    await open('en', stranger);
+    expect(screen.getByText('Add to my library')).toBeOnTheScreen();
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+    await open('en', wipId);
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+    const uncounted = (await createManualBook({ title: `No Count ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(uncounted, 'want_to_read');
+    await open('en', uncounted);
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+  });
+
+  it('checks the number before sending', async () => {
+    const id = await ownBook('Validated');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '0');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('Enter the number of chapters (1 to 5000).')).toBeOnTheScreen();
+    expect(await requests(id)).toEqual([]);
+  });
+
+  it('can be cancelled', async () => {
+    const id = await ownBook('Cancelled');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('The right number of chapters')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Wrong chapter count?' })).toBeOnTheScreen();
+  });
+
+  it('sends the request, thanks the reader and hides the link', async () => {
+    const id = await ownBook('Reported');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('Thanks — a moderator will check it', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+    expect(await requests(id)).toEqual([{ proposed: 12, status: 'open' }]);
+  });
+
+  it('in Bulgarian', async () => {
+    const id = await ownBook('Reported BG');
+    await open('bg', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Грешен брой глави?' }));
+    await fireEvent.changeText(screen.getByLabelText('Правилният брой глави'), '8');
+    await fireEvent.press(screen.getByRole('button', { name: 'Изпрати' }));
+    expect(await screen.findByText('Благодарим — модератор ще го провери', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('says so when you already asked about this book', async () => {
+    const id = await ownBook('Twice');
+    await supabase.from('chapter_count_requests').insert({ story_id: id, proposed: 11 }).throwOnError();
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('You already asked about this book', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('The right number of chapters')).toBeOnTheScreen(); // the form stays
+  });
+
+  it('shows a general failure for anything else (the same number as now is refused)', async () => {
+    const id = await ownBook('Same');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '10');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('We couldn’t send that. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+});
