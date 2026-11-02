@@ -208,10 +208,33 @@ select test.ok((select count(*) from test.mail_calls) = 1, 'a second open report
 insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a1', '00000000-0000-0000-0000-0000000009a2', 'spam');
 insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a3', '00000000-0000-0000-0000-0000000009a2', 'spam');
 select test.ok((select count(*) from test.mail_calls) = 2, 'nor on the same reader; another target is mailed');
-update public.reports set status = 'dismissed' where reported_user_id = '00000000-0000-0000-0000-0000000009a2';
+-- a fourth reader: each reader reports a target once, whatever became of it
+insert into auth.users (id) values ('00000000-0000-0000-0000-0000000009a4');
+insert into public.profiles (id, username) values ('00000000-0000-0000-0000-0000000009a4', 'mailfourth');
+update public.reports set status = 'dismissed' where reported_user_id = '00000000-0000-0000-0000-0000000009a2'
+  and reporter_id = '00000000-0000-0000-0000-0000000009a1';
+update public.reports set status = 'actioned' where reported_user_id = '00000000-0000-0000-0000-0000000009a2'
+  and reporter_id = '00000000-0000-0000-0000-0000000009a3';
 delete from test.mail_calls;
-insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a2', '00000000-0000-0000-0000-0000000009a3', 'spam');
+insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a4', '00000000-0000-0000-0000-0000000009a2', 'spam');
 select test.ok((select count(*) from test.mail_calls) = 1, 'a target with only closed reports is mailed again');
+
+-- Only a report that was really mailed keeps the target quiet: not one filed while sending was off,
+-- nor one whose mail Resend refused.
+update public.moderation_email_settings set enabled = false;
+delete from public.reports;
+delete from test.mail_calls;
+insert into public.reports (reporter_id, comment_id, reason) values ('00000000-0000-0000-0000-0000000009a1', '9a000000-0000-0000-0000-000000000001', 'spam');
+update public.moderation_email_settings set enabled = true;
+insert into public.reports (reporter_id, comment_id, reason) values ('00000000-0000-0000-0000-0000000009a3', '9a000000-0000-0000-0000-000000000001', 'spam');
+select test.ok((select count(*) from test.mail_calls) = 1, 'the first report after sending is switched on is mailed, though one from before is open');
+insert into public.reports (reporter_id, comment_id, reason) values ('00000000-0000-0000-0000-0000000009a4', '9a000000-0000-0000-0000-000000000001', 'spam');
+select test.ok((select count(*) from test.mail_calls) = 1, 'and the one after it is quiet again');
+update public.moderation_email_log set checked = true, status_code = 403 where report_id is not null;
+delete from public.reports where reporter_id = '00000000-0000-0000-0000-0000000009a4';
+insert into public.reports (reporter_id, comment_id, reason) values ('00000000-0000-0000-0000-0000000009a4', '9a000000-0000-0000-0000-000000000001', 'spam');
+select test.ok((select count(*) from test.mail_calls) = 2, 'a report whose mail Resend refused does not keep the next one quiet');
+delete from public.moderation_email_log;
 
 delete from public.reports;
 delete from test.mail_calls;
@@ -227,7 +250,7 @@ select test.ok((select array_length(string_to_array(body ->> 'text', E'\n'), 1) 
                 from test.mail_calls), 'and so do a contact and a message: the mail cannot be given extra lines');
 
 -- 7. Nobody calls the senders, not even the service role ------------------------------------------
-select test.ok(not has_function_privilege('service_role', 'public.send_moderation_email(text, text, text)', 'execute')
+select test.ok(not has_function_privilege('service_role', 'public.send_moderation_email(text, text, text, uuid)', 'execute')
   and not has_function_privilege('service_role', 'public.moderation_digest()', 'execute')
   and not has_function_privilege('service_role', 'public.moderation_email_check()', 'execute')
   and not has_function_privilege('authenticated', 'public.moderation_email_check()', 'execute'), 'no API role can send or check moderation e-mail');
@@ -260,13 +283,19 @@ set role anon;
 select test.ok(test.error_of($$select * from public.moderation_email_health()$$) like '%permission denied%', 'nor can visitors');
 reset role;
 select test.login('00000000-0000-0000-0000-0000000009a3');
-select test.ok((select failures = 3 and last_status is null and to_address = 'support@livami.app' from public.moderation_email_health()),
-  'admins see the failures of the last 24 hours (the 403, the timeout, the lost one)');
+select test.ok((select failures = 2 and last_status is null and to_address = 'support@livami.app' from public.moderation_email_health()),
+  'admins see the failures of the last 24 hours since the last mail that went through (the 403 and the timeout; the lost one was before the 200)');
 select test.logout();
 update public.moderation_email_log set created_at = now() - interval '2 days' where request_id in (103, 105);
 select test.login('00000000-0000-0000-0000-0000000009a3');
 select test.ok((select failures = 1 and last_status = 403 from public.moderation_email_health()), 'older failures drop out, and the latest status code is given');
 select test.logout();
+insert into public.moderation_email_log (request_id, kind, created_at, checked, status_code) values (106, 'report', now() - interval '2 minutes', true, 202);
+select test.login('00000000-0000-0000-0000-0000000009a3');
+select test.ok((select failures = 0 and last_status is null from public.moderation_email_health()),
+  'a mail that went through after the failures (the key or domain fixed) clears the warning at once');
+select test.logout();
+delete from public.moderation_email_log where request_id = 106;
 update public.moderation_email_settings set enabled = false;
 select test.login('00000000-0000-0000-0000-0000000009a3');
 select test.ok((select failures = 0 from public.moderation_email_health()), 'switched off: nothing to warn about');
