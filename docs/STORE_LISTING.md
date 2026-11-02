@@ -148,8 +148,8 @@ BookTok, which Apple rejects in keywords)
 Answer the questionnaires (App Store Connect age rating, Google Play IARC) from what the app does:
 
 - **User content: yes.** Readers write comments, replies and reviews that other readers see. Reporting,
-  blocking and the admins' Moderation screen are in v1 (DECISIONS, "Moderation in v1"), and reports e-mail
-  the PO at once so action is possible within 24 hours.
+  blocking are in the app now; the admins' Moderation screen (PR #23) and the e-mail to the PO about every
+  report (PR #24) must be merged and switched on before submitting, so action is possible within 24 hours.
 - **Apple Guideline 1.2** (user content) also asks for terms the reader agrees to, with no tolerance for
   objectionable content or abusive users. **PO:** the terms of use need that clause and a place in sign-up
   where the reader accepts them; neither exists yet.
