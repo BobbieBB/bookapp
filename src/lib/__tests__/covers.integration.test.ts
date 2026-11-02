@@ -112,6 +112,19 @@ it('a whole library of rows at once, however long', async () => {
   expect((await fetch(urls[storyId])).status).toBe(200);
 });
 
+it('one batch failing keeps the covers the other batches found', async () => {
+  await as(owner);
+  // A real failed request: an id that isn't a uuid makes the database refuse its whole batch (22P02).
+  // Your cover is in the first batch of 100, the bad id in the second.
+  const hex = () => Math.floor(Math.random() * 16).toString(16);
+  const uuid = () => 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, hex);
+  const ids = [storyId, ...Array.from({ length: 99 }, uuid), 'not-a-uuid'];
+  const urls = await myCoverUrls(ids);
+  expect(Object.keys(urls)).toEqual([storyId]);
+  // Every batch failing is still an error: the caller keeps the covers it already shows.
+  await expect(myCoverUrls(['not-a-uuid'])).rejects.toBeTruthy();
+});
+
 it('more covers than the API returns in one go (1000 rows) all come back', async () => {
   // A reader with 1100 covers, set up in SQL: stories, library entries, and a file record for each
   // (signing only needs Storage to know the file, not its bytes).

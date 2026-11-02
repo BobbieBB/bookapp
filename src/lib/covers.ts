@@ -89,12 +89,17 @@ export async function myCoverUrl(storyId: string): Promise<string | null> {
  * Short-lived links to your covers for many stories at once (library rows), keyed by story id; stories
  * without one are left out. The ids go in batches: a whole library's worth would not fit in one request
  * URL, and both the API and Storage's signing stop at 1000 at a time. Links still remembered are not
- * signed again.
+ * signed again. A batch that fails only costs its own rows their cover until the next load; when every
+ * batch fails the call fails, so the caller keeps the covers it already shows.
  */
 export async function myCoverUrls(storyIds: string[]): Promise<Record<string, string>> {
   const batches: string[][] = [];
   for (let i = 0; i < storyIds.length; i += IDS_PER_BATCH) batches.push(storyIds.slice(i, i + IDS_PER_BATCH));
-  const found = await Promise.all(batches.map(coverUrlsFor));
+  const settled = await Promise.allSettled(batches.map(coverUrlsFor));
+  const found = settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+  const failed = settled.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  if (failed && !found.length) throw failed.reason;
+  if (failed) console.warn('Some covers could not be loaded', failed.reason);
   return Object.assign({}, ...found);
 }
 
