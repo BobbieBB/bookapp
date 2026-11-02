@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TermsConsent } from '@/components/TermsConsent';
 import { Button, Card, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
+import { TERMS_VERSION } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
 import { space, useTheme } from '@/theme';
 
@@ -16,6 +18,8 @@ export default function Onboarding() {
   const [username, setUsername] = useState('');
   const [readsBooks, setReadsBooks] = useState(true);
   const [readsFanfic, setReadsFanfic] = useState(true);
+  const [acceptsTerms, setAcceptsTerms] = useState(false);
+  const [oldEnough, setOldEnough] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,6 +40,9 @@ export default function Onboarding() {
       display_name: null,
       reads_books: readsBooks,
       reads_fanfic: readsFanfic,
+      // The server stamps the time; it refuses a version without the age tick.
+      terms_version: TERMS_VERSION,
+      age_confirmed: true,
     });
     setBusy(false);
     if (error) {
@@ -86,8 +93,10 @@ export default function Onboarding() {
             </Card>
           )}
 
+          <TermsConsent terms={acceptsTerms} age={oldEnough} onTerms={setAcceptsTerms} onAge={setOldEnough} disabled={busy} />
+
           <ErrorText>{error}</ErrorText>
-          <Button title={t('auth.startReading')} onPress={save} loading={busy} />
+          <Button title={t('auth.startReading')} onPress={save} loading={busy} disabled={!acceptsTerms || !oldEnough} />
           <Button variant="link" title={t('common.signOut')} onPress={signOut} />
         </ScrollView>
       </KeyboardAvoidingView>

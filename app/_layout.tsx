@@ -11,6 +11,7 @@ import { FONT_FILES } from '@/fonts';
 import { LanguageProvider, useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { TERMS_VERSION } from '@/lib/legal';
 import { showForegroundPushesQuietly } from '@/lib/pushDevice';
 import { space, useTheme } from '@/theme';
 
@@ -39,7 +40,7 @@ export function ProfileError() {
   );
 }
 
-function RootStack() {
+export function RootStack() {
   const { loading, session, profile, profileState } = useAuth();
   const { c } = useTheme();
   const signedIn = !!session;
@@ -56,7 +57,9 @@ function RootStack() {
   // Wait for the profile before choosing a screen, otherwise existing readers see onboarding flash by.
   if (signedIn && !profile && profileState === 'loading') return <Loading />;
   if (signedIn && !profile && profileState === 'error') return <ProfileError />;
-  const onboarded = signedIn && !!profile;
+  const hasProfile = signedIn && !!profile;
+  // Readers who accepted an older version of the terms, or none, accept the current one first.
+  const onboarded = hasProfile && profile.terms_version === TERMS_VERSION;
 
   const pushed = {
     headerShown: true,
@@ -66,8 +69,9 @@ function RootStack() {
     headerStyle: { backgroundColor: c.ground },
     headerTintColor: c.ink,
   };
-  // Each screen is only reachable in the right state: signed out → sign-in,
-  // signed in without a profile → onboarding, otherwise → the app.
+  // Each screen is only reachable in the right state: signed out → sign-in, signed in without a
+  // profile → onboarding, a profile without the current terms → accept-terms, otherwise → the app.
+  // Deleting the account stays open to readers who would rather leave than accept.
   return (
     <>
       {onboarded && <PushEffects />}
@@ -75,8 +79,11 @@ function RootStack() {
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && !onboarded}>
+        <Stack.Protected guard={signedIn && !hasProfile}>
           <Stack.Screen name="onboarding" />
+        </Stack.Protected>
+        <Stack.Protected guard={hasProfile && !onboarded}>
+          <Stack.Screen name="accept-terms" />
         </Stack.Protected>
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
@@ -89,6 +96,8 @@ function RootStack() {
           <Stack.Screen name="feedback" />
           <Stack.Screen name="authors" />
           <Stack.Screen name="notifications" />
+        </Stack.Protected>
+        <Stack.Protected guard={hasProfile}>
           <Stack.Screen name="delete-account" />
         </Stack.Protected>
       </Stack>

@@ -29,6 +29,9 @@ Before launch:
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
 - **Copy:** a native read of the Bulgarian copy.
+- **Terms and privacy:** publish the texts at `TERMS_URL` and `PRIVACY_URL` (`src/lib/legal.ts`), set
+  `MIN_AGE` (the PO's call; 16 is a dev default) and bump `TERMS_VERSION` whenever the text changes, so
+  every reader accepts the new version.
 
 Planning lives on the Trello board *Book club app*.
 
