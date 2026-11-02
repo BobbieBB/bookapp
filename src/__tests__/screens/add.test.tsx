@@ -2,12 +2,10 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
 
-import { AuthProvider } from '../../lib/auth';
 import type { Language } from '../../i18n';
 import { supabase } from '../../lib/supabase';
-import { languageWrapper } from '../../../test/i18n';
+import { renderScreen } from '../../../test/router';
 import AddStory from '../../../app/add';
 
 // A real reader on the local Supabase stack; Open Library is a local stand-in server.
@@ -42,19 +40,8 @@ beforeEach(() => {
   docs = [];
 });
 
-async function open(language: Language) {
-  const Wrapper = await languageWrapper(language);
-  await renderRouter(
-    { add: AddStory },
-    {
-      initialUrl: '/add',
-      wrapper: ({ children }) => (
-        <Wrapper>
-          <AuthProvider>{children}</AuthProvider>
-        </Wrapper>
-      ),
-    },
-  );
+function open(language: Language) {
+  return renderScreen(language, { add: AddStory }, '/add');
 }
 
 const words = {
@@ -150,8 +137,6 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
 it('adding a fic adds its fandom to "Your fandoms"', async () => {
   const fandom = `Followed Fandom ${run}`;
   await open('en');
-  // renderRouter switches Jest to fake timers; waiting on the real database needs real ones.
-  jest.useRealTimers();
   await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
   await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/8${Date.now() % 1e8}`);
   await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), 'Followed Fic');
