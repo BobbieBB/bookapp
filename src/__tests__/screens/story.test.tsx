@@ -211,6 +211,18 @@ describe('a Want to read book added without its chapter count', () => {
     expect(screen.queryByText('Something went wrong. Please try again.')).toBeNull();
   });
 
+  it('a refusal that leaves no count (the book left your library mid-form) shows the error', async () => {
+    const id = (await createManualBook({ title: `Count Refused ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    await supabase.from('library_entries').delete().eq('story_id', id).eq('user_id', me).throwOnError();
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    expect(await screen.findByText('Something went wrong. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const story = (await supabase.from('stories').select('total_sections').eq('id', id).single().throwOnError()).data!;
+    expect(story.total_sections).toBeNull();
+  });
+
   it('Save is busy while saving, so a second tap cannot follow', async () => {
     const id = (await createManualBook({ title: `Count Busy ${run}`, author: 'x', chapters: null, language: 'en' })).id;
     await addToLibrary(id, 'want_to_read');

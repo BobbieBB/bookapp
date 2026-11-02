@@ -156,10 +156,17 @@ export async function markComplete(storyId: string) {
   if (error) throw error;
 }
 
-/** The first reader who has a book without a chapter count sets it (once). */
+/**
+ * The first reader who has a book without a chapter count sets it (once). The refusal says nothing about why
+ * (a fic, a hidden book and "not in your library" read alike), so on any failure the count is looked up: if it
+ * is set now, another reader got there first and that is fine; otherwise the failure stands.
+ */
 export async function setBookChapterCount(storyId: string, count: number) {
   const { error } = await supabase.rpc('set_book_chapter_count', { p_story: storyId, p_count: count });
-  if (error) throw error;
+  if (!error) return;
+  const { data } = await supabase.from('stories').select('total_sections').eq('id', storyId).maybeSingle();
+  if (data?.total_sections != null) return;
+  throw error;
 }
 
 /** Undo a completion (within 7 days, caught-up readers only). */
