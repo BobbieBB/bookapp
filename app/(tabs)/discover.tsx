@@ -24,7 +24,7 @@ const TIER_KEY = {
 function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }) {
   const t = useTheme();
   const tr = useT();
-  const cover = coverColor(story.id, t.isDark);
+  const cover = coverColor(story.id, t.mode);
   const subtitle = [story.author_name, story.fandoms[0]].filter(Boolean).join(' · ');
   const tag = story.status === 'completed' ? tr('add.complete') : story.status === 'ongoing' ? tr('add.wip') : null;
   return (

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, ErrorText, T, Toggle } from '@/components/ui';
+import { APPEARANCES, useAppearance } from '@/appearance';
 import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
 import { analyticsOptOut, setAnalyticsOptOut, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
@@ -187,6 +188,7 @@ export default function Profile() {
   const t = useT();
   const router = useRouter();
   const { language, setLanguage } = useLanguage();
+  const { appearance, setAppearance } = useAppearance();
   const { profile, session, signOut } = useAuth();
   const reads = profile?.reads_books
     ? profile.reads_fanfic
@@ -215,6 +217,16 @@ export default function Profile() {
               }} />
             ))}
           </View>
+        </Card>
+
+        <Card>
+          <T v="h2">{t('profile.appearance')}</T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+            {APPEARANCES.map((choice) => (
+              <Chip key={choice} label={t(`profile.appearance.${choice}`)} active={choice === appearance} onPress={() => setAppearance(choice)} />
+            ))}
+          </View>
+          <T v="muted">{t('profile.appearanceHint')}</T>
         </Card>
 
         <YourFandoms />

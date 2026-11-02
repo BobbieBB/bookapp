@@ -9,6 +9,7 @@ import { ExpoRoot } from 'expo-router/build/ExpoRoot';
 import { getMockContext } from 'expo-router/build/testing-library/mock-config';
 import type { ComponentType, ReactElement } from 'react';
 
+import { AppearanceProvider } from '../src/appearance';
 import type { Language } from '../src/i18n';
 import { AuthProvider } from '../src/lib/auth';
 import { languageWrapper } from './i18n';
@@ -19,7 +20,9 @@ export async function renderScreen(language: Language, routes: Record<string, Co
   return render(<ExpoRoot context={getMockContext(routes)} location={initialUrl} />, {
     wrapper: ({ children }: { children: ReactElement }) => (
       <InLanguage>
-        <AuthProvider>{children}</AuthProvider>
+        <AppearanceProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </AppearanceProvider>
       </InLanguage>
     ),
   });

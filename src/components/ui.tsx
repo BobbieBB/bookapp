@@ -137,7 +137,7 @@ export function T({
     moment: { fontFamily: fonts.moment, fontSize: 28, color: c.ink },
     body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: c.inkSoft },
     muted: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: c.muted },
-    overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.2, color: c.muted },
+    overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.2, color: c.accent },
     label: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink },
   };
   return (

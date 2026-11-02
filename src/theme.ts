@@ -1,7 +1,8 @@
 // Ink & Bloom design tokens. Colours chosen 14 Oct 2026; modern look ("Modern A, bold
 // colours": no outlines, soft shadows, rounder corners) chosen 15 Oct 2026.
-// Same roles in light and dark:
+// Same roles in light, dark and calm (docs/DECISIONS.md, "Calm theme"):
 // components ask for a role (e.g. `c.mine` for your own posts), never a hex.
+import { createContext, use } from 'react';
 import { useColorScheme } from 'react-native';
 
 const light = {
@@ -24,6 +25,9 @@ const light = {
   danger: '#B3123F',
   success: '#1F6B45',
   track: '#E9EEEB',
+  accent: '#4E4459', // small headings and links
+  progress: '#FF4F84', // progress bar fill: books
+  progressAlt: '#3DBE95', // progress bar fill: fanfiction
 };
 
 const dark: typeof light = {
@@ -46,8 +50,39 @@ const dark: typeof light = {
   danger: '#FF7A93',
   success: '#8EE6CC',
   track: '#2E2436',
+  accent: '#B4A6BD',
+  progress: '#FF6B97',
+  progressAlt: '#4FD1A6',
 };
 
+// "Calm": one warm beige family, no pink and no green, for readers sensitive to bright colours. Every
+// progress bar is the same taupe on the same sand track, never coloured per story.
+const calm: typeof light = {
+  ground: '#F3F1EC',
+  scrim: 'rgba(47, 42, 53, 0.35)',
+  surface: '#FBFAF7',
+  band: '#E3D5C0',
+  ink: '#2F2A35',
+  inkSoft: '#413A47',
+  muted: '#5E5650',
+  hairline: '#DDD5C8',
+  shadow: '#2F2A35',
+  primary: '#D8C7AE', // buttons, the active tab and chips: sand with ink text
+  onPrimary: '#2F2A35',
+  secondary: '#7A5F45', // switches and highlighted chips
+  onSecondary: '#FBFAF7',
+  mine: '#ECE3D4',
+  safe: '#E3D5C0',
+  onSafe: '#2F2A35',
+  danger: '#8A3B2A', // brick: an error stays readable without being pink
+  success: '#5E4B36',
+  track: '#EAE6DE',
+  accent: '#7A5F45',
+  progress: '#8A7258',
+  progressAlt: '#8A7258',
+};
+
+export const palettes = { light, dark, calm };
 export type Palette = typeof light;
 
 // Cover colours for stories without a real cover (all fics, books without one).
@@ -70,10 +105,18 @@ const coverDark = [
   { bg: '#F7EEF3', fg: '#1E1328' },
 ];
 
-export function coverColor(storyId: string, isDark: boolean) {
+const coverCalm = [
+  { bg: '#E3D5C0', fg: '#2F2A35' },
+  { bg: '#D8C7AE', fg: '#2F2A35' },
+  { bg: '#CBB9A3', fg: '#2F2A35' },
+];
+
+export type Mode = 'light' | 'dark' | 'calm';
+
+export function coverColor(storyId: string, mode: Mode) {
   let h = 0;
   for (let i = 0; i < storyId.length; i++) h = (h * 31 + storyId.charCodeAt(i)) >>> 0;
-  const set = isDark ? coverDark : coverLight;
+  const set = mode === 'dark' ? coverDark : mode === 'calm' ? coverCalm : coverLight;
   return set[h % set.length]!;
 }
 
@@ -102,12 +145,24 @@ export function softShadow(isDark: boolean, strength: 'card' | 'small' = 'card')
   };
 }
 
+/** What the reader picked in Profile → Appearance; Auto follows the phone. */
+export type Appearance = 'auto' | 'light' | 'dark' | 'calm';
+
+type AppearanceState = { appearance: Appearance; setAppearance: (a: Appearance) => void };
+
+/** Provided by <AppearanceProvider> (src/appearance.tsx); without one, the theme simply follows the phone. */
+export const AppearanceContext = createContext<AppearanceState | null>(null);
+
 export function useTheme() {
   const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
-  const c = isDark ? dark : light;
+  const appearance = use(AppearanceContext)?.appearance ?? 'auto';
+  const mode: Mode = appearance === 'auto' ? (scheme === 'dark' ? 'dark' : 'light') : appearance;
+  // Calm is light-based: `isDark` (status bar, shadows) stays true for Dark only.
+  const isDark = mode === 'dark';
+  const c = palettes[mode];
   return {
     isDark,
+    mode,
     c,
     fonts,
     // Modern card: no outline, soft shadow, generous corners.

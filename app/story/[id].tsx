@@ -88,7 +88,7 @@ function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | 
   if (story.kind === 'book' && story.cover_url) {
     return <Image source={{ uri: story.cover_url }} accessibilityLabel={label} style={size} />;
   }
-  const cover = coverColor(story.id, th.isDark);
+  const cover = coverColor(story.id, th.mode);
   return (
     <View accessible accessibilityLabel={label} style={[size, { backgroundColor: cover.bg, justifyContent: 'space-between', padding: 8 }]}>
       <Text numberOfLines={5} style={{ fontFamily: fonts.moment, fontSize: 20, lineHeight: 20, color: cover.fg }}>
