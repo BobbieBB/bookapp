@@ -59,8 +59,11 @@ export function CommentCard({
   return (
     <View testID={`comment-${comment.id}`} style={{ gap: space.xs, padding: space.m, borderRadius: radius.m, backgroundColor: mine ? c.mine : c.surface }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.s }}>
-        <T v="label">{name}</T>
-        <T v="muted">{shortTime(comment.created_at)}</T>
+        {/* A very long username ends in an ellipsis rather than running past the card; the label keeps all of it. */}
+        <T v="label" numberOfLines={1} accessibilityLabel={name} style={{ flexShrink: 1, minWidth: 0 }}>
+          {name}
+        </T>
+        <T v="muted" style={{ flexShrink: 0 }}>{shortTime(comment.created_at)}</T>
       </View>
       {deleted ? (
         <T v="muted" style={{ fontStyle: 'italic' }}>

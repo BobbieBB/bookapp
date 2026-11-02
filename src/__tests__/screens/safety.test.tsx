@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import Authors from '../../../app/authors';
@@ -101,6 +102,23 @@ describe('in a discussion', () => {
     expect(label.props.numberOfLines).toBe(1);
     expect(label.props.ellipsizeMode).toBe('tail');
     expect(within(card).getByRole('button', { name: `Блокирай ${troll.username}` })).toBeOnTheScreen();
+  });
+
+  it('a 30-character username in a comment header is cut with an ellipsis, not run past the card', async () => {
+    const wide = 'W'.repeat(30 - run.length) + run; // 30 characters, and unique per run
+    const email = `wide-${run}@example.test`;
+    const { data } = await supabase.auth.signUp({ email, password });
+    await supabase.from('profiles').insert({ id: data.user!.id, username: wide }).throwOnError();
+    await addToLibrary(storyId, 'finished');
+    const ch1 = (await openRoom(storyId, 'chapter', 1)).id;
+    const wideComment = (await postComment(ch1, 'From someone with a very wide name')).id;
+    await as(me);
+    await renderScreen('bg', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
+    const card = await screen.findByTestId(`comment-${wideComment}`, {}, { timeout: 8000 });
+    const name = within(card).getByText(wide);
+    expect(name.props.numberOfLines).toBe(1);
+    expect(StyleSheet.flatten(name.props.style).flexShrink).toBe(1);
+    expect(name.props.accessibilityLabel).toBe(wide);
   });
 
   it('blocking someone hides their comments', async () => {
