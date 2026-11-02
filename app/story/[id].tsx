@@ -132,10 +132,10 @@ function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 's
 /**
  * "Wrong chapter count?": once a count is set only a moderator changes it, so a reader who sees
  * a wrong one sends the right number (PO, 20 Oct 2026). One link, one field; after a successful
- * send the link is gone for this visit.
+ * send the link is gone for this visit. The link sits under the title; the form, which needs
+ * room, opens full width under the header (see `WrongChapterCountForm`).
  */
-function WrongChapterCount({ storyId }: { storyId: string }) {
-  const { c, fonts } = useTheme();
+function useWrongChapterCount(storyId: string) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -160,29 +160,55 @@ function WrongChapterCount({ storyId }: { storyId: string }) {
     }
   }
 
-  if (sent) return <T v="muted">{t('moderation.wrongCountThanks')}</T>;
-  if (!open) {
-    return (
-      <Pressable accessibilityRole="link" onPress={() => setOpen(true)} style={{ minHeight: 44, justifyContent: 'center' }}>
-        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('moderation.wrongCount')}</Text>
-      </Pressable>
-    );
-  }
+  return {
+    open,
+    sent,
+    sending,
+    text,
+    error,
+    show: () => setOpen(true),
+    cancel: () => {
+      setOpen(false);
+      setText('');
+      setError('');
+    },
+    change: (v: string) => {
+      setText(v);
+      setError('');
+    },
+    send,
+  };
+}
+
+type WrongChapterCount = ReturnType<typeof useWrongChapterCount>;
+
+function WrongChapterCountLink({ wrong }: { wrong: WrongChapterCount }) {
+  const { c, fonts } = useTheme();
+  const t = useT();
+  if (wrong.sent) return <T v="muted">{t('moderation.wrongCountThanks')}</T>;
+  if (wrong.open) return null;
+  return (
+    <Pressable accessibilityRole="link" onPress={wrong.show} style={{ minHeight: 44, justifyContent: 'center' }}>
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('moderation.wrongCount')}</Text>
+    </Pressable>
+  );
+}
+
+function WrongChapterCountForm({ wrong }: { wrong: WrongChapterCount }) {
+  const t = useT();
+  if (!wrong.open || wrong.sent) return null;
   return (
     <View style={{ gap: space.s }}>
       <Field
         label={t('moderation.wrongCountField')}
         keyboardType="number-pad"
-        value={text}
-        onChangeText={(v) => {
-          setText(v);
-          setError('');
-        }}
+        value={wrong.text}
+        onChangeText={wrong.change}
         placeholder={t('add.chaptersPlaceholder')}
-        error={error || undefined}
+        error={wrong.error || undefined}
       />
-      <Button title={t('moderation.wrongCountSend')} onPress={send} loading={sending} />
-      <Button variant="link" title={t('moderation.wrongCountCancel')} onPress={() => { setOpen(false); setText(''); setError(''); }} />
+      <Button title={t('moderation.wrongCountSend')} onPress={wrong.send} loading={wrong.sending} />
+      <Button variant="link" title={t('moderation.wrongCountCancel')} onPress={wrong.cancel} />
     </View>
   );
 }
@@ -214,6 +240,7 @@ function StoryBody({
   const [coverOpen, setCoverOpen] = useState(false);
   const isFic = story.kind === 'fanfic';
   const count = chapterCount(story);
+  const wrongCount = useWrongChapterCount(story.id);
 
   /**
    * Runs one action at a time (a second tap while one is saving is ignored, so actions never
@@ -275,9 +302,11 @@ function StoryBody({
           </Text>
           <T v="body">{story.author_name}</T>
           {story.has_chapters && count ? <T v="muted">{t('common.chapters', { count })}</T> : null}
-          {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCount storyId={story.id} /> : null}
+          {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCountLink wrong={wrongCount} /> : null}
         </View>
       </View>
+
+      {entry ? <WrongChapterCountForm wrong={wrongCount} /> : null}
 
       {isFic ? (
         <View style={{ gap: space.s }}>
