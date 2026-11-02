@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ModerationQueue } from '@/components/ModerationQueue';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
-import { errorCode, fetchQueue } from '@/lib/moderation';
+import { errorCode, fetchEmailHealth, fetchQueue } from '@/lib/moderation';
 import { useLookup } from '@/lib/useLookup';
 import { space, useTheme } from '@/theme';
 
@@ -24,6 +24,9 @@ export default function Moderation() {
   const { data, error, previous } = useLookup(`moderation-queue-${version}`, fetchQueue);
   // After an action the list reloads; the old one stays on screen meanwhile instead of a spinner.
   const items = data ?? previous;
+  // Mail to the moderator can fail after the database has committed; a refusal from the admin check or a
+  // failed lookup just shows no banner (the queue itself says what is wrong).
+  const { data: health } = useLookup(`moderation-email-health-${version}`, fetchEmailHealth);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
@@ -32,6 +35,15 @@ export default function Moderation() {
           <Button variant="link" title={t('moderation.back')} onPress={() => router.back()} />
         </View>
         <T v="h1">{t('moderation.title')}</T>
+        {health && health.failures > 0 ? (
+          <View accessibilityRole="alert">
+            <ErrorText>
+              {health.last_status === null
+                ? t('moderation.emailNoAnswer', { address: health.to_address })
+                : t('moderation.emailFailing', { address: health.to_address, status: health.last_status })}
+            </ErrorText>
+          </View>
+        ) : null}
         {error !== undefined && (refused(error) || !items) ? (
           <ErrorText>{refused(error) ? t('moderation.refused') : t('moderation.error')}</ErrorText>
         ) : (
