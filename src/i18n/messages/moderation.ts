@@ -23,6 +23,8 @@ export const en = {
   'moderation.dismiss': 'Dismiss',
   'moderation.accept': 'Accept the new count',
   'moderation.done': 'Done',
+  'moderation.actionLabel': '{action}: {kind}, {target}',
+  'moderation.cannotCount': 'This book can’t take that count any more. Dismiss the request instead.',
   'moderation.failed': 'That didn’t work. Please try again.',
   'moderation.noFic': 'No fic in the app matches this link. Dismiss the request instead.',
   'moderation.gone': 'Someone already dealt with this. The list has been refreshed.',
@@ -32,6 +34,7 @@ export const en = {
   'moderation.wrongCountCancel': 'Cancel',
   'moderation.wrongCountThanks': 'Thanks — a moderator will check it',
   'moderation.wrongCountDuplicate': 'You already asked about this book',
+  'moderation.wrongCountSame': 'That’s already the count',
   'moderation.wrongCountFailed': 'We couldn’t send that. Please try again.',
 } as const satisfies Messages;
 
@@ -58,6 +61,8 @@ export const bg: Translation<typeof en> = {
   'moderation.dismiss': 'Отхвърли',
   'moderation.accept': 'Приеми новия брой',
   'moderation.done': 'Готово',
+  'moderation.actionLabel': '{action}: {kind}, {target}',
+  'moderation.cannotCount': 'Тази книга вече не може да приеме този брой. По-добре отхвърли заявката.',
   'moderation.failed': 'Не се получи. Опитай пак.',
   'moderation.noFic': 'В приложението няма фик с този линк. По-добре отхвърли заявката.',
   'moderation.gone': 'Някой вече се е погрижил за това. Списъкът е обновен.',
@@ -67,5 +72,6 @@ export const bg: Translation<typeof en> = {
   'moderation.wrongCountCancel': 'Отказ',
   'moderation.wrongCountThanks': 'Благодарим — модератор ще го провери',
   'moderation.wrongCountDuplicate': 'За тази книга вече има твоя заявка',
+  'moderation.wrongCountSame': 'Това вече е броят',
   'moderation.wrongCountFailed': 'Не успяхме да го изпратим. Опитай пак.',
 };

@@ -4,12 +4,9 @@ import { View } from 'react-native';
 import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
 import type { MessageKey } from '@/i18n/en';
-import { ACTIONS, resolve, type QueueAction, type QueueItem, type QueueKind } from '@/lib/moderation';
+import { ACTIONS, errorCode, resolve, type QueueAction, type QueueItem, type QueueKind } from '@/lib/moderation';
 import { relativeTime } from '@/lib/relativeTime';
 import { space } from '@/theme';
-
-// Postgres error code of a Supabase failure.
-const code = (error: unknown) => (error as { code?: string } | null)?.code;
 
 const KIND_LABEL: Record<QueueKind, MessageKey> = {
   comment_report: 'moderation.kind.comment_report',
@@ -58,9 +55,11 @@ function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => vo
       await resolve(item.kind, item.id, action);
       onResolved(); // the card stays busy until the reload takes it off the list
     } catch (e) {
-      const message = (e as { message?: string } | null)?.message ?? '';
-      if (code(e) === '55000' && /no fic/.test(message)) setError(t('moderation.noFic'));
-      else if (code(e) === '55000' || code(e) === 'P0002') {
+      // MD001 / MD002: refused for a reason this item has (see moderation_resolve); the item stays.
+      const failure = errorCode(e);
+      if (failure === 'MD001') setError(t('moderation.noFic'));
+      else if (failure === 'MD002') setError(t('moderation.cannotCount'));
+      else if (failure === '55000' || failure === 'P0002') {
         // Someone else got there first: the item is gone, so show the list as it is now.
         setError(t('moderation.gone'));
         onResolved();
@@ -94,6 +93,11 @@ function QueueCard({ item, onResolved }: { item: QueueItem; onResolved: () => vo
             key={action}
             variant={i === 0 ? 'primary' : 'secondary'}
             title={t(actionLabel(item.kind, action))}
+            accessibilityLabel={t('moderation.actionLabel', {
+              action: t(actionLabel(item.kind, action)),
+              kind: t(KIND_LABEL[item.kind]),
+              target: [item.story_title, item.subject].filter(Boolean).join(', ') || t(KIND_LABEL[item.kind]),
+            })}
             disabled={busy}
             onPress={() => act(action)}
           />

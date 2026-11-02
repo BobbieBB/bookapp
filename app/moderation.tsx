@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ModerationQueue } from '@/components/ModerationQueue';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
-import { fetchQueue } from '@/lib/moderation';
+import { errorCode, fetchQueue } from '@/lib/moderation';
 import { useLookup } from '@/lib/useLookup';
 import { space, useTheme } from '@/theme';
 
@@ -14,8 +14,7 @@ import { space, useTheme } from '@/theme';
 // in v1"). Only admins get the link; the database refuses everyone else, and this screen says so.
 
 // Postgres' "permission denied" (42501): moderation_queue refuses readers who are not admins.
-const code = (error: unknown) => (error as { code?: string } | null)?.code;
-const refused = (error: unknown) => code(error) === '42501';
+const refused = (error: unknown) => errorCode(error) === '42501';
 
 export default function Moderation() {
   const { c } = useTheme();
@@ -33,12 +32,23 @@ export default function Moderation() {
           <Button variant="link" title={t('moderation.back')} onPress={() => router.back()} />
         </View>
         <T v="h1">{t('moderation.title')}</T>
-        {error !== undefined ? (
+        {error !== undefined && (refused(error) || !items) ? (
           <ErrorText>{refused(error) ? t('moderation.refused') : t('moderation.error')}</ErrorText>
-        ) : !items ? (
-          <ActivityIndicator color={c.primary} accessibilityLabel={t('moderation.loading')} />
         ) : (
-          <ModerationQueue items={items} onResolved={() => setVersion((v) => v + 1)} />
+          <>
+            {error !== undefined ? (
+              // The reload failed (after an action, say): keep the last list and let the moderator retry.
+              <View style={{ alignItems: 'flex-start', gap: space.s }}>
+                <ErrorText>{t('moderation.error')}</ErrorText>
+                <Button variant="secondary" title={t('common.tryAgain')} onPress={() => setVersion((v) => v + 1)} />
+              </View>
+            ) : null}
+            {items ? (
+              <ModerationQueue items={items} onResolved={() => setVersion((v) => v + 1)} />
+            ) : (
+              <ActivityIndicator color={c.primary} accessibilityLabel={t('moderation.loading')} />
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
