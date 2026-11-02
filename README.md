@@ -29,6 +29,19 @@ Before launch:
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
 - **Copy:** a native read of the Bulgarian copy.
+- **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
+  listing in English and Bulgarian; `app.json` proposes the bundle id / package `app.livami` and the
+  `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a
+  person:
+  - Apple Developer and Google Play Console accounts.
+  - The EAS project (`eas init` adds its `projectId` to `app.json`; pushes need it) and
+    `npx expo install expo-dev-client` for the development build.
+  - `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` as EAS environment variables for each
+    environment (`eas env:create`); no values go in `eas.json` or Git.
+  - Confirming the bundle id `app.livami` (it can't change after the first upload).
+  - The app icon (1024 × 1024), the Android adaptive icon (foreground + background colour), the splash
+    image and the Play feature graphic (1024 × 500). None are in the repo yet, so `app.json` has no paths.
+  - The privacy policy URL and terms of use (the policy text is drafted in a separate PR).
 
 Planning lives on the Trello board *Book club app*.
 
