@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Livami",
-    "slug": "bookapp",
-    "scheme": "bookapp",
+    "slug": "livami",
+    "scheme": "livami",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -10,12 +10,25 @@
       "expo-router",
       "expo-status-bar",
       "expo-font",
-      "expo-localization"
+      "expo-localization",
+      "expo-notifications"
     ],
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "app.livami",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Livami opens your photos only when you choose a picture as a private cover for a story. Only you see that cover."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "app.livami",
+      "blockedPermissions": [
+        "android.permission.CAMERA"
+      ]
+    },
     "web": {
       "bundler": "metro"
     }
