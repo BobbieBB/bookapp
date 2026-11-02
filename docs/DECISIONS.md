@@ -333,6 +333,11 @@ Choices made during development where the decisions above don't say. Each one is
 - "Forgot password?" on sign-in sends a 6-digit code by e-mail; the reader types it into the app with a new password.
   No link: the app has no deep-link handling, and a code also works when the e-mail is read on another device.
 - The app says the same thing whether or not an account exists for the address ("If an account exists for this
-  email, we've sent a 6-digit code"), so the screen can't be used to find out who reads here.
-- The new password follows the sign-up rule (at least 8 characters). If it can't be saved, the reader is signed out
-  again and asks for a new code.
+  email, we've sent a 6-digit code"), so the screen can't be used to find out who reads here. That includes asking
+  again too soon: Supabase turns that down only for addresses with an account, so the app shows the same message.
+  Server error texts are never shown on this screen.
+- The new password follows the sign-up rule (at least 8 characters). Once the code is accepted it is used up: if the
+  password can't be saved (refused, offline, server error), the reader is signed out again and asks for a new code.
+- Accepted: a reader whose app is killed (or who is offline even for signing out) between the code and the new
+  password stays signed in without a new password. They have shown they own the address.
+- Out of scope here: sign-up's "This email already has an account" still tells anyone whether an address has one.

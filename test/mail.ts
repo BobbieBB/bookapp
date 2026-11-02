@@ -38,3 +38,16 @@ export async function waitForCode(email: string, seen = 0, timeoutMs = 10_000): 
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 }
+
+/**
+ * True when no e-mail reaches this address for `ms` (polled). Pair it with a positive control:
+ * a known address asked for in the same moment whose e-mail does arrive.
+ */
+export async function noMailWithin(email: string, ms = 3000): Promise<boolean> {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    if ((await mailTo(email)).length > 0) return false;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return (await mailTo(email)).length === 0;
+}

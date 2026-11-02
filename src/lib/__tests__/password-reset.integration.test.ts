@@ -1,4 +1,4 @@
-import { mailCount, waitForCode } from '../../../test/mail';
+import { noMailWithin, waitForCode } from '../../../test/mail';
 import { passwordLongEnough, resetPassword, sendResetCode } from '../password';
 import { supabase } from '../supabase';
 
@@ -57,16 +57,37 @@ it('a wrong code changes nothing and signs nobody in', async () => {
   expect(await signInWorks(email, newPassword)).toBe(false);
 });
 
-it('asking again straight away is turned down as too soon', async () => {
-  const email = await signUp('eager');
-  expect(await sendResetCode(email)).toBe('sent');
-  // One code per address per second at most (max_frequency in supabase/config.toml).
-  expect(await sendResetCode(email)).toBe('rate-limited');
+it('a known and an unknown address get the same answer, however quickly they ask again', async () => {
+  const known = await signUp('eager');
+  const unknown = `nobody-${run}@example.test`;
+  // Asking twice in a row trips Supabase's per-address limit for the known address only;
+  // the app must not let that difference show.
+  const answers = [];
+  for (const email of [known, unknown, known, unknown]) answers.push(await sendResetCode(email));
+  expect(answers).toEqual(['sent', 'sent', 'sent', 'sent']);
+  await waitForCode(known); // the control: mail does arrive in this window
+  expect(await noMailWithin(unknown)).toBe(true);
 });
 
-it('an unknown e-mail gets the same answer and no mail', async () => {
-  const email = `nobody-${run}@example.test`;
-  expect(await sendResetCode(email)).toBe('sent');
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  expect(await mailCount(email)).toBe(0);
+it('an address the server rejects is "bad-email", not its raw error', async () => {
+  expect(await sendResetCode('@')).toBe('bad-email');
+});
+
+it('a new password the server refuses spends the code and signs the reader out', async () => {
+  const email = await signUp('weak');
+  await sendResetCode(email);
+  const code = await waitForCode(email);
+  // 6 is the server's own minimum (supabase/config.toml); the app asks for 8 before sending.
+  expect(await resetPassword(email, code, 'tiny')).toBe('code-spent');
+  expect((await supabase.auth.getSession()).data.session).toBeNull();
+  expect(await resetPassword(email, code, newPassword)).toBe('bad-code');
+  expect(await signInWorks(email, oldPassword)).toBe(true);
+});
+
+it('the old password as the new one is "same-password", and signs the reader out', async () => {
+  const email = await signUp('same');
+  await sendResetCode(email);
+  const code = await waitForCode(email);
+  expect(await resetPassword(email, code, oldPassword)).toBe('same-password');
+  expect((await supabase.auth.getSession()).data.session).toBeNull();
 });
