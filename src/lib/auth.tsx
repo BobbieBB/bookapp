@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { forgetCoverLinks } from './covers';
 import { disablePush, releasePendingPushToken } from './pushDevice';
 import { supabase } from './supabase';
 import type { Profile } from './types';
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await disablePush().catch(() => {
         // Offline, say: the phone is already off, and the server is told on the next start.
       });
+      forgetCoverLinks(); // this reader's signed cover links go with them
       await supabase.auth.signOut();
     },
   };

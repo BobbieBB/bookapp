@@ -6,6 +6,26 @@ import { supabase } from './supabase';
 const BUCKET = 'covers';
 const TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const SIGNED_URL_SECONDS = 60 * 60;
+// Signed links are remembered per file and handed out again until shortly before they run out: the
+// lists reload on every focus, and a newly signed link (a new URL) makes the image load all over again.
+const RENEW_BEFORE_MS = 5 * 60 * 1000;
+const links = new Map<string, { url: string; until: number }>();
+
+function rememberedLink(path: string): string | undefined {
+  const link = links.get(path);
+  if (link && link.until > Date.now()) return link.url;
+  links.delete(path);
+  return undefined;
+}
+
+function rememberLink(path: string, url: string) {
+  links.set(path, { url, until: Date.now() + SIGNED_URL_SECONDS * 1000 - RENEW_BEFORE_MS });
+}
+
+/** Forgets every remembered cover link (on sign-out: they belong to the reader who signed them). */
+export function forgetCoverLinks() {
+  links.clear();
+}
 
 async function me() {
   const { data } = await supabase.auth.getUser();
@@ -37,6 +57,7 @@ export async function uploadCover(storyId: string, bytes: ArrayBuffer, contentTy
     throw error;
   }
   if (previous) {
+    links.delete(previous);
     // The new cover is in place; if the old file can't be removed now it is only unused storage.
     const { error: removeError } = await supabase.storage.from(BUCKET).remove([previous]);
     if (removeError) console.warn('Could not remove the previous cover file', removeError.message);
@@ -48,30 +69,44 @@ export async function uploadCover(storyId: string, bytes: ArrayBuffer, contentTy
 export async function myCoverUrl(storyId: string): Promise<string | null> {
   const path = await currentPath(storyId);
   if (!path) return null;
+  const known = rememberedLink(path);
+  if (known) return known;
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_SECONDS);
   if (error) throw error;
+  rememberLink(path, data.signedUrl);
   return data.signedUrl;
 }
 
 /**
  * Short-lived links to your covers for many stories at once (library rows), keyed by story id; stories
- * without one are left out. One query and one signing request, however many rows there are.
+ * without one are left out. One query and at most one signing request, however many rows there are.
  */
 export async function myCoverUrls(storyIds: string[]): Promise<Record<string, string>> {
   if (!storyIds.length) return {};
-  const { data, error } = await supabase.from('custom_covers').select('story_id, path').in('story_id', storyIds);
+  // All your covers (row-level security keeps it to yours), then the ones these rows want: a whole
+  // library's worth of ids in the query itself would not fit in the request URL.
+  const { data, error } = await supabase.from('custom_covers').select('story_id, path');
   if (error) throw error;
-  if (!data.length) return {};
-  const { data: signed, error: signError } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrls(data.map((c) => c.path), SIGNED_URL_SECONDS);
-  if (signError) throw signError;
-  const storyOf = new Map(data.map((c) => [c.path, c.story_id]));
+  const wanted = new Set(storyIds);
+  const covers = data.filter((c) => wanted.has(c.story_id));
   const urls: Record<string, string> = {};
+  const toSign: string[] = [];
+  for (const c of covers) {
+    const known = rememberedLink(c.path);
+    if (known) urls[c.story_id] = known;
+    else toSign.push(c.path);
+  }
+  if (!toSign.length) return urls;
+  const { data: signed, error: signError } = await supabase.storage.from(BUCKET).createSignedUrls(toSign, SIGNED_URL_SECONDS);
+  if (signError) throw signError;
+  const storyOf = new Map(covers.map((c) => [c.path, c.story_id]));
   for (const link of signed) {
     // A file that can't be signed (gone from storage) just means the usual cover for that row.
     const storyId = link.path ? storyOf.get(link.path) : undefined;
-    if (storyId && !link.error && link.signedUrl) urls[storyId] = link.signedUrl;
+    if (storyId && link.path && !link.error && link.signedUrl) {
+      rememberLink(link.path, link.signedUrl);
+      urls[storyId] = link.signedUrl;
+    }
   }
   return urls;
 }
@@ -83,6 +118,7 @@ export async function removeCover(storyId: string) {
   // The file first: if that fails nothing changed and the reader can try again.
   const { error: removeError } = await supabase.storage.from(BUCKET).remove([path]);
   if (removeError) throw removeError;
+  links.delete(path);
   const { error } = await supabase.from('custom_covers').delete().eq('story_id', storyId);
   if (error) throw error;
 }

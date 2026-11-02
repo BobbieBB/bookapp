@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import Home from '../../../app/(tabs)/index';
@@ -118,6 +119,19 @@ describe('in your Home and Library rows', () => {
     expect(await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByLabelText('Row With Cover cover')).toBeNull();
     expect(screen.getByLabelText('Row Without Cover cover')).toBeOnTheScreen();
+  });
+
+  it('coming back to Home keeps the same image, not a newly signed link', async () => {
+    await renderScreen('en', { index: Home, 'story/[id]': StoryScreen }, '/');
+    const before = (await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).props.source.uri;
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+    await act(async () => router.push(`/story/${mineId}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    await act(async () => router.back());
+    await screen.findByLabelText('Row Without Cover cover', {}, { timeout: 8000 });
+    // Home reloads its rows on focus; give the cover links time to arrive again before comparing.
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(screen.getByLabelText('Your own cover for Row With Cover').props.source.uri).toBe(before);
   });
 
   it('Library too, in Bulgarian', async () => {

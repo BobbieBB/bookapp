@@ -1,4 +1,4 @@
-import { myCoverUrl, myCoverUrls, removeCover, uploadCover } from '../covers';
+import { forgetCoverLinks, myCoverUrl, myCoverUrls, removeCover, uploadCover } from '../covers';
 import { addToLibrary, createManualBook } from '../stories';
 import { supabase } from '../supabase';
 
@@ -100,6 +100,29 @@ it('your covers for many stories at once, in one go', async () => {
   expect(await myCoverUrls([storyId])).toEqual({}); // never someone else's
 });
 
+it('a whole library of rows at once, however long', async () => {
+  await as(owner);
+  // Far more ids than fit in one request URL; the rows without a cover of yours are simply left out.
+  const hex = () => Math.floor(Math.random() * 16).toString(16);
+  const uuid = () => 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, hex);
+  const ids = [...Array.from({ length: 1000 }, uuid), storyId];
+  const urls = await myCoverUrls(ids);
+  expect(Object.keys(urls)).toEqual([storyId]);
+  expect((await fetch(urls[storyId])).status).toBe(200);
+});
+
+it('the same link again while it is still good, not a new one on every look', async () => {
+  await as(owner);
+  const first = await myCoverUrl(storyId);
+  const firstMany = (await myCoverUrls([storyId]))[storyId];
+  await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+  expect(await myCoverUrl(storyId)).toBe(first);
+  expect((await myCoverUrls([storyId]))[storyId]).toBe(firstMany);
+  expect(firstMany).toBe(first);
+  forgetCoverLinks(); // on sign-out
+  expect(await myCoverUrl(storyId)).not.toBe(first);
+});
+
 it('only images', async () => {
   await as(owner);
   await expect(uploadCover(storyId, new TextEncoder().encode('<script>').buffer, 'text/html')).rejects.toThrow('image');
@@ -111,6 +134,7 @@ it('replacing a cover removes the old file; removing it goes back to the usual c
   expect(second).not.toBe(path);
   const { data: old } = await supabase.storage.from('covers').download(path);
   expect(old).toBeNull();
+  expect(await myCoverUrl(storyId)).toContain(second); // the new cover, not the remembered link
   await removeCover(storyId);
   expect(await myCoverUrl(storyId)).toBeNull();
   const { data: gone } = await supabase.storage.from('covers').download(second);

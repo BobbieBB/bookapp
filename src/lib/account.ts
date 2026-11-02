@@ -1,6 +1,7 @@
 // Deleting your account (docs/DECISIONS.md, "Deleting an account: what happens to comments").
 // The database does the deleting (delete_my_account); Storage files can't be removed from SQL, so
 // your cover files go first, from here, under the covers bucket's owner-only delete policy.
+import { forgetCoverLinks } from './covers';
 import { forgetPushDevice } from './pushDevice';
 import { supabase } from './supabase';
 
@@ -36,6 +37,7 @@ async function leaveThisPhone() {
   } catch (error) {
     console.warn('Could not forget the push token', error instanceof Error ? error.message : error);
   }
+  forgetCoverLinks();
   // The server already dropped every session with the account; only this phone still holds one.
   // Signing out locally only clears stored state, so one retry covers a passing storage error.
   for (let attempt = 1; ; attempt++) {

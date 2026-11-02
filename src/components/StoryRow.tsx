@@ -40,7 +40,7 @@ export function StoryRow({
           .join(' · ');
   const cover = coverColor(s.id, t.isDark);
   // The link that failed to load, so a broken image falls back to the typographic cover (a new link
-  // for the same story, after a reload, gets another try).
+  // for the same story, once the cover changes or its link is renewed, gets another try).
   const [failedUrl, setFailedUrl] = useState<string | undefined>();
   const custom = coverUrl && coverUrl !== failedUrl ? coverUrl : undefined;
 
