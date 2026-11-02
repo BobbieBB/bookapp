@@ -297,6 +297,10 @@ Choices made during development where the decisions above don't say. Each one is
   `progressAlt` (the bars; both taupe in Calm). Appearance lives in Profile as a card next to Language (there is no Settings
   screen), stored per device under `livami.appearance`; `isDark` stays true for Dark only. Measured from the hexes: ink on cards
   13.4:1, on the ground 12.4:1, button text on sand 8.5:1. Mood, not copy: the reaction emoji (❤️ …) keep their own colours.
+  Non-text marks (spinners, a selected chip's edge, progress fills) use the `signal`/`progress` roles, tested at 3:1 on the
+  ground and the cards in all three palettes, because the sand button colour is only 1.4:1 there. Choosing an appearance also
+  tells the phone (`Appearance.setColorScheme`), so the keyboard and alerts match; Auto hands control back. The first frame
+  waits for the stored choice (no splash hold: `expo-splash-screen` is not a dependency of this app).
 
 ## Deleting an account: what happens to comments (19 Oct 2026, PO)
 - Required before the App Store (Apple 5.1.1(v): account deletion inside the app) and by GDPR.
