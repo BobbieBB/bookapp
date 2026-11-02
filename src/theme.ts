@@ -26,8 +26,9 @@ const light = {
   success: '#1F6B45',
   track: '#E9EEEB',
   accent: '#4E4459', // small headings and links
-  progress: '#FF4F84', // progress bar fill: books
-  progressAlt: '#3DBE95', // progress bar fill: fanfiction
+  progress: '#F2437B', // progress bar fill: books (3:1 on white and the ground)
+  progressAlt: '#2A9D78', // progress bar fill: fanfiction
+  signal: '#F2437B', // non-text marks that must show on ground and cards: spinners, a selected chip's edge
   thumb: '#FFFFFF', // switch thumb (the platform default is teal on web and Android)
 };
 
@@ -54,6 +55,7 @@ const dark: typeof light = {
   accent: '#B4A6BD',
   progress: '#FF6B97',
   progressAlt: '#4FD1A6',
+  signal: '#FF6B97',
   thumb: '#F7EEF3',
 };
 
@@ -68,7 +70,7 @@ const calm: typeof light = {
   inkSoft: '#413A47',
   muted: '#5E5650',
   hairline: '#DDD5C8',
-  shadow: '#2F2A35',
+  shadow: '#6B5440', // warm brown, not the plum of Light
   primary: '#D8C7AE', // buttons, the active tab and chips: sand with ink text
   onPrimary: '#2F2A35',
   secondary: '#7A5F45', // switches and highlighted chips
@@ -82,6 +84,7 @@ const calm: typeof light = {
   accent: '#7A5F45',
   progress: '#8A7258',
   progressAlt: '#8A7258',
+  signal: '#7A5F45', // sand (primary) is only 1.4:1 on the cards; the accent brown shows
   thumb: '#FBFAF7',
 };
 
@@ -137,12 +140,12 @@ export const radius = { s: 14, m: 20, l: 22, pill: 999 };
 export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
 
 /** Soft drop shadow (iOS shadow props + Android elevation). */
-export function softShadow(isDark: boolean, strength: 'card' | 'small' = 'card') {
+export function softShadow(mode: Mode, strength: 'card' | 'small' = 'card') {
   const big = strength === 'card';
   return {
-    shadowColor: isDark ? '#000000' : '#1E1328',
+    shadowColor: palettes[mode].shadow,
     shadowOffset: { width: 0, height: big ? 10 : 3 },
-    shadowOpacity: isDark ? 0.35 : big ? 0.09 : 0.1,
+    shadowOpacity: mode === 'dark' ? 0.35 : mode === 'calm' ? (big ? 0.12 : 0.14) : big ? 0.09 : 0.1,
     shadowRadius: big ? 22 : 6,
     elevation: big ? 4 : 2,
   };
@@ -172,7 +175,7 @@ export function useTheme() {
     card: {
       backgroundColor: c.surface,
       borderRadius: radius.l,
-      ...softShadow(isDark),
+      ...softShadow(mode),
     },
   };
 }

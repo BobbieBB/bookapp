@@ -58,7 +58,7 @@ export function StoryRow({
           source={{ uri: custom }}
           accessibilityLabel={tr('covers.customLabel', { title: s.title })}
           onError={() => setFailedUrl(custom)}
-          style={{ ...COVER, ...softShadow(t.isDark, 'small') }}
+          style={{ ...COVER, ...softShadow(t.mode, 'small') }}
         />
       ) : (
         <View
@@ -67,7 +67,7 @@ export function StoryRow({
           style={{
             ...COVER,
             backgroundColor: cover.bg,
-            ...softShadow(t.isDark, 'small'),
+            ...softShadow(t.mode, 'small'),
             justifyContent: 'space-between',
             padding: 7,
           }}

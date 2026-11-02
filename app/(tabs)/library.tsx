@@ -62,7 +62,7 @@ export default function Library() {
         </ScrollView>
 
         {loading ? (
-          <ActivityIndicator color={c.primary} />
+          <ActivityIndicator color={c.signal} />
         ) : shown.length ? (
           shown.map((e) => <StoryRow key={e.story_id} entry={e} showStatus={filter === 'all'} coverUrl={coverUrls[e.story_id]} />)
         ) : (

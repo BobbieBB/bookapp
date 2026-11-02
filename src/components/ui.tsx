@@ -29,13 +29,13 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
 }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   const base: ViewStyle = { minHeight: 52, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.l };
   const style: ViewStyle =
     variant === 'primary'
-      ? { ...base, backgroundColor: c.primary, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: isDark ? 0.25 : 0.35, shadowRadius: 14, elevation: 3 }
+      ? { ...base, backgroundColor: c.primary, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: mode === 'dark' ? 0.25 : 0.35, shadowRadius: 14, elevation: 3 }
       : variant === 'secondary'
-        ? { ...base, backgroundColor: c.surface, ...softShadow(isDark, 'small') }
+        ? { ...base, backgroundColor: c.surface, ...softShadow(mode, 'small') }
         : { minHeight: 44, alignItems: 'center', justifyContent: 'center' };
   const textColor = variant === 'primary' ? c.onPrimary : c.ink;
 
@@ -94,7 +94,7 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
 }
 
 // react-native-web paints the ON thumb from `activeThumbColor` (default teal); React Native's types don't list it.
-const WEB_ON_THUMB = (color: string) => ({ activeThumbColor: color }) as object;
+const WEB_ON_THUMB = (color: string): { activeThumbColor: string } => ({ activeThumbColor: color });
 
 export function Toggle({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
@@ -151,7 +151,7 @@ export function T({
 }
 
 export function Chip({ label, active, onPress, big }: { label: string; active: boolean; onPress: () => void; big?: boolean }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -163,8 +163,11 @@ export function Chip({ label, active, onPress, big }: { label: string; active: b
         borderRadius: radius.pill,
         justifyContent: 'center',
         alignItems: 'center', // centred also when the chip is stretched (Book / Fanfiction on Add)
+        // The selected chip carries an edge that shows on the cards in every palette (sand alone is 1.4:1 in Calm).
+        borderWidth: 2,
+        borderColor: active ? c.signal : 'transparent',
         backgroundColor: active ? c.primary : c.surface,
-        ...(active ? {} : softShadow(isDark, 'small')),
+        ...(active ? {} : softShadow(mode, 'small')),
       }}
     >
       <Text style={{ fontSize: big ? 16 : 14, fontFamily: active ? fonts.bodyBold : fonts.body, color: active ? c.onPrimary : c.inkSoft }}>

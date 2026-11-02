@@ -37,7 +37,7 @@ export default function FinishedScreen() {
       ) : (
         // Saving "Finished" and loading the page can take a moment: a clear spinner, not a blank screen.
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
-          <ActivityIndicator size="large" color={c.primary} accessibilityLabel={t('finishing.loading')} />
+          <ActivityIndicator size="large" color={c.signal} accessibilityLabel={t('finishing.loading')} />
         </View>
       )}
     </ScrollView>
@@ -227,8 +227,8 @@ function RateButton({ value, rating, onRate }: { value: number; rating: number |
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: radius.s,
-        borderWidth: 1.5,
-        borderColor: selected ? c.primary : c.hairline,
+        borderWidth: 2,
+        borderColor: selected ? c.signal : c.hairline,
         backgroundColor: lit ? c.primary : 'transparent',
       }}
     >

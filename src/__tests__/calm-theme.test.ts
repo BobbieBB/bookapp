@@ -1,7 +1,7 @@
-import { palettes, coverColor } from '../theme';
+import { palettes, coverColor, softShadow } from '../theme';
 
 // Calm (docs/DECISIONS.md, "Calm theme"): one warm beige family, no pink/green, AA contrast or better.
-const calm = (palettes as Record<string, (typeof palettes)['light']>).calm!;
+const { calm } = palettes;
 
 function luminance(hex: string) {
   const [r, g, b] = [1, 3, 5].map((i) => {
@@ -79,4 +79,23 @@ it('every progress bar is the same taupe on the same track, in Calm', () => {
 it('Light and Dark covers are unchanged by the extra mode', () => {
   expect(coverColor('x', 'light').bg).toMatch(/^#/);
   expect(coverColor('x', 'dark').bg).toMatch(/^#/);
+});
+
+// Non-text signals (spinners, a selected chip's edge, progress fills) need 3:1 against the surfaces they sit on (WCAG 1.4.11).
+it.each(['light', 'dark', 'calm'] as const)('%s: every non-text signal has 3:1 against the ground and the cards', (mode) => {
+  const p = palettes[mode];
+  for (const role of ['signal', 'progress', 'progressAlt'] as const) {
+    expect([role, contrast(p[role], p.ground) >= 3]).toEqual([role, true]);
+    expect([role, contrast(p[role], p.surface) >= 3]).toEqual([role, true]);
+  }
+});
+
+it('the shadow role is what casts the shadow, warm brown in Calm', () => {
+  for (const mode of ['light', 'dark', 'calm'] as const) {
+    expect(softShadow(mode, 'card').shadowColor).toBe(palettes[mode].shadow);
+    expect(softShadow(mode, 'small').shadowColor).toBe(palettes[mode].shadow);
+  }
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(palettes.calm.shadow.slice(i, i + 2), 16)) as [number, number, number];
+  expect(r).toBeGreaterThan(g);
+  expect(g).toBeGreaterThan(b); // warm: red > green > blue, not the plum Light shadow
 });

@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, renderHook, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react-native';
 import * as ReactNative from 'react-native';
+import { Appearance as NativeAppearance } from 'react-native';
 import type { ReactElement } from 'react';
 
 import Profile from '../../../app/(tabs)/profile';
 import { renderScreen } from '../../../test/router';
-import { AppearanceProvider, APPEARANCE_STORAGE_KEY } from '../../appearance';
+import { AppearanceProvider, APPEARANCE_STORAGE_KEY, useAppearance } from '../../appearance';
 import { supabase } from '../../lib/supabase';
 import { palettes, useTheme } from '../../theme';
 
@@ -13,7 +14,7 @@ import { palettes, useTheme } from '../../theme';
 const password = 'test-password-1234';
 const run = Date.now().toString(36);
 const username = `calm_${run}`;
-const calm = (palettes as Record<string, (typeof palettes)['light']>).calm!;
+const { calm } = palettes;
 
 beforeAll(async () => {
   const { data, error } = await supabase.auth.signUp({ email: `calm-${run}@example.test`, password });
@@ -81,6 +82,66 @@ describe('Auto follows the phone', () => {
     const { result } = await renderHook(() => useTheme(), { wrapper });
     await waitFor(() => expect(result.current.c.ground).toBe(calm.ground));
     expect(result.current.isDark).toBe(false);
+  });
+
+  it('follows a change of the phone scheme after it has mounted', async () => {
+    const scheme = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('light');
+    const { result, rerender } = await renderHook(() => useTheme(), { wrapper });
+    await waitFor(() => expect(result.current.c.ground).toBe(palettes.light.ground));
+    scheme.mockReturnValue('dark');
+    await rerender({});
+    await waitFor(() => expect(result.current.c.ground).toBe(palettes.dark.ground));
+  });
+
+  it('a stored choice that cannot be read falls back to Auto', async () => {
+    // AsyncStorage is already a jest mock here: swap its implementation and put it back. Only our key fails,
+    // because the Supabase client reads its session from the same storage.
+    const getItem = AsyncStorage.getItem as jest.Mock;
+    const real = getItem.getMockImplementation()!;
+    getItem.mockImplementation((key: string) => (key === APPEARANCE_STORAGE_KEY ? Promise.reject(new Error('storage down')) : real(key)));
+    try {
+      jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+      const { result } = await renderHook(() => useTheme(), { wrapper });
+      await waitFor(() => expect(result.current.c.ground).toBe(palettes.dark.ground));
+    } finally {
+      getItem.mockImplementation(real);
+    }
+  });
+
+  it.each([
+    ['calm', 'light'],
+    ['light', 'light'],
+    ['dark', 'dark'],
+    ['auto', 'unspecified'],
+  ] as const)('choosing %s tells the phone chrome (keyboard, alerts) %s', async (choice, scheme) => {
+    const set = jest.spyOn(NativeAppearance, 'setColorScheme').mockImplementation(() => {});
+    const { result } = await renderHook(() => ({ theme: useTheme(), app: useAppearance() }), { wrapper });
+    await waitFor(() => expect(result.current).toBeDefined());
+    await act(async () => result.current.app.setAppearance(choice));
+    await waitFor(() => expect(set).toHaveBeenLastCalledWith(scheme));
+  });
+
+  it('leaves setColorScheme alone on the web (react-native-web ships one that throws)', async () => {
+    const os = ReactNative.Platform.OS;
+    const set = jest.spyOn(NativeAppearance, 'setColorScheme').mockImplementation(() => {
+      throw new Error('NativeAppearance.default.setColorScheme is not a function');
+    });
+    ReactNative.Platform.OS = 'web';
+    try {
+      const { result } = await renderHook(() => useTheme(), { wrapper });
+      await waitFor(() => expect(result.current.c.ground).toBeDefined());
+      expect(set).not.toHaveBeenCalled();
+    } finally {
+      ReactNative.Platform.OS = os;
+    }
+  });
+
+  it('keeps the same setter between renders', async () => {
+    const { result, rerender } = await renderHook(() => useAppearance(), { wrapper });
+    await waitFor(() => expect(result.current).toBeDefined());
+    const first = result.current.setAppearance;
+    await rerender({});
+    expect(result.current.setAppearance).toBe(first);
   });
 
   it('an unreadable or unknown stored value falls back to Auto', async () => {

@@ -21,7 +21,7 @@ function Loading() {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.ground }}>
-      <ActivityIndicator color={c.primary} />
+      <ActivityIndicator color={c.signal} />
     </View>
   );
 }

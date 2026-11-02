@@ -22,13 +22,13 @@ export function StoryRooms({ storyId, version }: { storyId: string; version: num
     <View style={{ gap: space.s }}>
       <T v="overline">{t('story.discussions')}</T>
       {rooms.error ? <ErrorText>{t('story.roomsFailed')}</ErrorText> : null}
-      {list ? list.map((room) => <RoomRow key={room.kind + (room.section_number ?? '')} storyId={storyId} room={room} />) : <ActivityIndicator color={c.primary} />}
+      {list ? list.map((room) => <RoomRow key={room.kind + (room.section_number ?? '')} storyId={storyId} room={room} />) : <ActivityIndicator color={c.signal} />}
     </View>
   );
 }
 
 function RoomRow({ storyId, room }: { storyId: string; room: Room }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   const t = useT();
   const epilogue = room.kind === 'epilogue';
   const name = epilogue ? t('room.epilogue') : t('room.chapter', { n: room.section_number! });
@@ -53,7 +53,7 @@ function RoomRow({ storyId, room }: { storyId: string; room: Room }) {
         borderRadius: radius.s,
         backgroundColor: c.surface,
         opacity: room.unlocked ? 1 : 0.6,
-        ...softShadow(isDark, 'small'),
+        ...softShadow(mode, 'small'),
       }}
     >
       <View style={{ flex: 1, gap: 2 }}>
