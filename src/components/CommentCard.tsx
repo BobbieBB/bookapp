@@ -96,7 +96,7 @@ export function CommentCard({
               );
             })}
           </View>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
             {onReply ? <QuietAction label={t('room.reply')} onPress={onReply} /> : null}
             {mine ? <QuietAction label={t('room.delete')} onPress={onDelete} /> : null}
             {canReport && !reported ? (

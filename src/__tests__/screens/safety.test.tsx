@@ -93,6 +93,16 @@ describe('in a discussion', () => {
     expect(sent.map((r) => r.reason)).toEqual(['harassment']);
   });
 
+  it('a long name in "Block <name>" is cut with an ellipsis, not off the edge, and stays whole for screen readers', async () => {
+    await as(me);
+    await renderScreen('bg', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
+    const card = await screen.findByTestId(`comment-${trollCommentId}`, {}, { timeout: 8000 });
+    const label = within(card).getByText(`Блокирай ${troll.username}`);
+    expect(label.props.numberOfLines).toBe(1);
+    expect(label.props.ellipsizeMode).toBe('tail');
+    expect(within(card).getByRole('button', { name: `Блокирай ${troll.username}` })).toBeOnTheScreen();
+  });
+
   it('blocking someone hides their comments', async () => {
     await as(me);
     await renderScreen('en', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);

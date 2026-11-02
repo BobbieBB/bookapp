@@ -6,11 +6,22 @@ import { useT } from '@/i18n';
 import type { ReportReason } from '@/lib/safety';
 import { space, useTheme } from '@/theme';
 
+/**
+ * A quiet text action. A long label (a long username in "Block <name>", longer still in Bulgarian) shrinks
+ * and ends in an ellipsis instead of running off the edge; the full text stays in the accessibility label.
+ */
 export function QuietAction({ label, onPress, accessibilityLabel }: { label: string; onPress: () => void; accessibilityLabel?: string }) {
   const { fonts, c } = useTheme();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={{ minHeight: 44, justifyContent: 'center', paddingRight: space.m }}>
-      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.muted }}>{label}</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      style={{ minHeight: 44, justifyContent: 'center', paddingRight: space.m, flexShrink: 1, minWidth: 0 }}
+    >
+      <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.muted }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
