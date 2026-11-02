@@ -25,21 +25,20 @@ export default function AcceptTerms() {
   const [oldEnough, setOldEnough] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const ticked = acceptsTerms && oldEnough;
 
   async function accept() {
     setBusy(true);
     setFailed(false);
     // The server stamps the time; the root layout opens the app once the refreshed profile has this version.
-    const { error } = await supabase
+    // No row back means nothing was saved (e.g. the profile was deleted on another device).
+    const { data, error } = await supabase
       .from('profiles')
       .update({ terms_version: TERMS_VERSION, age_confirmed: true })
-      .eq('id', session!.user.id);
-    if (error) {
-      setFailed(true);
-      setBusy(false);
-      return;
-    }
-    await refreshProfile();
+      .eq('id', session!.user.id)
+      .select('terms_version');
+    const saved = !error && data.length === 1 && (await refreshProfile());
+    setFailed(!saved);
     setBusy(false);
   }
 
@@ -52,7 +51,14 @@ export default function AcceptTerms() {
         </View>
         <TermsConsent terms={acceptsTerms} age={oldEnough} onTerms={setAcceptsTerms} onAge={setOldEnough} disabled={busy} />
         <ErrorText>{failed ? t('legal.acceptFailed') : null}</ErrorText>
-        <Button title={t('legal.accept')} onPress={() => void accept()} loading={busy} disabled={!acceptsTerms || !oldEnough} />
+        {ticked ? null : <T v="muted">{t('legal.tickBoth')}</T>}
+        <Button
+          title={t('legal.accept')}
+          onPress={() => void accept()}
+          loading={busy}
+          disabled={!ticked}
+          accessibilityHint={ticked ? undefined : t('legal.tickBoth')}
+        />
         <Button variant="link" title={t('common.signOut')} onPress={signOut} />
         <Button variant="link" title={t('account.deleteLink')} onPress={() => router.push('/delete-account')} />
       </ScrollView>

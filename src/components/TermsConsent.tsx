@@ -23,8 +23,9 @@ function Checkbox({ label, checked, onChange, disabled }: { label: string; check
           width: 26,
           height: 26,
           borderRadius: radius.s / 2,
-          borderWidth: checked ? 0 : 1.5,
-          borderColor: c.hairline,
+          borderWidth: checked ? 0 : 2,
+          // muted, not hairline: an unticked box needs 3:1 contrast against the card in light and dark.
+          borderColor: c.muted,
           backgroundColor: checked ? c.primary : c.surface,
           alignItems: 'center',
           justifyContent: 'center',
@@ -38,10 +39,15 @@ function Checkbox({ label, checked, onChange, disabled }: { label: string; check
   );
 }
 
-function WebLink({ title, url, onFail }: { title: string; url: string; onFail: () => void }) {
+function WebLink({ title, label, url, onOpened }: { title: string; label: string; url: string; onOpened: (ok: boolean) => void }) {
   const { c, fonts } = useTheme();
   return (
-    <Pressable accessibilityRole="link" onPress={() => Linking.openURL(url).catch(onFail)} style={{ minHeight: 44, justifyContent: 'center' }}>
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      onPress={() => Linking.openURL(url).then(() => onOpened(true), () => onOpened(false))}
+      style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
+    >
       <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{title}</Text>
     </Pressable>
   );
@@ -66,19 +72,20 @@ export function TermsConsent({
 }) {
   const t = useT();
   const [linkFailed, setLinkFailed] = useState(false);
-  const failed = () => setLinkFailed(true);
+  const opened = (ok: boolean) => setLinkFailed(!ok);
   return (
     <View style={{ gap: space.xs }}>
       <Checkbox label={t('legal.acceptTerms')} checked={terms} onChange={onTerms} disabled={disabled} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: space.l, paddingLeft: 26 + space.m }}>
-        <WebLink title={t('legal.terms')} url={TERMS_URL} onFail={failed} />
-        <WebLink title={t('legal.privacy')} url={PRIVACY_URL} onFail={failed} />
+        <WebLink title={t('legal.terms')} label={t('legal.openTerms')} url={TERMS_URL} onOpened={opened} />
+        <WebLink title={t('legal.privacy')} label={t('legal.openPrivacy')} url={PRIVACY_URL} onOpened={opened} />
       </View>
-      <ErrorText>{linkFailed ? t('legal.linkFailed') : null}</ErrorText>
       <Checkbox label={t('legal.age', { age: MIN_AGE })} checked={age} onChange={onAge} disabled={disabled} />
       <View style={{ paddingLeft: 26 + space.m }}>
         <T v="muted">{t('legal.ageNote', { age: MIN_AGE })}</T>
       </View>
+      {/* Last, so the boxes don't move when it shows. */}
+      <ErrorText>{linkFailed ? t('legal.linkFailed') : null}</ErrorText>
     </View>
   );
 }

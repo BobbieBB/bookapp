@@ -13,7 +13,8 @@ type AuthState = {
   session: Session | null;
   profile: Profile | null;
   profileState: ProfileState;
-  refreshProfile: () => Promise<void>;
+  /** Resolves false when the profile could not be fetched (profileState is then 'error'). */
+  refreshProfile: () => Promise<boolean>;
   signOut: () => Promise<void>;
 };
 
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const requestId = useRef(0);
   const loadedFor = useRef<string | null | undefined>(undefined);
 
-  const loadProfile = useCallback(async (userId: string | undefined) => {
+  const loadProfile = useCallback(async (userId: string | undefined): Promise<boolean> => {
     const id = ++requestId.current;
     const next = userId ?? null;
     // A different reader: never show the previous one's profile while this one loads (or fails).
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setProfile(null);
       setProfileState('ready');
-      return;
+      return true;
     }
     setProfileState('loading');
     const { data, error } = await supabase
@@ -45,14 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('id, username, display_name, reads_books, reads_fanfic, terms_version')
       .eq('id', userId)
       .maybeSingle();
-    if (id !== requestId.current) return;
+    // A newer request is in charge of the state now; this one still reports how it went.
+    if (id !== requestId.current) return !error;
     if (error) {
       // Not the same as "no profile yet": never send an existing reader to onboarding.
       setProfileState('error');
-      return;
+      return false;
     }
     setProfile((data as Profile | null) ?? null);
     setProfileState('ready');
+    return true;
   }, []);
 
   useEffect(() => {

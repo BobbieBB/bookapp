@@ -8,6 +8,7 @@ import AcceptTerms from '../../../app/accept-terms';
 import DeleteAccount from '../../../app/delete-account';
 import Onboarding from '../../../app/onboarding';
 import SignIn from '../../../app/sign-in';
+import { failRequests } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import { MIN_AGE, PRIVACY_URL, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
 import { supabase } from '../../lib/supabase';
@@ -16,6 +17,8 @@ import { supabase } from '../../lib/supabase';
 // ticks before Start, and readers whose accepted version is missing or old are asked again before the
 // app opens. Real readers on local Supabase.
 const password = 'test-password-1234';
+// Versions are date-prefixed, so this one sorts before TERMS_VERSION, as a real older version would.
+const OLD_VERSION = '2026-01';
 const run = Date.now().toString(36);
 type User = { email: string; id: string; username: string };
 
@@ -71,6 +74,8 @@ describe('onboarding', () => {
     await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
     await fireEvent.changeText(await screen.findByLabelText('Name', {}, { timeout: 8000 }), u.username);
     expect(start()).toBeDisabled();
+    expect(start().props.accessibilityHint).toBe('Tick both boxes to continue.');
+    expect(screen.getByText('Tick both boxes to continue.')).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: /accept/ })).not.toBeChecked();
 
     await tick(/accept/);
@@ -78,6 +83,7 @@ describe('onboarding', () => {
     expect(start()).toBeDisabled();
     await tick(new RegExp(`at least ${MIN_AGE}`));
     expect(start()).toBeEnabled();
+    expect(screen.queryByText('Tick both boxes to continue.')).toBeNull();
     expect(screen.getByText(`Livami is for readers aged ${MIN_AGE} and over.`)).toBeOnTheScreen();
 
     await fireEvent.press(start());
@@ -95,8 +101,26 @@ describe('onboarding', () => {
     await tick(/accept/);
     expect(start()).toBeDisabled();
     await fireEvent.press(start());
-    // Give a stray insert time to land before checking that none did.
-    await new Promise((r) => setTimeout(r, 1000));
+    // Saving swaps the title for a spinner at once, before any request: the title still being there
+    // shows the press never started a save (the name is valid, so it would not stop early).
+    expect(start()).toBeDisabled();
+    expect(await profileOf(u)).toBeNull();
+  });
+
+  it('a failed save shows a translated message, never the raw error', async () => {
+    const u = await signUp('offline');
+    await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
+    await fireEvent.changeText(await screen.findByLabelText('Name', {}, { timeout: 8000 }), u.username);
+    await tick(/accept/);
+    await tick(new RegExp(`at least ${MIN_AGE}`));
+    const online = failRequests((url, method) => method === 'POST' && url.includes('/rest/v1/profiles'));
+    try {
+      await fireEvent.press(start());
+      expect(await screen.findByText('We couldn’t save your profile. Please try again.')).toBeOnTheScreen();
+    } finally {
+      online();
+    }
+    expect(screen.queryByText(/Network request failed/)).toBeNull();
     expect(await profileOf(u)).toBeNull();
   });
 
@@ -105,10 +129,24 @@ describe('onboarding', () => {
     try {
       await signUp('linker');
       await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
-      await fireEvent.press(await screen.findByRole('link', { name: 'Terms' }, { timeout: 8000 }));
+      await fireEvent.press(await screen.findByRole('link', { name: 'Open the Terms' }, { timeout: 8000 }));
       expect(open).toHaveBeenCalledWith(TERMS_URL);
-      await fireEvent.press(screen.getByRole('link', { name: 'Privacy Policy' }));
+      await fireEvent.press(screen.getByRole('link', { name: 'Open the Privacy Policy' }));
       expect(open).toHaveBeenCalledWith(PRIVACY_URL);
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it('a link that cannot open says so, until a later one opens', async () => {
+    const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(true);
+    try {
+      await signUp('nobrowser');
+      await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
+      await fireEvent.press(await screen.findByRole('link', { name: 'Open the Terms' }, { timeout: 8000 }));
+      expect(await screen.findByText('We couldn’t open the page. Please try again.')).toBeOnTheScreen();
+      await fireEvent.press(screen.getByRole('link', { name: 'Open the Terms' }));
+      await waitFor(() => expect(screen.queryByText('We couldn’t open the page. Please try again.')).toBeNull());
     } finally {
       open.mockRestore();
     }
@@ -119,7 +157,7 @@ describe('readers who accepted an older version, or none', () => {
   const accept = () => screen.getByRole('button', { name: 'Accept' });
 
   it('an old version is asked again; accepting opens the app', async () => {
-    const u = await signUp('oldterms', 'old-version');
+    const u = await signUp('oldterms', OLD_VERSION);
     await renderScreen('en', app, '/profile');
     expect(await screen.findByText('Our terms have changed', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByLabelText('Help us improve the app')).toBeNull();
@@ -133,11 +171,51 @@ describe('readers who accepted an older version, or none', () => {
     expect(Math.abs(Date.parse(row.terms_accepted_at!) - Date.now())).toBeLessThan(60_000);
   });
 
+  const tickBoth = async () => {
+    await fireEvent.press(await screen.findByRole('checkbox', { name: /accept/ }, { timeout: 8000 }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: new RegExp(`at least ${MIN_AGE}`) }));
+  };
+
+  it('Accept says why it is disabled', async () => {
+    await signUp('hinted', OLD_VERSION);
+    await renderScreen('en', app, '/profile');
+    expect(await screen.findByText('Tick both boxes to continue.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(accept().props.accessibilityHint).toBe('Tick both boxes to continue.');
+  });
+
+  it('when the profile is gone, Accept says it failed instead of doing nothing', async () => {
+    await signUp('vanished', OLD_VERSION);
+    await renderScreen('en', app, '/profile');
+    await tickBoth();
+    // Deleted from another device: this session still works, but the update finds no row.
+    await supabase.rpc('delete_my_account', { p_erase_comments: false }).throwOnError();
+    await fireEvent.press(accept());
+    expect(await screen.findByText('We couldn’t save that. Please try again.')).toBeOnTheScreen();
+    expect(screen.getByText('Our terms have changed')).toBeOnTheScreen();
+  });
+
+  it('when the profile cannot be reloaded after accepting, it says so and Accept can be tried again', async () => {
+    const u = await signUp('flaky', OLD_VERSION);
+    await renderScreen('en', app, '/profile');
+    await tickBoth();
+    const online = failRequests((url, method) => method === 'GET' && url.includes('/rest/v1/profiles') && url.includes('reads_books'));
+    try {
+      await fireEvent.press(accept());
+      expect(await screen.findByText('We couldn’t save that. Please try again.')).toBeOnTheScreen();
+      expect(screen.getByText('Our terms have changed')).toBeOnTheScreen();
+    } finally {
+      online();
+    }
+    expect((await profileOf(u))!.terms_version).toBe(TERMS_VERSION);
+    await fireEvent.press(accept());
+    expect(await inTheApp()).toBeOnTheScreen();
+  });
+
   it('a reader from before the terms is asked too', async () => {
     await signUp('noterms', null);
     await renderScreen('en', app, '/profile');
     expect(await screen.findByText('Our terms have changed', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByRole('link', { name: 'Terms' })).toBeOnTheScreen();
+    expect(screen.getByRole('link', { name: 'Open the Terms' })).toBeOnTheScreen();
   });
 
   it('a reader on the current version goes straight to the app', async () => {
@@ -148,14 +226,14 @@ describe('readers who accepted an older version, or none', () => {
   });
 
   it('can sign out from the gate', async () => {
-    await signUp('leaver', 'old-version');
+    await signUp('leaver', OLD_VERSION);
     await renderScreen('en', app, '/profile');
     await fireEvent.press(await screen.findByRole('button', { name: 'Sign out' }, { timeout: 8000 }));
     expect(await screen.findByText('Welcome back', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('can delete the account from the gate, without accepting', async () => {
-    const u = await signUp('refuser', 'old-version');
+    const u = await signUp('refuser', OLD_VERSION);
     await renderScreen('en', app, '/profile');
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete my account' }, { timeout: 8000 }));
     expect(await screen.findByText('Delete your account', {}, { timeout: 8000 })).toBeOnTheScreen();
@@ -165,15 +243,28 @@ describe('readers who accepted an older version, or none', () => {
     expect(!!(await supabase.auth.signInWithPassword({ email: u.email, password })).error).toBe(true);
   });
 
+  it('deleting the account from the gate signs out', async () => {
+    await signUp('goodbye', OLD_VERSION);
+    await renderScreen('en', app, '/profile');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Delete my account' }, { timeout: 8000 }));
+    expect(await screen.findByText('Delete your account', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete my account' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Yes, delete it forever' }));
+    await waitFor(async () => expect((await supabase.auth.getSession()).data.session).toBeNull(), { timeout: 15000 });
+    expect(await screen.findByText('Welcome back', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
   it('in Bulgarian', async () => {
-    await signUp('bgterms', 'old-version');
+    await signUp('bgterms', OLD_VERSION);
     await renderScreen('bg', app, '/profile');
     expect(await screen.findByText('Условията ни се промениха', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: /Приемам/ })).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: new RegExp(`поне ${MIN_AGE}`) })).toBeOnTheScreen();
     expect(screen.getByText(`Livami е за читатели на ${MIN_AGE} и повече години.`)).toBeOnTheScreen();
-    expect(screen.getByRole('link', { name: 'Условия' })).toBeOnTheScreen();
-    expect(screen.getByRole('link', { name: 'Политика за поверителност' })).toBeOnTheScreen();
+    expect(screen.getByRole('link', { name: 'Отвори Условията' })).toBeOnTheScreen();
+    expect(screen.getByRole('link', { name: 'Отвори Политиката за поверителност' })).toBeOnTheScreen();
+    expect(screen.getByText('Условия')).toBeOnTheScreen();
+    expect(screen.getByText('Отметни двете полета, за да продължиш.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Приемам' })).toBeOnTheScreen();
   });
 });
