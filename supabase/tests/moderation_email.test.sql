@@ -208,15 +208,19 @@ select test.ok((select count(*) from test.mail_calls) = 1, 'a second open report
 insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a1', '00000000-0000-0000-0000-0000000009a2', 'spam');
 insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a3', '00000000-0000-0000-0000-0000000009a2', 'spam');
 select test.ok((select count(*) from test.mail_calls) = 2, 'nor on the same reader; another target is mailed');
-update public.reports set status = 'dismissed' where reported_user_id = '00000000-0000-0000-0000-0000000009a2';
+-- a fourth reader: each reader reports a target once, whatever became of it
+insert into auth.users (id) values ('00000000-0000-0000-0000-0000000009a4');
+insert into public.profiles (id, username) values ('00000000-0000-0000-0000-0000000009a4', 'mailfourth');
+update public.reports set status = 'dismissed' where reported_user_id = '00000000-0000-0000-0000-0000000009a2'
+  and reporter_id = '00000000-0000-0000-0000-0000000009a1';
+update public.reports set status = 'actioned' where reported_user_id = '00000000-0000-0000-0000-0000000009a2'
+  and reporter_id = '00000000-0000-0000-0000-0000000009a3';
 delete from test.mail_calls;
-insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a2', '00000000-0000-0000-0000-0000000009a3', 'spam');
+insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-0000000009a4', '00000000-0000-0000-0000-0000000009a2', 'spam');
 select test.ok((select count(*) from test.mail_calls) = 1, 'a target with only closed reports is mailed again');
 
 -- Only a report that was really mailed keeps the target quiet: not one filed while sending was off,
 -- nor one whose mail Resend refused.
-insert into auth.users (id) values ('00000000-0000-0000-0000-0000000009a4');
-insert into public.profiles (id, username) values ('00000000-0000-0000-0000-0000000009a4', 'mailfourth');
 update public.moderation_email_settings set enabled = false;
 delete from public.reports;
 delete from test.mail_calls;
