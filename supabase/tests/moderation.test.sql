@@ -105,6 +105,13 @@ select test.ok(test.error_of($$delete from public.chapter_count_requests$$) like
   and (select count(*) from public.chapter_count_requests) = 1, 'a reader cannot delete a request');
 select test.ok(test.error_of($$insert into public.feedback (kind, body, status) values ('idea', 'sneaky', 'dismissed')$$) like '%row-level security%',
   'feedback starts open');
+select test.ok(test.error_of($$insert into public.reports (comment_id, reason, status) values ('5a000000-0000-0000-0000-000000000001', 'spam', 'dismissed')$$) like '%row-level security%'
+  and test.error_of($$insert into public.reports (comment_id, reason, status) values ('5a000000-0000-0000-0000-000000000001', 'spam', 'actioned')$$) like '%row-level security%',
+  'a report starts open');
+select test.ok(test.error_of($$insert into public.removal_requests (story_url, contact, status) values ('https://archiveofourown.org/works/8999', 'a@example.test', 'dismissed')$$) like '%row-level security%',
+  'a removal request starts open');
+select test.ok(test.error_of($$insert into public.removal_requests (story_url, contact, status) values ('https://archiveofourown.org/works/8998', 'a@example.test', 'open')$$) is null,
+  'an open removal request is accepted');
 select test.ok(test.error_of($$update public.feedback set status = 'actioned'$$) is null
   and (select count(*) from public.feedback where id::text like '5e000000-%' and status = 'open') = 2, 'a reader cannot resolve feedback');
 

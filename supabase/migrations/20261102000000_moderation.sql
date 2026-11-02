@@ -11,6 +11,24 @@ drop policy feedback_insert on public.feedback;
 create policy feedback_insert on public.feedback for insert to authenticated
   with check (user_id = auth.uid() and status = 'open');
 
+-- A reader files reports and removal requests as open: one filed already dismissed or actioned would
+-- never reach the queue (nor trigger the e-mail). Same policies as before, plus the status.
+drop policy reports_insert on public.reports;
+create policy reports_insert on public.reports for insert to authenticated
+  with check (
+    reporter_id = auth.uid()
+    and status = 'open'
+    and public.is_active_user()
+    -- the subqueries run under the comments/reviews read policies: locked or hidden ones don't count
+    and (comment_id is null or exists (select 1 from public.comments c where c.id = comment_id and c.author_id is distinct from auth.uid()))
+    and (review_id is null or exists (select 1 from public.reviews r where r.id = review_id and r.user_id is distinct from auth.uid()))
+    and (reported_user_id is null or reported_user_id <> auth.uid())
+  );
+
+drop policy removal_insert on public.removal_requests;
+create policy removal_insert on public.removal_requests for insert to authenticated
+  with check (requester_id = auth.uid() and status = 'open');
+
 -- ---------------------------------------------------------------------------
 -- Chapter-count requests: once a book has a count only a moderator changes it, so a reader who
 -- sees a wrong one asks. Own rows only; no update or delete (moderation_resolve closes them).
