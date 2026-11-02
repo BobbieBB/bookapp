@@ -170,7 +170,7 @@ role can change `cover_sweep_settings`.
 | `reopen_story(story)` | Undo a completion (within 7 days) |
 | `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
 | `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count); everyone else gets 42501 |
-| `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Raises on an unknown kind or action, a missing id, or an item that is not open. Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
+| `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
 
 ## Tests
 

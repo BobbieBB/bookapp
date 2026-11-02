@@ -72,6 +72,11 @@ create policy chapter_count_requests_read on public.chapter_count_requests for s
 create constraint trigger chapter_count_requests_rate after insert on public.chapter_count_requests
   for each row execute function public.limit_rate('requester_id', '10', '1 day');
 
+-- The queue and moderation_resolve look reports up by their target, open ones only.
+create index reports_open_comment_idx on public.reports (comment_id) where status = 'open';
+create index reports_open_review_idx on public.reports (review_id) where status = 'open';
+create index reports_open_user_idx on public.reports (reported_user_id) where status = 'open';
+
 -- ---------------------------------------------------------------------------
 -- The queue: every open item, newest first, in one shape so one screen renders all of it.
 --   subject         comment author / review author / reported reader / the reader who asked for a count
@@ -163,7 +168,8 @@ grant execute on function public.moderation_queue() to authenticated;
 --                                   matched by its AO3 link now, and refused if there is still none) | dismiss
 --   chapter_count                   accept (set the book's count; see below) | dismiss
 --   feedback                        done | dismiss
--- Raises for an unknown kind or action, a missing id, or an item that is not open any more.
+-- Raises for an unknown kind or action (22023), a missing id (P0002), an item that is not open any more
+-- (55000), a removal request with no fic to hide (MD001) and a book that cannot take the count (MD002).
 --
 -- Accepting a count also moves the readers' progress so that nobody is left beyond the end of
 -- the book: finished readers follow the new count, others past it are brought back to it
@@ -235,7 +241,7 @@ begin
         select id into matched from public.stories where lower(source_url) = lower(rem.story_url);
       end if;
       if matched is null then
-        raise exception 'no fic in the app matches this link: dismiss the request' using errcode = '55000';
+        raise exception 'no fic in the app matches this link: dismiss the request' using errcode = 'MD001';
       end if;
       update public.stories set is_hidden = true, updated_at = now() where id = matched;
       update public.removal_requests set story_id = matched, status = 'actioned' where id = rem.id;
@@ -255,7 +261,7 @@ begin
       select * into s from public.stories where id = req.story_id for update;
       if s.kind <> 'book' or not s.has_chapters or s.total_sections is null
          or (s.published_sections is not null and req.proposed < s.published_sections) then
-        raise exception 'this book cannot take that chapter count' using errcode = '55000';
+        raise exception 'this book cannot take that chapter count' using errcode = 'MD002';
       end if;
       update public.stories set total_sections = req.proposed, updated_at = now() where id = s.id;
       update public.library_entries
