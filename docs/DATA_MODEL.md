@@ -125,8 +125,12 @@ least {MIN_AGE}" (docs/DECISIONS.md, "Terms and age: ticked at sign-up"). No bir
 trigger `profiles_guard_terms` stamps `terms_accepted_at` with the server's time whenever a version is
 set or changes, on insert too, and ignores any time the app sends; otherwise the time never changes,
 not even for the database owner (and readers have no update grant on it). A version needs
-`age_confirmed`, and neither the version nor the age tick can be taken back (errors use SQLSTATE
-`LV001`); leaving means deleting the account. Profiles from before this have no version, and the app
+`age_confirmed`, and neither the version nor the age tick can be taken back; leaving means deleting
+the account. Versions are 1–40 characters and date-prefixed (`YYYY-MM-…`, e.g. `2026-11-draft`), so a
+newer one sorts later (byte order); a version that sorts before the accepted one is refused, so nobody
+can re-stamp the time with an old or invented version. Refusals use SQLSTATE `LV001`. The rules hold
+for every role, the owner and `service_role` included: a backfill must set `terms_version` and
+`age_confirmed` together, or it gets `LV001` too. Profiles from before this have no version, and the app
 asks those readers once, like everyone after a `TERMS_VERSION` bump.
 
 ## Push notifications
