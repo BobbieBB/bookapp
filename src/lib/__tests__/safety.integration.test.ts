@@ -1,5 +1,6 @@
-import { block, blockedReaders, reportComment, reportUser, requestRemoval, sendFeedback, unblock } from '../safety';
+import { block, blockedReaders, reportComment, reportReview, reportUser, requestRemoval, sendFeedback, unblock } from '../safety';
 import { openRoom, postComment } from '../discussions';
+import { loadReviews, saveReview } from '../reviews';
 import { addToLibrary, createManualBook } from '../stories';
 import { supabase } from '../supabase';
 
@@ -67,6 +68,21 @@ it('reporting a reader', async () => {
   await reportUser(other.id, 'harassment', 'Rude in chapter 3');
   const { data } = await supabase.from('reports').select('reported_user_id, reason').eq('reporter_id', me.id).single().throwOnError();
   expect(data).toEqual({ reported_user_id: other.id, reason: 'harassment' });
+});
+
+it('reporting a review: another reader’s yes, your own no, and once only', async () => {
+  await as(other);
+  const book = await createManualBook({ title: 'Reviewed', author: 'x', chapters: 2, language: 'en' });
+  await addToLibrary(book.id, 'finished');
+  await saveReview(book.id, 'Tedious from start to end', false);
+  const theirs = (await loadReviews(book.id))[0]!.id;
+  await expect(reportReview(theirs, 'other')).rejects.toMatchObject({ code: '42501' }); // not your own
+  await as(me);
+  await addToLibrary(book.id, 'finished');
+  await reportReview(theirs, 'harassment', 'Aimed at readers');
+  const { data } = await supabase.from('reports').select('review_id, reason, details').eq('reporter_id', me.id).eq('review_id', theirs).single().throwOnError();
+  expect(data).toEqual({ review_id: theirs, reason: 'harassment', details: 'Aimed at readers' });
+  await expect(reportReview(theirs, 'spam')).rejects.toMatchObject({ code: '23505' }); // already reported
 });
 
 it('reporting a comment you cannot see (a room you have not unlocked) fails', async () => {

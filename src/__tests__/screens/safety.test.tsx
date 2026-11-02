@@ -4,9 +4,11 @@ import Profile from '../../../app/(tabs)/profile';
 import Authors from '../../../app/authors';
 import Blocked from '../../../app/blocked';
 import Feedback from '../../../app/feedback';
+import StoryScreen from '../../../app/story/[id]';
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
+import { saveReview } from '../../lib/reviews';
 import { block } from '../../lib/safety';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
@@ -70,6 +72,25 @@ describe('in a discussion', () => {
     expect(within(card).queryByText('Report')).toBeNull(); // reported once is enough
     expect(screen.queryByLabelText(`Report comment by ${troll.username}`)).toBeNull();
     expect((await rows('reports', 'reporter_id')).map((r) => [r.comment_id, r.reason])).toEqual([[trollCommentId, 'harassment']]);
+  });
+
+  it('a review can be reported, and your own cannot', async () => {
+    await as(troll);
+    const bookId = (await createManualBook({ title: 'Reviewed Safe Book', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(bookId, 'finished');
+    await saveReview(bookId, 'Everyone who liked this is a fool', false);
+    await as(me);
+    await addToLibrary(bookId, 'finished');
+    await saveReview(bookId, 'A gentle read', false);
+    await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${bookId}`);
+    await fireEvent.press(await screen.findByLabelText(`Report review by ${troll.username}`, {}, { timeout: 8000 }));
+    expect(screen.queryByLabelText(`Report review by ${me.username}`)).toBeNull();
+    await fireEvent.press(screen.getByText('Harassment'));
+    await fireEvent.press(screen.getByText('Send report'));
+    expect(await screen.findByText('Thanks. A moderator will take a look.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText(`Report review by ${troll.username}`)).toBeNull();
+    const sent = (await rows('reports', 'reporter_id')).filter((r) => r.review_id);
+    expect(sent.map((r) => r.reason)).toEqual(['harassment']);
   });
 
   it('blocking someone hides their comments', async () => {

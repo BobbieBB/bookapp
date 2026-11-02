@@ -197,6 +197,8 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Reviews can be reported (2 Nov 2026):** every review on a book page, except your own, has the same Report action and reasons
+  as a comment (Apple expects reporting on all user-generated content); a moderator hides or dismisses it from the queue.
 - **User reports are dismiss-only (2 Nov 2026):** there is no banning in v1, so a report on a reader can only be closed;
   the moderator's tools against a person are the comments they hide and the readers who block them.
 - **A lowered chapter count (2 Nov 2026):** accepting a count below what readers already reached would leave them "beyond

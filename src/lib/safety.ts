@@ -45,6 +45,11 @@ export async function reportComment(commentId: string, reason: ReportReason, det
   await check(supabase.from('reports').insert({ comment_id: commentId, reason, details: cleanDetails(details) }));
 }
 
+/** Another reader's review (the database refuses your own, a hidden one, and a second report of the same review). */
+export async function reportReview(reviewId: string, reason: ReportReason, details?: string) {
+  await check(supabase.from('reports').insert({ review_id: reviewId, reason, details: cleanDetails(details) }));
+}
+
 export async function reportUser(userId: string, reason: ReportReason, details?: string) {
   await check(supabase.from('reports').insert({ reported_user_id: userId, reason, details: cleanDetails(details) }));
 }
