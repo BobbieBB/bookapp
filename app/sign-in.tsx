@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { APP_NAME } from '@/lib/config';
+import { passwordLongEnough } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { space, useTheme } from '@/theme';
@@ -23,7 +25,7 @@ export default function SignIn() {
     setError('');
     setNotice('');
     if (!email.includes('@')) return setError(t('auth.errorEmail'));
-    if (password.length < 8) return setError(t('auth.errorPasswordShort'));
+    if (!passwordLongEnough(password)) return setError(t('auth.errorPasswordShort'));
 
     setBusy(true);
     try {
@@ -81,6 +83,13 @@ export default function SignIn() {
           {notice ? <T style={{ color: c.success }}>{notice}</T> : null}
 
           <Button title={mode === 'sign-in' ? t('auth.signIn') : t('auth.createAccount')} onPress={submit} loading={busy} />
+          {mode === 'sign-in' ? (
+            <Button
+              variant="link"
+              title={t('auth.forgotPassword')}
+              onPress={() => router.push({ pathname: '/reset-password', params: { email: email.trim() } })}
+            />
+          ) : null}
           <Button
             variant="link"
             title={mode === 'sign-in' ? t('auth.toSignUp') : t('auth.toSignIn')}

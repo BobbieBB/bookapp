@@ -15,6 +15,13 @@ type AuthState = {
   profileState: ProfileState;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * True while a forgotten password is being reset (app/reset-password.tsx). Checking the code
+   * signs the reader in before the new password is set; meanwhile the app stays on the
+   * signed-out screens, or the reset screen would be gone before it could set the password.
+   */
+  recovering: boolean;
+  setRecovering: (recovering: boolean) => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -24,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileState, setProfileState] = useState<ProfileState>('loading');
   const [loading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState(false);
   // Only the latest request may update state (sign out / sign in in quick succession).
   const requestId = useRef(0);
   const loadedFor = useRef<string | null | undefined>(undefined);
@@ -86,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profile,
     profileState,
+    recovering,
+    setRecovering,
     refreshProfile: () => loadProfile(session?.user.id),
     signOut: async () => {
       // This phone stops getting this reader's pushes; failing to say so must not keep them signed in.

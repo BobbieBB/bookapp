@@ -328,3 +328,11 @@ Choices made during development where the decisions above don't say. Each one is
 - To show a format (e.g. AO3's Share text), replace the title, author and summary with invented ones first.
 - Why: authors in the fandom don't want their work fed to AI without consent; Livami is on the authors' side
   ("Authors are welcome here").
+
+## Forgot password: a 6-digit code, not a link (2 Nov 2026, dev)
+- "Forgot password?" on sign-in sends a 6-digit code by e-mail; the reader types it into the app with a new password.
+  No link: the app has no deep-link handling, and a code also works when the e-mail is read on another device.
+- The app says the same thing whether or not an account exists for the address ("If an account exists for this
+  email, we've sent a 6-digit code"), so the screen can't be used to find out who reads here.
+- The new password follows the sign-up rule (at least 8 characters). If it can't be saved, the reader is signed out
+  again and asks for a new code.
