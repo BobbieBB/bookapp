@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppearanceProvider } from '@/appearance';
 import { PushEffects } from '@/components/PushEffects';
 import { Button, T } from '@/components/ui';
 import { FONT_FILES } from '@/fonts';
@@ -21,7 +22,7 @@ function Loading() {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.ground }}>
-      <ActivityIndicator color={c.primary} />
+      <ActivityIndicator color={c.signal} />
     </View>
   );
 }
@@ -41,9 +42,11 @@ export function ProfileError() {
 }
 
 export function RootStack() {
-  const { loading, session, profile, profileState } = useAuth();
+  const { loading, session, profile, profileState, recovering } = useAuth();
   const { c } = useTheme();
-  const signedIn = !!session;
+  // A password reset signs the reader in before it sets the new password: stay on the
+  // signed-out screens until it is done (src/lib/auth.tsx, `recovering`).
+  const signedIn = !!session && !recovering;
   const opened = useRef(false);
   // Once per cold start, as soon as a signed-in session exists.
   useEffect(() => {
@@ -78,6 +81,7 @@ export function RootStack() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
+          <Stack.Screen name="reset-password" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && !hasProfile}>
           <Stack.Screen name="onboarding" />
@@ -96,6 +100,8 @@ export function RootStack() {
           <Stack.Screen name="feedback" />
           <Stack.Screen name="authors" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="moderation" />
         </Stack.Protected>
         <Stack.Protected guard={hasProfile}>
           <Stack.Screen name="delete-account" />
@@ -105,17 +111,23 @@ export function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function ThemedStatusBar() {
   const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
+
+export default function RootLayout() {
   const [fontsLoaded] = useFonts(FONT_FILES);
 
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          {fontsLoaded ? <RootStack /> : <Loading />}
-        </AuthProvider>
+        <AppearanceProvider>
+          <AuthProvider>
+            <ThemedStatusBar />
+            {fontsLoaded ? <RootStack /> : <Loading />}
+          </AuthProvider>
+        </AppearanceProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );

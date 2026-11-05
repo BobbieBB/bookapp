@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { forgetCoverLinks } from './covers';
 import { disablePush, releasePendingPushToken } from './pushDevice';
 import { supabase } from './supabase';
 import type { Profile } from './types';
@@ -16,6 +17,13 @@ type AuthState = {
   /** Resolves false when the profile could not be fetched (profileState is then 'error'). */
   refreshProfile: () => Promise<boolean>;
   signOut: () => Promise<void>;
+  /**
+   * True while a forgotten password is being reset (app/reset-password.tsx). Checking the code
+   * signs the reader in before the new password is set; meanwhile the app stays on the
+   * signed-out screens, or the reset screen would be gone before it could set the password.
+   */
+  recovering: boolean;
+  setRecovering: (recovering: boolean) => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -25,9 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileState, setProfileState] = useState<ProfileState>('loading');
   const [loading, setLoading] = useState(true);
+  const [recovering, setRecovering] = useState(false);
   // Only the latest request may update state (sign out / sign in in quick succession).
   const requestId = useRef(0);
   const loadedFor = useRef<string | null | undefined>(undefined);
+  const linksFor = useRef<string | null | undefined>(undefined);
 
   const loadProfile = useCallback(async (userId: string | undefined): Promise<boolean> => {
     const id = ++requestId.current;
@@ -43,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileState('loading');
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, display_name, reads_books, reads_fanfic, terms_version')
+      .select('id, username, display_name, reads_books, reads_fanfic, is_admin, terms_version')
       .eq('id', userId)
       .maybeSingle();
     // A newer request is in charge of the state now; this one still reports how it went.
@@ -74,6 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (active) setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      // Signed cover links belong to the reader who signed them: forget them whenever the reader
+      // changes, however the session ended (signing out, a failed refresh, a revoked session).
+      const userId = next?.user.id ?? null;
+      if (userId !== linksFor.current) forgetCoverLinks();
+      linksFor.current = userId;
       setSession(next);
       // Token refreshes fire this too; only reload when the signed-in user changes.
       if ((next?.user.id ?? null) !== loadedFor.current) loadProfile(next?.user.id);
@@ -89,6 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profile,
     profileState,
+    recovering,
+    setRecovering,
     refreshProfile: () => loadProfile(session?.user.id),
     signOut: async () => {
       // This phone stops getting this reader's pushes; failing to say so must not keep them signed in.

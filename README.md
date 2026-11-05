@@ -13,13 +13,13 @@ the whole story.
 ## Status
 
 MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
-- **Basics:** sign up, onboarding and the English/Bulgarian UI.
+- **Basics:** sign up, onboarding and the English/Bulgarian UI. Profile → Appearance: Auto, Light, Dark or Calm (a beige look without pink or green), remembered per device.
 - **Stories:** adding books (Open Library) and fics (AO3 link), and the story page with reading
   progress and WIP chapters.
 - **Discussions:** chapter discussions and The Epilogue with replies, reactions and live updates.
 - **After reading:** "You finished it!", book ratings and reviews.
 - **Home and Discover:** Home with replies and @mentions, notifications, and Discover by fandom.
-- **Safety:** report, block, feedback, "Authors are welcome" and deleting your account.
+- **Safety:** report, block, feedback, "Authors are welcome" and deleting your account. Admins get a Moderation screen (Profile) for reports, author removal requests, feedback and "Wrong chapter count?" requests from readers.
 - **Extras:** private custom covers, push notifications and first-party analytics.
 
 Before launch:
@@ -28,6 +28,26 @@ Before launch:
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
+- **Cover sweep:** deploy the function with `supabase functions deploy sweep-covers` (its JWT check is
+  off in `supabase/config.toml`; pg_cron sends a shared secret instead). Pick one random secret and
+  store it twice: `supabase secrets set COVER_SWEEP_SECRET=<secret>`, and in the SQL Editor
+  `select vault.create_secret('<secret>', 'cover_sweep_secret');`. If the two differ, the nightly sweep
+  gets a 401. Then switch it on: `update cover_sweep_settings set url =
+  'https://<project>.supabase.co/functions/v1/sweep-covers', enabled = true where id;` (its one row's
+  key is `true`).
+- **Admin:** make the PO an admin, which Profile → Numbers needs: `update public.profiles set
+  is_admin = true where id = (select id from auth.users where email = '<PO e-mail>');`.
+- **Moderation e-mail:** create a Resend account, verify the `livami.app` domain (the DNS records Resend
+  shows), store the API key in Vault with `select vault.create_secret('<key>', 'resend_api_key');`, then
+  `update moderation_email_settings set enabled = true where id;`. Check that the `moderation-digest` job
+  shows up under Integrations → Cron.
+- **Password reset e-mail:** in the Supabase dashboard (Auth → Email templates → Reset password), use the
+  subject from `[auth.email.template.recovery]` in `supabase/config.toml` and paste the body of
+  `supabase/templates/recovery.html`. It must show the code (`{{ .Token }}`): the app asks
+  for the code and has no link handling.
+- **E-mail sending:** set custom SMTP under Auth → SMTP settings (the Resend account works); Supabase's own
+  mailer only sends to the team's addresses. Then set the hosted e-mail rate limit (Auth → Rate limits); the
+  `email_sent` value in `supabase/config.toml` is for the local stack only.
 - **Copy:** a native read of the Bulgarian copy.
 - **Terms and privacy:** publish the texts at `TERMS_URL` and `PRIVACY_URL` (`src/lib/legal.ts`), set
   `MIN_AGE` (the PO's call; 16 is a dev default) and bump `TERMS_VERSION` whenever the text changes, so
@@ -52,6 +72,7 @@ Planning lives on the Trello board *Book club app*.
 app/                  Screens (Expo Router: one file = one screen)
   (tabs)/             Home, Library, Profile
   sign-in.tsx         Sign up / sign in
+  reset-password.tsx  Forgot password: a code by e-mail, then a new password
   onboarding.tsx      Username and what you read
 src/
   lib/                Supabase client, auth, data helpers, types
@@ -59,7 +80,9 @@ src/
   theme.ts            Colours and spacing (prototype palette)
 supabase/
   migrations/         SQL migrations (schema, functions, RLS policies)
+  templates/          Auth e-mails (the password reset code)
   tests/              SQL tests for spoiler rules and privacy
+  functions/          Edge Functions (sweep-covers: the daily orphan cover sweep)
 test/                 Jest environment and helpers for the app tests
 docs/
   DECISIONS.md        Product decisions and the reasoning behind them
@@ -144,6 +167,11 @@ the tests can never touch the live project. `test/network.ts` can hold one reque
 an order of replies (a slow, stale response); every reply still comes from the real server.
 Open Library is never called from tests: `EXPO_PUBLIC_OPEN_LIBRARY_URL` points the search at a
 small local stand-in server inside the test.
+The cover sweep tests act as the service role: they take the local stack's secret key from
+`SUPABASE_SECRET_KEY` (CI exports it) or else ask `npx supabase status` for it. The
+`sweep-covers` Edge Function's logic (`supabase/functions/sweep-covers/sweep.ts`) is tested by Jest
+too; the Deno entry point can be tried with
+`npx -y supabase@2.121.0 functions serve sweep-covers --env-file <file with COVER_SWEEP_SECRET=…>`.
 
 Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
 no warnings allowed); CI runs all three.

@@ -37,7 +37,7 @@ export default function FinishedScreen() {
       ) : (
         // Saving "Finished" and loading the page can take a moment: a clear spinner, not a blank screen.
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 }}>
-          <ActivityIndicator size="large" color={c.primary} accessibilityLabel={t('finishing.loading')} />
+          <ActivityIndicator size="large" color={c.signal} accessibilityLabel={t('finishing.loading')} />
         </View>
       )}
     </ScrollView>
@@ -67,6 +67,13 @@ function Finished({
   const [completing, setCompleting] = useState(false);
 
   // The usual case: the reader just read the last chapter, but Livami still has it as a WIP.
+  // Finished is always opened on top of the story (the Finished chip, or Add): Back is the way, and a deep link
+  // with nothing behind it goes to the story instead of nowhere.
+  function backToStory() {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/story/${story.id}`);
+  }
+
   async function complete() {
     setCompleting(true);
     setError('');
@@ -84,7 +91,7 @@ function Finished({
       <View style={{ gap: space.m }}>
         <T v="h2">{story.title}</T>
         <T v="body">{t('finishing.notFinished')}</T>
-        <Button title={t('finishing.backToStory')} onPress={() => router.replace(`/story/${story.id}`)} />
+        <Button title={t('finishing.backToStory')} onPress={backToStory} />
       </View>
     );
   }
@@ -126,7 +133,7 @@ function Finished({
               <Button title={t('finishing.markComplete')} onPress={complete} loading={completing} />
             </View>
           ) : null}
-          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={() => router.back()} />
+          <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={backToStory} />
         </>
       ) : (
         <Button title={t('finishing.epilogue')} onPress={() => router.replace(`/room/${story.id}/epilogue`)} />
@@ -227,12 +234,12 @@ function RateButton({ value, rating, onRate }: { value: number; rating: number |
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: radius.s,
-        borderWidth: 1.5,
-        borderColor: selected ? c.primary : c.hairline,
+        borderWidth: 2,
+        borderColor: selected ? c.signal : c.hairline,
         backgroundColor: lit ? c.primary : 'transparent',
       }}
     >
-      <Text importantForAccessibility="no" style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: lit ? c.surface : c.ink }}>
+      <Text importantForAccessibility="no" style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: lit ? c.onPrimary : c.ink }}>
         {`${value}★`}
       </Text>
     </Pressable>

@@ -1,8 +1,12 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
+import Home from '../../../app/(tabs)/index';
+import Library from '../../../app/(tabs)/library';
 import StoryScreen from '../../../app/story/[id]';
 import { renderScreen } from '../../../test/router';
+import { uploadCover } from '../../lib/covers';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -72,6 +76,21 @@ it('"Change my cover" reminds you it is private and lets you go back to the usua
   expect(data).toBeNull();
 });
 
+it('while a cover is being changed, "Remove my cover" cannot be tapped too', async () => {
+  const busyId = (await createManualBook({ title: 'Busy Cover', author: 'x', chapters: 2, language: 'en' })).id;
+  await addToLibrary(busyId, 'currently_reading');
+  await uploadCover(busyId, Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0)).buffer, 'image/png');
+  let release: (v: { canceled: true }) => void = () => undefined;
+  pick.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)));
+  await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${busyId}`);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change my cover' }, { timeout: 8000 }));
+  expect(screen.getByRole('button', { name: 'Remove my cover' })).toBeEnabled();
+  const choosing = fireEvent.press(screen.getByText('Choose another image')); // settles when the picker does
+  expect(await screen.findByRole('button', { name: 'Remove my cover' })).toBeDisabled();
+  release({ canceled: true });
+  await choosing;
+});
+
 it('an image still too big after resizing gets a clear message', async () => {
   mockSaved = 'A'.repeat(7 * 1024 * 1024); // ~5.25 MB once decoded
   pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///huge.jpg', mimeType: 'image/jpeg' }] });
@@ -98,4 +117,65 @@ it('only for stories in your library', async () => {
 it('in Bulgarian', async () => {
   await renderScreen('bg', { 'story/[id]': StoryScreen }, `/story/${mineId}`);
   expect(await screen.findByRole('button', { name: 'Моя собствена корица' }, { timeout: 8000 })).toBeOnTheScreen();
+});
+
+describe('in your Home and Library rows', () => {
+  beforeAll(async () => {
+    const covered = (await createManualBook({ title: 'Row With Cover', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(covered, 'currently_reading');
+    const bytes = Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0));
+    await uploadCover(covered, bytes.buffer, 'image/png');
+    const plain = (await createManualBook({ title: 'Row Without Cover', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(plain, 'currently_reading');
+  });
+
+  it('Home shows your cover, and the others stay typographic', async () => {
+    await renderScreen('en', { index: Home }, '/');
+    expect(await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Row With Cover cover')).toBeNull();
+    expect(screen.getByLabelText('Row Without Cover cover')).toBeOnTheScreen();
+  });
+
+  it('coming back to Home keeps the same image, not a newly signed link', async () => {
+    await renderScreen('en', { index: Home, 'story/[id]': StoryScreen }, '/');
+    const before = (await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).props.source.uri;
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+    await act(async () => router.push(`/story/${mineId}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    // A covered story added meanwhile: once its cover shows, Home's rows and their links have reloaded.
+    const arrived = (await createManualBook({ title: 'Arrived While Away', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(arrived, 'currently_reading');
+    await uploadCover(arrived, Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0)).buffer, 'image/png');
+    await act(async () => router.back());
+    await screen.findByLabelText('Your own cover for Arrived While Away', {}, { timeout: 8000 });
+    expect(screen.getByLabelText('Your own cover for Row With Cover').props.source.uri).toBe(before);
+  });
+
+  it('a cover that failed to load is tried again, with a new link, when you come back to Home', async () => {
+    await renderScreen('en', { index: Home, 'story/[id]': StoryScreen }, '/');
+    const image = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    const failed = image.props.source.uri;
+    await fireEvent(image, 'error', { nativeEvent: { error: 'offline' } });
+    expect(await screen.findByLabelText('Row With Cover cover')).toBeOnTheScreen();
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+    await act(async () => router.push(`/story/${mineId}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    await act(async () => router.back());
+    const again = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    expect(again.props.source.uri).not.toBe(failed);
+  });
+
+  it('Library too, in Bulgarian', async () => {
+    await renderScreen('bg', { index: Library }, '/');
+    expect(await screen.findByLabelText('Твоята собствена корица за Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Корица на Row Without Cover')).toBeOnTheScreen();
+  });
+
+  it('an image that fails to load falls back to the typographic cover', async () => {
+    await renderScreen('en', { index: Library }, '/');
+    const image = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    await fireEvent(image, 'error', { nativeEvent: { error: 'gone' } });
+    expect(await screen.findByLabelText('Row With Cover cover')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Your own cover for Row With Cover')).toBeNull();
+  });
 });

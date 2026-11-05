@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react-nativ
 
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import { renderScreen } from '../../../test/router';
+import * as analytics from '../../lib/analytics';
 import { openRoom, postComment } from '../../lib/discussions';
 import type { Language } from '../../i18n';
 import { addToLibrary, createManualBook } from '../../lib/stories';
@@ -104,6 +105,34 @@ describe('a chapter you finished', () => {
     await open('bg', '2');
     expect(screen.getByTestId('room-title')).toHaveTextContent('Глава 2');
     expect(screen.getByText('Прочетох глава 3')).toBeOnTheScreen();
+  });
+});
+
+// "Readers who reach a discussion" (docs/DECISIONS.md, Analytics) counts readers who only read, too.
+describe('the room_opened event', () => {
+  let tracked: jest.SpyInstance;
+  beforeEach(() => {
+    tracked = jest.spyOn(analytics, 'track');
+  });
+  afterEach(() => {
+    tracked.mockRestore();
+  });
+  const roomOpened = () => tracked.mock.calls.filter(([name]) => name === 'room_opened');
+
+  it('is recorded once when you open a discussion', async () => {
+    await open('en', '2');
+    await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 });
+    await waitFor(() => expect(roomOpened()).toEqual([['room_opened']]));
+    const id = await firstCommentId('That ending of chapter 2!');
+    await fireEvent.press(screen.getByLabelText(`React 😱 to comment ${id}`));
+    await waitFor(() => expect(tracked).toHaveBeenCalledWith('reaction_added'));
+    expect(roomOpened()).toHaveLength(1); // reloading the room is not opening it again
+  });
+
+  it('is not recorded for a room that is still closed to you', async () => {
+    await open('en', '3');
+    expect(screen.getByText('Finish chapter 3 to join this discussion.')).toBeOnTheScreen();
+    expect(roomOpened()).toHaveLength(0);
   });
 });
 

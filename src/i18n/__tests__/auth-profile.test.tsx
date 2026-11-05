@@ -1,5 +1,4 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
 import Onboarding from '../../../app/onboarding';
@@ -9,7 +8,8 @@ import Profile from '../../../app/(tabs)/profile';
 import { ProfileError } from '../../../app/_layout';
 import { AuthProvider } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { languageWrapper, renderIn } from '../../../test/i18n';
+import { renderIn } from '../../../test/i18n';
+import { renderScreen } from '../../../test/router';
 import type { Language } from '../index';
 
 // Real users in the local Supabase stack; e-mail confirmation is off there (supabase/config.toml).
@@ -146,7 +146,8 @@ describe.each(languages)('tabs and profile in %s', (language) => {
 
   async function renderTabs() {
     await signInAs(reader);
-    await renderRouter(
+    await renderScreen(
+      language,
       {
         '(tabs)/_layout': TabsLayout,
         '(tabs)/index': () => <Text>home screen</Text>,
@@ -157,7 +158,7 @@ describe.each(languages)('tabs and profile in %s', (language) => {
           </AuthProvider>
         ),
       },
-      { initialUrl: '/profile', wrapper: await languageWrapper(language) },
+      '/profile',
     );
   }
 

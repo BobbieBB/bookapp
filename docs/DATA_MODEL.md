@@ -20,10 +20,14 @@ table. Anonymous users (`anon`) have no access at all.
 | `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3); `user_id` is empty once the author deleted their account | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
-| `feedback` | In-app feedback | Author and admins |
+| `feedback` | In-app feedback; `status` (open / actioned / dismissed) is set only by `moderation_resolve` | Author and admins |
+| `chapter_count_requests` | A reader's "Wrong chapter count?" for a book that has a count: the proposed number (1–5000) and a status; one open request per reader and book; no update or delete | You and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
-| `analytics_events` | Which features get used: an event name from a fixed list and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
+| `moderation_email_settings` | Whether moderation e-mail is sent, to which address and from which (one row; off until set up) | Admins |
+| `moderation_email_log` | Every moderation e-mail handed to pg_net and Resend's answer (status code), and the report a report's e-mail is about; kept 30 days | Nobody (read through `moderation_email_health`) |
+| `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
+| `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
 | `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
@@ -96,7 +100,9 @@ other, and neither gets notifications from the other. A no longer sees B's react
   comment, review or reader.
 - A removal request needs an AO3 work link and a way to reach the author, so an admin can check
   with them before hiding the fic.
-- Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day.
+- Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day, 10 chapter-count requests a day.
+- A chapter-count request needs: an active reader, a book with chapters that already has a count, the book in
+  your library, and a number different from the current count. Once a count is set only a moderator changes it.
 
 ## Deleting an account
 
@@ -149,6 +155,39 @@ Devices are added only through `claim_push_token` (at most 10 per reader) and fo
 `release_push_token`, which also works from a signed-out phone. Only migrations or the service role can
 change `push_settings`.
 
+## Orphan cover files
+
+A file in the private `covers` bucket is an orphan once no `custom_covers` row points to it: the
+account was deleted, or an old cover could not be removed when it was replaced. Once a day `pg_cron`
+runs `request_cover_sweep`, which (when `cover_sweep_settings.enabled` is on) asks the `sweep-covers`
+Edge Function to run, with the secret stored in Vault as `cover_sweep_secret` in the `x-sweep-secret`
+header. The function lists orphans with `orphan_cover_paths(older_than, limit)` (default: older than
+1 day, at most 500, oldest first), which only the service role may call, and removes them through the
+Storage API, 100 per request. The 1-day grace period protects a cover being uploaded at that moment:
+its file is stored before the `custom_covers` row that points to it. Only migrations or the service
+role can change `cover_sweep_settings`.
+
+## Moderation e-mail
+
+The PO is e-mailed about moderation work, from the database through Resend (`pg_net`), only when
+`moderation_email_settings.enabled` is on and the API key is in Vault as `resend_api_key`. Without
+`pg_net` or Vault the functions do nothing; without the key they raise a warning. Two triggers send at
+once: `reports_send_email` (kind, reason, story title, the reporter's text cut at 500 characters; only while no
+other open report on the same comment, review or reader was mailed: one filed while sending was off, or whose
+mail Resend refused, does not count) and `removal_requests_send_email` (story, AO3 link, the
+author's contact and message, so the PO can reply). Reader-written text has its control characters turned into
+spaces, so it cannot add lines to the mail. A failed hand-over is a warning (with the SQLSTATE only), never a
+failed insert. `moderation_digest()` runs from `pg_cron` every day at 07:00 UTC (job `moderation-digest`) and
+sends one e-mail with the open feedback and chapter-count requests that came after the last digest
+(`moderation_email_settings.digest_sent_through`; the first time, the last 24 hours), or nothing when there are
+none. pg_net answers after the commit, so `moderation_email_check()` (hourly, job `moderation-email-check`) copies
+Resend's status codes from `net._http_response` into `moderation_email_log`; a request with no answer after 2 hours
+counts as lost. `moderation_email_health()` (admins only, 42501 otherwise) returns the failures of the last 24
+hours that came after the latest e-mail that went through (2xx), the latest status code and the recipient, and zero while sending is off; the Moderation screen warns on it.
+`send_moderation_email`, `moderation_digest` and `moderation_email_check` can be called by nobody but the
+database owner (not even `service_role`). No e-mail names the reporter or contains a reader's address. Only
+migrations or the service role can change `moderation_email_settings`.
+
 ## Functions the app calls
 
 | Function | Purpose |
@@ -168,9 +207,14 @@ change `push_settings`.
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |
+| `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
+| `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count); everyone else gets 42501 |
+| `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
 
 ## Tests
 
 `supabase/tests/spoiler_rules.test.sql` checks the locks (chapters, 25-page ranges, WIP fics,
 The Epilogue, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
 anonymous access and author opt-out.
+`supabase/tests/moderation.test.sql` checks the moderation queue, every resolve action and its effect, and each
+rule for chapter-count requests.

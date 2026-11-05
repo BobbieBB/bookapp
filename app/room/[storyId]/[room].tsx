@@ -62,7 +62,7 @@ export default function RoomScreen() {
   if (!target || (!room.error && !opened) || (!page && story.loading) || (opened && !list && comments.loading)) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, justifyContent: 'center', padding: space.xl }}>
-        {!target ? <ErrorText>{t('room.error')}</ErrorText> : <ActivityIndicator color={c.primary} />}
+        {!target ? <ErrorText>{t('room.error')}</ErrorText> : <ActivityIndicator color={c.signal} />}
       </SafeAreaView>
     );
   }
@@ -163,6 +163,11 @@ function Discussion({
   const [posted, setPosted] = useState(0); // comments posted here, for the push offer
   const [failed, setFailed] = useState(false);
   const [blockedNotice, setBlockedNotice] = useState(false);
+
+  // Once per room reached, even by readers who only read (the PO's "readers who reach a discussion").
+  useEffect(() => {
+    void track('room_opened');
+  }, [discussionId]);
 
   useEffect(() => {
     markRead(discussionId).catch(() => {

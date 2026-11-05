@@ -53,7 +53,7 @@ export default function TabsLayout() {
           height: 88,
           paddingTop: 12,
           paddingHorizontal: 12,
-          shadowColor: '#1E1328',
+          shadowColor: c.shadow,
           shadowOffset: { width: 0, height: -1 },
           shadowOpacity: 0.06,
           shadowRadius: 0,

@@ -1,14 +1,18 @@
+import { execFileSync } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
+import { Text } from 'react-native';
 
-import { AuthProvider } from '../../lib/auth';
 import type { Language } from '../../i18n';
+import * as analytics from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
-import { languageWrapper } from '../../../test/i18n';
+import { renderScreen } from '../../../test/router';
 import AddStory from '../../../app/add';
+import FinishedScreen from '../../../app/finished/[id]';
+import StoryScreen from '../../../app/story/[id]';
 
 // A real reader on the local Supabase stack; Open Library is a local stand-in server.
 const password = 'test-password-1234';
@@ -42,19 +46,8 @@ beforeEach(() => {
   docs = [];
 });
 
-async function open(language: Language) {
-  const Wrapper = await languageWrapper(language);
-  await renderRouter(
-    { add: AddStory },
-    {
-      initialUrl: '/add',
-      wrapper: ({ children }) => (
-        <Wrapper>
-          <AuthProvider>{children}</AuthProvider>
-        </Wrapper>
-      ),
-    },
-  );
+function open(language: Language) {
+  return renderScreen(language, { add: AddStory }, '/add');
 }
 
 const words = {
@@ -150,8 +143,6 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
 it('adding a fic adds its fandom to "Your fandoms"', async () => {
   const fandom = `Followed Fandom ${run}`;
   await open('en');
-  // renderRouter switches Jest to fake timers; waiting on the real database needs real ones.
-  jest.useRealTimers();
   await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
   await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/8${Date.now() % 1e8}`);
   await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), 'Followed Fic');
@@ -173,6 +164,56 @@ it('adding a fic adds its fandom to "Your fandoms"', async () => {
   );
 });
 
+it('a fic added as Finished: Back from "You\u2019re caught up" lands on the story, not on what was under Add', async () => {
+  jest.useRealTimers();
+  const routes = { index: () => <Text>home</Text>, add: AddStory, 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen };
+  await renderScreen('en', routes, '/');
+  await act(async () => router.push('/add'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/6${Date.now() % 1e8}`);
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Finished Add ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), `Done Fandom ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+  await fireEvent.press(screen.getByText('WIP')); // a WIP's Finished screen has "Back to the story"
+  await fireEvent.press(screen.getByText('Caught up'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await fireEvent.press(await screen.findByText('Back to the story', {}, { timeout: 8000 }));
+  expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.queryByText('home')).toBeNull();
+});
+
+it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"', async () => {
+  const fandom = `Refused Fandom ${run}`;
+  // The database refuses the library entry for this one story, as an honest failure would.
+  const psql = (sql: string) =>
+    execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
+  psql(`create function public.test_refuse_${run}() returns trigger language plpgsql as $$ begin
+    if exists (select 1 from public.stories where id = new.story_id and title = 'Refused Fic ${run}') then
+      raise exception 'library entry refused';
+    end if;
+    return new;
+  end $$;
+  create trigger test_refuse_${run} before insert on public.library_entries for each row execute function public.test_refuse_${run}();`);
+  try {
+    await open('en');
+    jest.useRealTimers();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+    await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/7${Date.now() % 1e8}`);
+    await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Refused Fic ${run}`);
+    await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+    await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    expect(await screen.findByText('library entry refused', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const me = (await supabase.auth.getUser()).data.user!.id;
+    const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
+    expect(data!.favourite_fandoms).not.toContain(fandom);
+  } finally {
+    psql(`drop trigger test_refuse_${run} on public.library_entries; drop function public.test_refuse_${run}();`);
+  }
+});
+
 it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', async () => {
   const id = `7${Date.now() % 1e8}`;
   const share =
@@ -190,4 +231,42 @@ it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', 
   expect(screen.getByDisplayValue('Hermione Granger/Draco Malfoy')).toBeOnTheScreen();
   expect(screen.getByDisplayValue('53')).toBeOnTheScreen();
   expect(screen.getByDisplayValue(`https://archiveofourown.org/works/${id}`)).toBeOnTheScreen();
+});
+
+// story_added carries the edition language, for the PO's "BG vs EN" number (docs/DECISIONS.md, Analytics).
+describe('the story_added event', () => {
+  let tracked: jest.SpyInstance;
+  beforeEach(() => {
+    tracked = jest.spyOn(analytics, 'track');
+  });
+  afterEach(() => {
+    tracked.mockRestore();
+  });
+
+  it('says which language a book added by hand is read in', async () => {
+    await open('en');
+    await fireEvent.changeText(await screen.findByLabelText('Search'), 'zzzz');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Add it by hand' }, { timeout: 3000 }));
+    await fireEvent.changeText(screen.getByLabelText('Title'), `Hand Book ${run}`);
+    await fireEvent.changeText(screen.getByLabelText('Author'), 'Someone');
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Bulgarian' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await waitFor(() =>
+      expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'manual', status: 'currently_reading', language: 'bg' }),
+    );
+  });
+
+  it('says which language a book found by search is read in', async () => {
+    docs = [{ key: `/works/OL${run}W`, title: `Found Book ${run}`, author_name: ['Someone'], first_publish_year: 2001 }];
+    await open('en');
+    await fireEvent.changeText(await screen.findByLabelText('Search'), 'found');
+    await fireEvent.press(await screen.findByRole('button', { name: `Add: Found Book ${run}` }, { timeout: 3000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'English' }));
+    await fireEvent.changeText(await screen.findByLabelText('Chapters'), '9');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await waitFor(() =>
+      expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'open_library', status: 'currently_reading', language: 'en' }),
+    );
+  });
 });
