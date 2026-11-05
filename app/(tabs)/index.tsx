@@ -83,9 +83,8 @@ export default function Home() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <T v="overline">{t('home.repliesTitle')}</T>
-          {replyItems?.length ? (
-            <Button variant="link" title={t('notifications.seeAll')} onPress={() => router.push('/notifications')} />
-          ) : null}
+          {/* Always: it is the only way into the list, which also holds reactions (those aren't "replies"). */}
+          <Button variant="link" title={t('notifications.seeAll')} onPress={() => router.push('/notifications')} />
         </View>
         {replyItems?.length ? (
           replyItems.map((n) => <NotificationRow key={n.id} n={n} />)

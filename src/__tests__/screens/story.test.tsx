@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
@@ -194,6 +196,53 @@ describe('a Want to read book added without its chapter count', () => {
       },
       { timeout: 8000 },
     );
+  });
+
+  it('if another reader sets the count first, the count shows instead of an error', async () => {
+    const id = (await createManualBook({ title: `Count Race ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    // The other reader got there first (set directly: signing a second reader in would swap this session).
+    execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
+      `update public.stories set total_sections = 7 where id = '${id}'`]);
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    await waitFor(() => expect(screen.queryByText('How many chapters does it have?')).toBeNull(), { timeout: 8000 });
+    expect(screen.queryByText('Something went wrong. Please try again.')).toBeNull();
+  });
+
+  it('a refusal that leaves no count (the book left your library mid-form) shows the error', async () => {
+    const id = (await createManualBook({ title: `Count Refused ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    await supabase.from('library_entries').delete().eq('story_id', id).eq('user_id', me).throwOnError();
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    expect(await screen.findByText('Something went wrong. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const story = (await supabase.from('stories').select('total_sections').eq('id', id).single().throwOnError()).data!;
+    expect(story.total_sections).toBeNull();
+  });
+
+  it('Save is busy while saving, so a second tap cannot follow', async () => {
+    const id = (await createManualBook({ title: `Count Busy ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    // The database takes a moment over this story's update, so the busy state can be seen.
+    const psql = (sql: string) =>
+      execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
+    const slow = `test_slow_${run}`;
+    psql(`create function public.${slow}() returns trigger language plpgsql as $$ begin
+      if new.id = '${id}' then perform pg_sleep(1.5); end if; return new; end $$;
+      create trigger ${slow} before update on public.stories for each row execute function public.${slow}();`);
+    try {
+      await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+      const saving = fireEvent.press(screen.getByText('Save'));
+      // Busy: the label gives way to a spinner (a Button that is loading ignores taps).
+      await waitFor(() => expect(screen.queryByText('Save')).toBeNull());
+      await saving;
+    } finally {
+      psql(`drop trigger ${slow} on public.stories; drop function public.${slow}();`);
+    }
   });
 });
 

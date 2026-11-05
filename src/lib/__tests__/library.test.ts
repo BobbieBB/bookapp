@@ -70,6 +70,14 @@ describe('a WIP fic marked Finished is "Caught up"', () => {
   });
 });
 
+describe('a caught-up WIP with a new chapter out', () => {
+  it('drops "Caught up" and shows the plain count', () => {
+    const wip = { kind: 'fanfic' as const, status: 'ongoing' as const, published_sections: 17 };
+    expect(line('en', entry(wip, { section: 16, status: 'finished' }))).toBe('16 of 17 chapters');
+    expect(line('bg', entry(wip, { section: 16, status: 'finished' }))).toBe('16 от 17 глави');
+  });
+});
+
 describe('sectionTotal', () => {
   it('rounds pages up to whole 25-page parts', () => {
     expect(sectionTotal(entry({ has_chapters: false, page_count: 51 }, { section: 0 }))).toBe(3);

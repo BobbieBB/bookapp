@@ -29,7 +29,8 @@ function text(html: string): string {
     .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, e: string) => {
       if (e[0] === '#') {
         const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-        return Number.isFinite(code) ? String.fromCodePoint(code) : whole;
+        // Past U+10FFFF there is no character, and fromCodePoint would throw on a pasted "&#x110000;".
+        return Number.isInteger(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
       }
       return ENTITIES[e.toLowerCase()] ?? whole;
     })
@@ -55,8 +56,10 @@ export function parseAo3Share(input: string): Ao3Share | null {
   const link = work ? normaliseAo3Link(work[1]!) : null;
   if (!work || !link) return null;
 
-  // "… (123 words) by <a>A</a>, <a>B</a>" or "by Anonymous"
-  const byPart = first.split(/\)\s*by\s+/i)[1] ?? '';
+  // "… (123 words) by <a>A</a>, <a>B</a>" or "by Anonymous". Looked for only after the work's own
+  // closing </a>, so a title like "Love (Part 1) by Moonlight" can't pass for the author.
+  const afterTitle = first.slice(work.index! + work[0].length);
+  const byPart = afterTitle.split(/\)\s*by\s+/i)[1] ?? '';
   const author = text(byPart);
 
   const f = fields(lines.slice(1));

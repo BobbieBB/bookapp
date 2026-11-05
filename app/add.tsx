@@ -148,8 +148,11 @@ async function finish(
   kind: StoryKind,
   source: 'open_library' | 'manual' | 'ao3',
   language?: BookLanguage,
+  fandoms: string[] = [],
 ) {
   await addToLibrary(story.id, status);
+  // Only once the fic is in the library: a failed add must not leave its fandom followed.
+  await followFandoms(fandoms);
   void track('story_added', language ? { kind, source, status, language } : { kind, source, status });
   if (status === 'finished') {
     // Same as tapping Finished on the story page: a WIP is caught up to its published chapters,
@@ -157,7 +160,9 @@ async function finish(
     const userId = (await supabase.auth.getSession()).data.session?.user.id;
     if (userId) await finishStory(story, userId).catch(() => undefined);
     void track('story_finished', { kind });
-    router.replace(`/finished/${story.id}`);
+    // The story replaces Add and Finished sits on top, so Back from Finished always lands on the story.
+    router.replace(`/story/${story.id}`);
+    router.push(`/finished/${story.id}`);
     return;
   }
   // Opened from a link with nothing behind it: go Home instead of nowhere.
@@ -468,8 +473,7 @@ function AddFic() {
     setError('');
     try {
       if (existing) {
-        await followFandoms(existing.fandoms);
-        await finish(existing, status, 'fanfic', 'ao3');
+        await finish(existing, status, 'fanfic', 'ao3', undefined, existing.fandoms);
         return;
       }
       const n = Number(chapters);
@@ -484,8 +488,7 @@ function AddFic() {
         rating,
         warnings,
       });
-      await followFandoms([fandom.trim()]);
-      await finish(story, status, 'fanfic', 'ao3');
+      await finish(story, status, 'fanfic', 'ao3', undefined, [fandom.trim()]);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);

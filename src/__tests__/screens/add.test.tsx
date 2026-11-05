@@ -1,13 +1,18 @@
+import { execFileSync } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
+import { Text } from 'react-native';
 
 import type { Language } from '../../i18n';
 import * as analytics from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
 import { renderScreen } from '../../../test/router';
 import AddStory from '../../../app/add';
+import FinishedScreen from '../../../app/finished/[id]';
+import StoryScreen from '../../../app/story/[id]';
 
 // A real reader on the local Supabase stack; Open Library is a local stand-in server.
 const password = 'test-password-1234';
@@ -157,6 +162,56 @@ it('adding a fic adds its fandom to "Your fandoms"', async () => {
     },
     { timeout: 8000 },
   );
+});
+
+it('a fic added as Finished: Back from "You\u2019re caught up" lands on the story, not on what was under Add', async () => {
+  jest.useRealTimers();
+  const routes = { index: () => <Text>home</Text>, add: AddStory, 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen };
+  await renderScreen('en', routes, '/');
+  await act(async () => router.push('/add'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/6${Date.now() % 1e8}`);
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Finished Add ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), `Done Fandom ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+  await fireEvent.press(screen.getByText('WIP')); // a WIP's Finished screen has "Back to the story"
+  await fireEvent.press(screen.getByText('Caught up'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await fireEvent.press(await screen.findByText('Back to the story', {}, { timeout: 8000 }));
+  expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(screen.queryByText('home')).toBeNull();
+});
+
+it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"', async () => {
+  const fandom = `Refused Fandom ${run}`;
+  // The database refuses the library entry for this one story, as an honest failure would.
+  const psql = (sql: string) =>
+    execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
+  psql(`create function public.test_refuse_${run}() returns trigger language plpgsql as $$ begin
+    if exists (select 1 from public.stories where id = new.story_id and title = 'Refused Fic ${run}') then
+      raise exception 'library entry refused';
+    end if;
+    return new;
+  end $$;
+  create trigger test_refuse_${run} before insert on public.library_entries for each row execute function public.test_refuse_${run}();`);
+  try {
+    await open('en');
+    jest.useRealTimers();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+    await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/7${Date.now() % 1e8}`);
+    await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Refused Fic ${run}`);
+    await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+    await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    expect(await screen.findByText('library entry refused', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const me = (await supabase.auth.getUser()).data.user!.id;
+    const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
+    expect(data!.favourite_fandoms).not.toContain(fandom);
+  } finally {
+    psql(`drop trigger test_refuse_${run} on public.library_entries; drop function public.test_refuse_${run}();`);
+  }
 });
 
 it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', async () => {

@@ -127,11 +127,13 @@ export function T({
   children,
   style,
   numberOfLines,
+  accessibilityLabel,
 }: {
   v?: 'h1' | 'h2' | 'moment' | 'body' | 'muted' | 'overline' | 'label';
   children: ReactNode;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  accessibilityLabel?: string;
 }) {
   const { c, fonts } = useTheme();
   const styles: Record<string, TextStyle> = {
@@ -144,7 +146,7 @@ export function T({
     label: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink },
   };
   return (
-    <Text style={[styles[v], style]} numberOfLines={numberOfLines}>
+    <Text style={[styles[v], style]} numberOfLines={numberOfLines} accessibilityLabel={accessibilityLabel}>
       {children}
     </Text>
   );

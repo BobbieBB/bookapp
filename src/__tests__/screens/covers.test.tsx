@@ -76,6 +76,21 @@ it('"Change my cover" reminds you it is private and lets you go back to the usua
   expect(data).toBeNull();
 });
 
+it('while a cover is being changed, "Remove my cover" cannot be tapped too', async () => {
+  const busyId = (await createManualBook({ title: 'Busy Cover', author: 'x', chapters: 2, language: 'en' })).id;
+  await addToLibrary(busyId, 'currently_reading');
+  await uploadCover(busyId, Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0)).buffer, 'image/png');
+  let release: (v: { canceled: true }) => void = () => undefined;
+  pick.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)));
+  await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${busyId}`);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Change my cover' }, { timeout: 8000 }));
+  expect(screen.getByRole('button', { name: 'Remove my cover' })).toBeEnabled();
+  const choosing = fireEvent.press(screen.getByText('Choose another image')); // settles when the picker does
+  expect(await screen.findByRole('button', { name: 'Remove my cover' })).toBeDisabled();
+  release({ canceled: true });
+  await choosing;
+});
+
 it('an image still too big after resizing gets a clear message', async () => {
   mockSaved = 'A'.repeat(7 * 1024 * 1024); // ~5.25 MB once decoded
   pick.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///huge.jpg', mimeType: 'image/jpeg' }] });
