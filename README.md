@@ -28,6 +28,15 @@ Before launch:
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.
+- **Cover sweep:** deploy the function with `supabase functions deploy sweep-covers` (its JWT check is
+  off in `supabase/config.toml`; pg_cron sends a shared secret instead). Pick one random secret and
+  store it twice: `supabase secrets set COVER_SWEEP_SECRET=<secret>`, and in the SQL Editor
+  `select vault.create_secret('<secret>', 'cover_sweep_secret');`. If the two differ, the nightly sweep
+  gets a 401. Then switch it on: `update cover_sweep_settings set url =
+  'https://<project>.supabase.co/functions/v1/sweep-covers', enabled = true where id;` (its one row's
+  key is `true`).
+- **Admin:** make the PO an admin, which Profile → Numbers needs: `update public.profiles set
+  is_admin = true where id = (select id from auth.users where email = '<PO e-mail>');`.
 - **Moderation e-mail:** create a Resend account, verify the `livami.app` domain (the DNS records Resend
   shows), store the API key in Vault with `select vault.create_secret('<key>', 'resend_api_key');`, then
   `update moderation_email_settings set enabled = true where id;`. Check that the `moderation-digest` job

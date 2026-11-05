@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import Home from '../../../app/(tabs)/index';
@@ -118,6 +119,35 @@ describe('in your Home and Library rows', () => {
     expect(await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByLabelText('Row With Cover cover')).toBeNull();
     expect(screen.getByLabelText('Row Without Cover cover')).toBeOnTheScreen();
+  });
+
+  it('coming back to Home keeps the same image, not a newly signed link', async () => {
+    await renderScreen('en', { index: Home, 'story/[id]': StoryScreen }, '/');
+    const before = (await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 })).props.source.uri;
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+    await act(async () => router.push(`/story/${mineId}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    // A covered story added meanwhile: once its cover shows, Home's rows and their links have reloaded.
+    const arrived = (await createManualBook({ title: 'Arrived While Away', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(arrived, 'currently_reading');
+    await uploadCover(arrived, Uint8Array.from(atob(PNG_BASE64), (ch) => ch.charCodeAt(0)).buffer, 'image/png');
+    await act(async () => router.back());
+    await screen.findByLabelText('Your own cover for Arrived While Away', {}, { timeout: 8000 });
+    expect(screen.getByLabelText('Your own cover for Row With Cover').props.source.uri).toBe(before);
+  });
+
+  it('a cover that failed to load is tried again, with a new link, when you come back to Home', async () => {
+    await renderScreen('en', { index: Home, 'story/[id]': StoryScreen }, '/');
+    const image = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    const failed = image.props.source.uri;
+    await fireEvent(image, 'error', { nativeEvent: { error: 'offline' } });
+    expect(await screen.findByLabelText('Row With Cover cover')).toBeOnTheScreen();
+    await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+    await act(async () => router.push(`/story/${mineId}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    await act(async () => router.back());
+    const again = await screen.findByLabelText('Your own cover for Row With Cover', {}, { timeout: 8000 });
+    expect(again.props.source.uri).not.toBe(failed);
   });
 
   it('Library too, in Bulgarian', async () => {
