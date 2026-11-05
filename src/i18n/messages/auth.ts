@@ -81,7 +81,7 @@ export const bg: Translation<typeof en> = {
   'auth.errorAlreadyRegistered': 'Този имейл вече има акаунт. Опитай да влезеш.',
   'auth.errorNotConfirmed': 'Първо потвърди имейла си. Провери пощата си.',
   'auth.errorRateLimit': 'Твърде много опити. Изчакай минута и опитай пак.',
-  'auth.forgotPassword': 'Забрави паролата си?',
+  'auth.forgotPassword': 'Забравена парола?',
   'auth.resetTitle': 'Смени паролата си',
   'auth.resetIntro': 'Въведи имейла, с който се регистрира, и ще ти изпратим 6-цифрен код.',
   'auth.sendCode': 'Изпрати код',
