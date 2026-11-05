@@ -5,12 +5,14 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppearanceProvider } from '@/appearance';
 import { PushEffects } from '@/components/PushEffects';
 import { Button, T } from '@/components/ui';
 import { FONT_FILES } from '@/fonts';
 import { LanguageProvider, useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { TERMS_VERSION } from '@/lib/legal';
 import { showForegroundPushesQuietly } from '@/lib/pushDevice';
 import { space, useTheme } from '@/theme';
 
@@ -20,7 +22,7 @@ function Loading() {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.ground }}>
-      <ActivityIndicator color={c.primary} />
+      <ActivityIndicator color={c.signal} />
     </View>
   );
 }
@@ -39,10 +41,12 @@ export function ProfileError() {
   );
 }
 
-function RootStack() {
-  const { loading, session, profile, profileState } = useAuth();
+export function RootStack() {
+  const { loading, session, profile, profileState, recovering } = useAuth();
   const { c } = useTheme();
-  const signedIn = !!session;
+  // A password reset signs the reader in before it sets the new password: stay on the
+  // signed-out screens until it is done (src/lib/auth.tsx, `recovering`).
+  const signedIn = !!session && !recovering;
   const opened = useRef(false);
   // Once per cold start, as soon as a signed-in session exists.
   useEffect(() => {
@@ -56,7 +60,9 @@ function RootStack() {
   // Wait for the profile before choosing a screen, otherwise existing readers see onboarding flash by.
   if (signedIn && !profile && profileState === 'loading') return <Loading />;
   if (signedIn && !profile && profileState === 'error') return <ProfileError />;
-  const onboarded = signedIn && !!profile;
+  const hasProfile = signedIn && !!profile;
+  // Readers who accepted an older version of the terms, or none, accept the current one first.
+  const onboarded = hasProfile && profile.terms_version === TERMS_VERSION;
 
   const pushed = {
     headerShown: true,
@@ -66,17 +72,22 @@ function RootStack() {
     headerStyle: { backgroundColor: c.ground },
     headerTintColor: c.ink,
   };
-  // Each screen is only reachable in the right state: signed out → sign-in,
-  // signed in without a profile → onboarding, otherwise → the app.
+  // Each screen is only reachable in the right state: signed out → sign-in, signed in without a
+  // profile → onboarding, a profile without the current terms → accept-terms, otherwise → the app.
+  // Deleting the account stays open to readers who would rather leave than accept.
   return (
     <>
       {onboarded && <PushEffects />}
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />
+          <Stack.Screen name="reset-password" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && !onboarded}>
+        <Stack.Protected guard={signedIn && !hasProfile}>
           <Stack.Screen name="onboarding" />
+        </Stack.Protected>
+        <Stack.Protected guard={hasProfile && !onboarded}>
+          <Stack.Screen name="accept-terms" />
         </Stack.Protected>
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
@@ -89,6 +100,10 @@ function RootStack() {
           <Stack.Screen name="feedback" />
           <Stack.Screen name="authors" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="moderation" />
+        </Stack.Protected>
+        <Stack.Protected guard={hasProfile}>
           <Stack.Screen name="delete-account" />
         </Stack.Protected>
       </Stack>
@@ -96,17 +111,23 @@ function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function ThemedStatusBar() {
   const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
+
+export default function RootLayout() {
   const [fontsLoaded] = useFonts(FONT_FILES);
 
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          {fontsLoaded ? <RootStack /> : <Loading />}
-        </AuthProvider>
+        <AppearanceProvider>
+          <AuthProvider>
+            <ThemedStatusBar />
+            {fontsLoaded ? <RootStack /> : <Loading />}
+          </AuthProvider>
+        </AppearanceProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );

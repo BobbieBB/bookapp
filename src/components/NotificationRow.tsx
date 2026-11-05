@@ -32,7 +32,7 @@ export function NotificationRow({ n }: { n: Notification }) {
         </T>
         <T v="muted">{relativeTime(n.created_at, language)}</T>
       </View>
-      {unread ? <View accessibilityElementsHidden style={{ width: 10, height: 10, borderRadius: radius.pill, backgroundColor: c.primary }} /> : null}
+      {unread ? <View accessibilityElementsHidden style={{ width: 10, height: 10, borderRadius: radius.pill, backgroundColor: c.signal }} /> : null}
     </Pressable>
   );
 }

@@ -1,5 +1,4 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
 import Onboarding from '../../../app/onboarding';
@@ -9,7 +8,8 @@ import Profile from '../../../app/(tabs)/profile';
 import { ProfileError } from '../../../app/_layout';
 import { AuthProvider } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { languageWrapper, renderIn } from '../../../test/i18n';
+import { renderIn } from '../../../test/i18n';
+import { renderScreen } from '../../../test/router';
 import type { Language } from '../index';
 
 // Real users in the local Supabase stack; e-mail confirmation is off there (supabase/config.toml).
@@ -96,6 +96,8 @@ describe.each(languages)('onboarding in %s', (language) => {
       start: 'Start reading',
       signOut: 'Sign out',
       badName: 'Names use 3–30 letters, numbers or underscores, no spaces.',
+      terms: /I accept the Terms/,
+      age: /I’m at least/,
     },
     bg: {
       title: 'Чувствай се като у дома си',
@@ -103,6 +105,8 @@ describe.each(languages)('onboarding in %s', (language) => {
       start: 'Започни да четеш',
       signOut: 'Изход',
       badName: 'Имената са от 3 до 30 латински букви, цифри или долни черти, без интервали.',
+      terms: /Приемам Условията/,
+      age: /Аз съм на поне/,
     },
   }[language];
 
@@ -113,6 +117,9 @@ describe.each(languages)('onboarding in %s', (language) => {
     expect(screen.getByText(text.question)).toBeTruthy();
     expect(screen.getByText(text.signOut)).toBeTruthy();
 
+    // Start opens once both are ticked (terms and age, 2 Nov 2026).
+    await fireEvent.press(screen.getByRole('checkbox', { name: text.terms }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: text.age }));
     await fireEvent.press(screen.getByText(text.start));
     expect(await screen.findByText(text.badName)).toBeTruthy();
   });
@@ -139,7 +146,8 @@ describe.each(languages)('tabs and profile in %s', (language) => {
 
   async function renderTabs() {
     await signInAs(reader);
-    await renderRouter(
+    await renderScreen(
+      language,
       {
         '(tabs)/_layout': TabsLayout,
         '(tabs)/index': () => <Text>home screen</Text>,
@@ -150,7 +158,7 @@ describe.each(languages)('tabs and profile in %s', (language) => {
           </AuthProvider>
         ),
       },
-      { initialUrl: '/profile', wrapper: await languageWrapper(language) },
+      '/profile',
     );
   }
 

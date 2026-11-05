@@ -19,7 +19,8 @@ export type AnalyticsEvent =
   | 'discover_opened'
   | 'feedback_sent'
   | 'language_changed'
-  | 'cover_set';
+  | 'cover_set'
+  | 'room_opened';
 
 type Value = string | number | boolean;
 const ALLOWED_KEYS = new Set(['kind', 'language', 'tier', 'count', 'wip', 'source', 'status']);

@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
@@ -194,5 +196,162 @@ describe('a Want to read book added without its chapter count', () => {
       },
       { timeout: 8000 },
     );
+  });
+
+  it('if another reader sets the count first, the count shows instead of an error', async () => {
+    const id = (await createManualBook({ title: `Count Race ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    // The other reader got there first (set directly: signing a second reader in would swap this session).
+    execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
+      `update public.stories set total_sections = 7 where id = '${id}'`]);
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    await waitFor(() => expect(screen.queryByText('How many chapters does it have?')).toBeNull(), { timeout: 8000 });
+    expect(screen.queryByText('Something went wrong. Please try again.')).toBeNull();
+  });
+
+  it('a refusal that leaves no count (the book left your library mid-form) shows the error', async () => {
+    const id = (await createManualBook({ title: `Count Refused ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    await supabase.from('library_entries').delete().eq('story_id', id).eq('user_id', me).throwOnError();
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByText('Save'));
+    expect(await screen.findByText('Something went wrong. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const story = (await supabase.from('stories').select('total_sections').eq('id', id).single().throwOnError()).data!;
+    expect(story.total_sections).toBeNull();
+  });
+
+  it('Save is busy while saving, so a second tap cannot follow', async () => {
+    const id = (await createManualBook({ title: `Count Busy ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(id, 'want_to_read');
+    await open('en', id);
+    // The database takes a moment over this story's update, so the busy state can be seen.
+    const psql = (sql: string) =>
+      execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
+    const slow = `test_slow_${run}`;
+    psql(`create function public.${slow}() returns trigger language plpgsql as $$ begin
+      if new.id = '${id}' then perform pg_sleep(1.5); end if; return new; end $$;
+      create trigger ${slow} before update on public.stories for each row execute function public.${slow}();`);
+    try {
+      await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+      const saving = fireEvent.press(screen.getByText('Save'));
+      // Busy: the label gives way to a spinner (a Button that is loading ignores taps).
+      await waitFor(() => expect(screen.queryByText('Save')).toBeNull());
+      await saving;
+    } finally {
+      psql(`drop trigger ${slow} on public.stories; drop function public.${slow}();`);
+    }
+  });
+});
+
+// "Wrong chapter count?" (docs/DECISIONS.md, "Moderation in v1"): a reader with the book in their library
+// can say the count is wrong; a moderator decides.
+describe('a wrong chapter count', () => {
+  const requests = async (storyId: string) =>
+    (await supabase.from('chapter_count_requests').select('proposed, status').eq('story_id', storyId).eq('requester_id', me).throwOnError()).data!;
+
+  async function ownBook(title: string, status: 'currently_reading' | 'want_to_read' = 'currently_reading') {
+    const id = (await createManualBook({ title: `${title} ${run}`, author: 'x', chapters: 10, language: 'en' })).id;
+    await addToLibrary(id, status);
+    return id;
+  }
+
+  it('is offered on a counted book in your library', async () => {
+    await open('en', bookId);
+    expect(screen.getByRole('link', { name: 'Wrong chapter count?' })).toBeOnTheScreen();
+  });
+
+  it('is not offered on a book that is not in your library, a fic, or a book without a count', async () => {
+    const stranger = (await createManualBook({ title: `Not Mine ${run}`, author: 'x', chapters: 4, language: 'en' })).id;
+    await open('en', stranger);
+    expect(screen.getByText('Add to my library')).toBeOnTheScreen();
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+    await open('en', wipId);
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+    const uncounted = (await createManualBook({ title: `No Count ${run}`, author: 'x', chapters: null, language: 'en' })).id;
+    await addToLibrary(uncounted, 'want_to_read');
+    await open('en', uncounted);
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+  });
+
+  it('checks the number before sending', async () => {
+    const id = await ownBook('Validated');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '0');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('Enter the number of chapters (1 to 5000).')).toBeOnTheScreen();
+    expect(await requests(id)).toEqual([]);
+  });
+
+  it('can be cancelled', async () => {
+    const id = await ownBook('Cancelled');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('The right number of chapters')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Wrong chapter count?' })).toBeOnTheScreen();
+  });
+
+  it('sends the request, thanks the reader and hides the link', async () => {
+    const id = await ownBook('Reported');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('Thanks — a moderator will check it', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByRole('link', { name: 'Wrong chapter count?' })).toBeNull();
+    expect(await requests(id)).toEqual([{ proposed: 12, status: 'open' }]);
+  });
+
+  it('in Bulgarian', async () => {
+    const id = await ownBook('Reported BG');
+    await open('bg', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Грешен брой глави?' }));
+    await fireEvent.changeText(screen.getByLabelText('Правилният брой глави'), '8');
+    await fireEvent.press(screen.getByRole('button', { name: 'Изпрати' }));
+    expect(await screen.findByText('Благодарим — модератор ще го провери', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('says so when you already asked about this book', async () => {
+    const id = await ownBook('Twice');
+    await supabase.from('chapter_count_requests').insert({ story_id: id, proposed: 11 }).throwOnError();
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('You already asked about this book', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('The right number of chapters')).toBeOnTheScreen(); // the form stays
+  });
+
+  it('does not send the count the book already has', async () => {
+    const id = await ownBook('Same');
+    await open('en', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '10');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('That’s already the count')).toBeOnTheScreen();
+    expect(await requests(id)).toEqual([]);
+  });
+
+  it('in Bulgarian, the same count is named too', async () => {
+    const id = await ownBook('Same BG');
+    await open('bg', id);
+    await fireEvent.press(screen.getByRole('link', { name: 'Грешен брой глави?' }));
+    await fireEvent.changeText(screen.getByLabelText('Правилният брой глави'), '10');
+    await fireEvent.press(screen.getByRole('button', { name: 'Изпрати' }));
+    expect(await screen.findByText('Това вече е броят')).toBeOnTheScreen();
+  });
+
+  it('shows a general failure for anything else (the book left your library meanwhile)', async () => {
+    const id = await ownBook('Left');
+    await open('en', id);
+    await supabase.from('library_entries').delete().eq('story_id', id).eq('user_id', me).throwOnError();
+    await fireEvent.press(screen.getByRole('link', { name: 'Wrong chapter count?' }));
+    await fireEvent.changeText(screen.getByLabelText('The right number of chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByText('We couldn’t send that. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });
