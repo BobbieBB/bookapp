@@ -41,8 +41,8 @@ beforeEach(() => {
   docs = [];
 });
 
-async function open(language: Language) {
-  await renderScreen(language, { add: AddStory }, '/add');
+function open(language: Language) {
+  return renderScreen(language, { add: AddStory }, '/add');
 }
 
 const words = {
@@ -138,8 +138,6 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
 it('adding a fic adds its fandom to "Your fandoms"', async () => {
   const fandom = `Followed Fandom ${run}`;
   await open('en');
-  // renderRouter switches Jest to fake timers; waiting on the real database needs real ones.
-  jest.useRealTimers();
   await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
   await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/8${Date.now() % 1e8}`);
   await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), 'Followed Fic');
