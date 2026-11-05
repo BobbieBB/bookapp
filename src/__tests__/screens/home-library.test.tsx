@@ -1,12 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderRouter } from 'expo-router/testing-library';
 import type { ReactElement } from 'react';
 
 import Home from '../../../app/(tabs)/index';
 import Library from '../../../app/(tabs)/library';
-import { languageWrapper } from '../../../test/i18n';
+import { renderScreen as renderRoute } from '../../../test/router';
 import type { Language } from '../../i18n';
-import { AuthProvider } from '../../lib/auth';
 import { addToLibrary, createBook, createFic } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -53,18 +51,9 @@ beforeAll(async () => {
   await addToLibrary(fic.id, 'on_hold');
 });
 
-async function renderScreen(language: Language, Screen: () => ReactElement) {
-  const InLanguage = await languageWrapper(language);
-  await renderRouter(
-    { index: Screen },
-    {
-      wrapper: ({ children }: { children: ReactElement }) => (
-        <InLanguage>
-          <AuthProvider>{children}</AuthProvider>
-        </InLanguage>
-      ),
-    },
-  );
+// Real timers (test/router): the screens wait on the real database, and fake timers expire findBy early.
+function renderScreen(language: Language, Screen: () => ReactElement) {
+  return renderRoute(language, { index: Screen }, '/');
 }
 
 describe('Home', () => {

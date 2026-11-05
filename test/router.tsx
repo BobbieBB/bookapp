@@ -1,3 +1,4 @@
+// Screens that wait on the database must render through renderScreen, never expo-router's renderRouter (fake timers).
 // Render app screens through Expo Router, signed in, in a given language.
 //
 // Like expo-router's renderRouter, but on real timers: renderRouter switches Jest to fake timers,
