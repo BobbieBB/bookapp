@@ -164,6 +164,11 @@ function Discussion({
   const [failed, setFailed] = useState(false);
   const [blockedNotice, setBlockedNotice] = useState(false);
 
+  // Once per room reached, even by readers who only read (the PO's "readers who reach a discussion").
+  useEffect(() => {
+    void track('room_opened');
+  }, [discussionId]);
+
   useEffect(() => {
     markRead(discussionId).catch(() => {
       // Only feeds "N new comments" hints; failing to record it must not disturb reading.

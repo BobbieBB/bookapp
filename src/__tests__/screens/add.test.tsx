@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import type { Language } from '../../i18n';
+import * as analytics from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
 import { renderScreen } from '../../../test/router';
 import AddStory from '../../../app/add';
@@ -175,4 +176,42 @@ it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', 
   expect(screen.getByDisplayValue('Hermione Granger/Draco Malfoy')).toBeOnTheScreen();
   expect(screen.getByDisplayValue('53')).toBeOnTheScreen();
   expect(screen.getByDisplayValue(`https://archiveofourown.org/works/${id}`)).toBeOnTheScreen();
+});
+
+// story_added carries the edition language, for the PO's "BG vs EN" number (docs/DECISIONS.md, Analytics).
+describe('the story_added event', () => {
+  let tracked: jest.SpyInstance;
+  beforeEach(() => {
+    tracked = jest.spyOn(analytics, 'track');
+  });
+  afterEach(() => {
+    tracked.mockRestore();
+  });
+
+  it('says which language a book added by hand is read in', async () => {
+    await open('en');
+    await fireEvent.changeText(await screen.findByLabelText('Search'), 'zzzz');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Add it by hand' }, { timeout: 3000 }));
+    await fireEvent.changeText(screen.getByLabelText('Title'), `Hand Book ${run}`);
+    await fireEvent.changeText(screen.getByLabelText('Author'), 'Someone');
+    await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Bulgarian' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await waitFor(() =>
+      expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'manual', status: 'currently_reading', language: 'bg' }),
+    );
+  });
+
+  it('says which language a book found by search is read in', async () => {
+    docs = [{ key: `/works/OL${run}W`, title: `Found Book ${run}`, author_name: ['Someone'], first_publish_year: 2001 }];
+    await open('en');
+    await fireEvent.changeText(await screen.findByLabelText('Search'), 'found');
+    await fireEvent.press(await screen.findByRole('button', { name: `Add: Found Book ${run}` }, { timeout: 3000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'English' }));
+    await fireEvent.changeText(await screen.findByLabelText('Chapters'), '9');
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await waitFor(() =>
+      expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'open_library', status: 'currently_reading', language: 'en' }),
+    );
+  });
 });
