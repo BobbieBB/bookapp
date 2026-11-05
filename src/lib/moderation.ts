@@ -47,6 +47,17 @@ export async function fetchQueue(): Promise<QueueItem[]> {
   return (data ?? []) as QueueItem[];
 }
 
+/** How mail to the moderator is doing (admins only): failures in the last 24 hours and the latest status code. */
+export type EmailHealth = { failures: number; last_status: number | null; to_address: string };
+
+export async function fetchEmailHealth(): Promise<EmailHealth> {
+  const { data, error } = await supabase.rpc('moderation_email_health');
+  if (error) throw error;
+  const row = (data as EmailHealth[] | null)?.[0];
+  if (!row) throw new Error('moderation_email_health returned no row');
+  return row;
+}
+
 export async function resolve(kind: QueueKind, id: string, action: QueueAction): Promise<void> {
   const { error } = await supabase.rpc('moderation_resolve', { p_kind: kind, p_id: id, p_action: action });
   if (error) throw error;

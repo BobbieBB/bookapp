@@ -37,6 +37,10 @@ Before launch:
   key is `true`).
 - **Admin:** make the PO an admin, which Profile → Numbers needs: `update public.profiles set
   is_admin = true where id = (select id from auth.users where email = '<PO e-mail>');`.
+- **Moderation e-mail:** create a Resend account, verify the `livami.app` domain (the DNS records Resend
+  shows), store the API key in Vault with `select vault.create_secret('<key>', 'resend_api_key');`, then
+  `update moderation_email_settings set enabled = true where id;`. Check that the `moderation-digest` job
+  shows up under Integrations → Cron.
 - **Copy:** a native read of the Bulgarian copy.
 
 Planning lives on the Trello board *Book club app*.

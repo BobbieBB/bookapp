@@ -176,6 +176,18 @@ fic auto-fill from AO3 (only with OTW permission).
 
 ## Dev defaults (pending PO review)
 Choices made during development where the decisions above don't say. Each one is easy to change.
+- **Moderation e-mail (2 Nov 2026):** goes to support@livami.app from `Livami <moderation@livami.app>`; the daily digest
+  leaves at 07:00 UTC and covers the last 24 hours. A report e-mail carries its kind, reason, story title and the
+  reporter's text (cut at 500 characters), never who reported; a removal-request e-mail carries the AO3 link and the
+  author's contact, because the PO answers authors herself. No reader's address is ever included.
+  An immediate e-mail goes out only for the first open report on a comment, review or reader that was really mailed
+  (a pile-on costs one e-mail; the queue shows the count; reports filed while sending was off, or whose mail Resend
+  refused, do not keep the next one quiet). Even so, one reader can file about 20 reports an hour on different targets, so
+  a single reader alone can use up Resend's free tier (100 a day): use a paid plan, or ask for a cap.
+- **E-mail failures are shown (2 Nov 2026):** pg_net sends after commit, so a refusal from Resend (unverified domain,
+  wrong key, quota) would be invisible. Every send is logged, an hourly job reads Resend's answers back, and the
+  Moderation screen warns admins when any e-mail failed in the last 24 hours (not while sending is off), counting
+  only failures after the latest e-mail that went through, so the warning goes as soon as the setup is fixed.
 - **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
   (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only

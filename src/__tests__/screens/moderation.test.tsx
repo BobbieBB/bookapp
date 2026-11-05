@@ -239,6 +239,71 @@ describe('as a reader who is not an admin', () => {
   });
 });
 
+// Resend can refuse a mail after the database has committed (unverified domain, wrong key, quota), so
+// the database logs the answers and the screen warns the moderator. Looked at through the real
+// moderation_email_health; the log rows and the setting are written directly, because no mail can be
+// sent from the local stack.
+describe('the e-mail health banner', () => {
+  const failing = /^E-mails to support@livami.app are failing/;
+  const setEmail = (enabled: boolean, status: string | null) =>
+    sql(`delete from public.moderation_email_log;
+      update public.moderation_email_settings set enabled = ${enabled};
+      ${status === null ? '' : `insert into public.moderation_email_log (request_id, kind, checked, status_code) values (1, 'report', true, ${status});`}`);
+
+  beforeAll(async () => {
+    await as(admin);
+  });
+  afterAll(() => {
+    sql('delete from public.moderation_email_log; update public.moderation_email_settings set enabled = false;');
+  });
+
+  it('warns with the last status code when mail is failing', async () => {
+    setEmail(true, '403');
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    expect(
+      await screen.findByText('E-mails to support@livami.app are failing (last: 403). Check the Resend key and domain.', {}, { timeout: 8000 }),
+    ).toBeOnTheScreen();
+  });
+
+  it('in Bulgarian', async () => {
+    setEmail(true, '429');
+    await renderScreen('bg', { moderation: Moderation }, '/moderation');
+    expect(
+      await screen.findByText('Имейлите до support@livami.app не се доставят (последно: 429). Провери ключа и домейна в Resend.', {}, { timeout: 8000 }),
+    ).toBeOnTheScreen();
+  });
+
+  it('says so when Resend gave no answer at all', async () => {
+    setEmail(true, 'null');
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    expect(
+      await screen.findByText('E-mails to support@livami.app are failing (no answer from Resend). Check the Resend key and domain.', {}, { timeout: 8000 }),
+    ).toBeOnTheScreen();
+  });
+
+  it('is not shown when mail is healthy', async () => {
+    setEmail(true, '200');
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    await card('chapter_count', refuseCountId);
+    expect(screen.queryByText(failing)).toBeNull();
+  });
+
+  it('is not shown while sending is off, whatever the log says', async () => {
+    setEmail(false, '403');
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    await card('chapter_count', refuseCountId);
+    expect(screen.queryByText(failing)).toBeNull();
+  });
+});
+
+describe('moderation_email_health', () => {
+  it('refuses a reader who is not an admin', async () => {
+    await as(reader);
+    const { error } = await supabase.rpc('moderation_email_health');
+    expect(error?.code).toBe('42501');
+  });
+});
+
 // The queue is shared with every other test file running at the same time, so "nothing open" can't be
 // produced in the database from here; the list is rendered with no items instead. That the database
 // returns only open items is covered by supabase/tests/moderation.test.sql.
