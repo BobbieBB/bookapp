@@ -38,7 +38,7 @@ export const bg: Translation<typeof en> = {
   'library.status.dnf': 'DNF',
   'library.status.on_hold': 'На пауза',
   'library.emptyBooks': 'Още няма книги тук',
-  'library.emptyFics': 'Още няма фикове тук',
+  'library.emptyFics': 'Още няма фикшъни тук',
   'library.emptyHint': 'Натисни +, за да добавиш.',
   'library.notStarted': 'Още не е започнато',
   'library.finishedChapter': 'Прочетена глава {n}',
