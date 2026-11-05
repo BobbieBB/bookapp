@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { T } from '@/components/ui';
+import { forgetCoverLink } from '@/lib/covers';
 import { progressLine, sectionTotal, statusKey } from '@/lib/library';
 import type { LibraryEntry } from '@/lib/types';
 import { useT } from '@/i18n';
@@ -39,8 +40,8 @@ export function StoryRow({
           .filter(Boolean)
           .join(' · ');
   const cover = coverColor(s.id, t.isDark);
-  // The link that failed to load, so a broken image falls back to the typographic cover (a new link
-  // for the same story, after a reload, gets another try).
+  // The link that failed to load, so a broken image falls back to the typographic cover. The link is
+  // forgotten too, so the next load (the lists reload on focus) signs a new one and tries again.
   const [failedUrl, setFailedUrl] = useState<string | undefined>();
   const custom = coverUrl && coverUrl !== failedUrl ? coverUrl : undefined;
 
@@ -57,7 +58,10 @@ export function StoryRow({
         <Image
           source={{ uri: custom }}
           accessibilityLabel={tr('covers.customLabel', { title: s.title })}
-          onError={() => setFailedUrl(custom)}
+          onError={() => {
+            setFailedUrl(custom);
+            forgetCoverLink(custom);
+          }}
           style={{ ...COVER, ...softShadow(t.isDark, 'small') }}
         />
       ) : (

@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { forgetCoverLinks } from './covers';
 import { disablePush, releasePendingPushToken } from './pushDevice';
 import { supabase } from './supabase';
 import type { Profile } from './types';
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Only the latest request may update state (sign out / sign in in quick succession).
   const requestId = useRef(0);
   const loadedFor = useRef<string | null | undefined>(undefined);
+  const linksFor = useRef<string | null | undefined>(undefined);
 
   const loadProfile = useCallback(async (userId: string | undefined) => {
     const id = ++requestId.current;
@@ -71,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (active) setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      // Signed cover links belong to the reader who signed them: forget them whenever the reader
+      // changes, however the session ended (signing out, a failed refresh, a revoked session).
+      const userId = next?.user.id ?? null;
+      if (userId !== linksFor.current) forgetCoverLinks();
+      linksFor.current = userId;
       setSession(next);
       // Token refreshes fire this too; only reload when the signed-in user changes.
       if ((next?.user.id ?? null) !== loadedFor.current) loadProfile(next?.user.id);
