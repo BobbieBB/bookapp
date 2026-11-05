@@ -90,6 +90,7 @@ function RootStack() {
           <Stack.Screen name="authors" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="admin" />
+          <Stack.Screen name="moderation" />
           <Stack.Screen name="delete-account" />
         </Stack.Protected>
       </Stack>

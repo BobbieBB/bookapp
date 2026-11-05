@@ -19,7 +19,7 @@ MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
 - **Discussions:** chapter discussions and The Epilogue with replies, reactions and live updates.
 - **After reading:** "You finished it!", book ratings and reviews.
 - **Home and Discover:** Home with replies and @mentions, notifications, and Discover by fandom.
-- **Safety:** report, block, feedback, "Authors are welcome" and deleting your account.
+- **Safety:** report, block, feedback, "Authors are welcome" and deleting your account. Admins get a Moderation screen (Profile) for reports, author removal requests, feedback and "Wrong chapter count?" requests from readers.
 - **Extras:** private custom covers, push notifications and first-party analytics.
 
 Before launch:

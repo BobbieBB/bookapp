@@ -187,6 +187,17 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **User reports are dismiss-only (2 Nov 2026):** there is no banning in v1, so a report on a reader can only be closed;
+  the moderator's tools against a person are the comments they hide and the readers who block them.
+- **A lowered chapter count (2 Nov 2026):** accepting a count below what readers already reached would leave them "beyond
+  the end" (and make their next library update fail). The moderator accepts anyway, and readers past the new count are
+  moved back to it; readers who finished the book follow the count up or down and stay finished. Nothing else is
+  deleted (discussion rooms past the new count and their comments stay). A request for a count a book cannot take
+  (it is not a book with chapters) is refused.
+- **Removal request for a fic we do not have (2 Nov 2026):** "Hide" looks the AO3 link up when the moderator resolves
+  it, so a fic added after the request is still found. With no match there is nothing to hide, so the moderator can
+  only dismiss.
+- **Chapter-count request limit (2 Nov 2026):** at most 10 a day per reader, one open request per reader and book.
 - **Orphan cover files (19 Oct 2026):** cover files nothing points to any more (a deleted account, an
   old cover that could not be removed) are swept daily after a 1-day grace period, at most 500 a
   day. The grace period keeps a cover that is being uploaded right now, whose file lands a moment
@@ -312,6 +323,9 @@ Choices made during development where the decisions above don't say. Each one is
   (report → hide the comment / dismiss; author request → hide the fic / dismiss; chapter count → accept / dismiss).
   Not in v1: stats, history, notes, banning (block and hide comments instead).
 - Why v1: Apple requires reporting, blocking and timely action for apps with user content, and the PO moderates from her phone.
+- **Built (2 Nov 2026):** `moderation_queue()` and `moderation_resolve(kind, id, action)` (admins only), `feedback.status`
+  and the `chapter_count_requests` table (see DATA_MODEL.md). Hiding a reported comment or review also closes every other
+  open report on it. The e-mail part is built separately.
 
 ## Chapter counts for books (20 Oct 2026, PO)
 - No public source gives chapter counts (Open Library and Google Books don't), and editions differ. So:

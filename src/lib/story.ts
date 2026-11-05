@@ -2,6 +2,7 @@
 // fic's chapters or finish it"). Chapters unlock discussions; pages are personal and unlock nothing.
 // The database enforces every rule here (library_entry_normalise, bump_published_sections,
 // complete_story, reopen_story); these helpers only decide which buttons to show.
+import type { useT } from '@/i18n';
 import { supabase } from './supabase';
 import type { LibraryEntry, LibraryStatus, Story } from './types';
 
@@ -9,6 +10,16 @@ export type ProgressStory = Pick<
   Story,
   'kind' | 'status' | 'has_chapters' | 'published_sections' | 'total_sections' | 'page_count'
 > & { completed_at: string | null };
+
+/**
+ * Chapter count check: a whole number from 1 to 5000. Optional for "Want to read": you may not
+ * have the book in hand yet; the count is asked on its page when you start (PO, 20 Oct 2026).
+ */
+export function chaptersError(value: string, t: ReturnType<typeof useT>, optional = false): string | undefined {
+  if (optional && value.trim() === '') return undefined;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorChapters');
+}
 
 const REOPEN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 

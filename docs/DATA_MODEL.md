@@ -20,7 +20,8 @@ table. Anonymous users (`anon`) have no access at all.
 | `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3); `user_id` is empty once the author deleted their account | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
-| `feedback` | In-app feedback | Author and admins |
+| `feedback` | In-app feedback; `status` (open / actioned / dismissed) is set only by `moderation_resolve` | Author and admins |
+| `chapter_count_requests` | A reader's "Wrong chapter count?" for a book that has a count: the proposed number (1–5000) and a status; one open request per reader and book; no update or delete | You and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
 | `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
@@ -97,7 +98,9 @@ other, and neither gets notifications from the other. A no longer sees B's react
   comment, review or reader.
 - A removal request needs an AO3 work link and a way to reach the author, so an admin can check
   with them before hiding the fic.
-- Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day.
+- Per-user caps: 20 reports an hour, 10 feedback messages an hour, 5 removal requests a day, 10 chapter-count requests a day.
+- A chapter-count request needs: an active reader, a book with chapters that already has a count, the book in
+  your library, and a number different from the current count. Once a count is set only a moderator changes it.
 
 ## Deleting an account
 
@@ -166,9 +169,13 @@ role can change `cover_sweep_settings`.
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |
 | `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
+| `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count); everyone else gets 42501 |
+| `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
 
 ## Tests
 
 `supabase/tests/spoiler_rules.test.sql` checks the locks (chapters, 25-page ranges, WIP fics,
 The Epilogue, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
 anonymous access and author opt-out.
+`supabase/tests/moderation.test.sql` checks the moderation queue, every resolve action and its effect, and each
+rule for chapter-count requests.

@@ -9,7 +9,7 @@ import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
 import { addFavouriteFandom } from '@/lib/discover';
 import { statusKey } from '@/lib/library';
-import { finishStory } from '@/lib/story';
+import { chaptersError, finishStory } from '@/lib/story';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useLookup } from '@/lib/useLookup';
@@ -102,16 +102,6 @@ function StatusPicker({
       </View>
     </View>
   );
-}
-
-/**
- * Chapter count check: a whole number from 1 to 5000. Optional for "Want to read": you may not
- * have the book in hand yet; the count is asked on its page when you start (PO, 20 Oct 2026).
- */
-function chaptersError(value: string, t: ReturnType<typeof useT>, optional = false): string | undefined {
-  if (optional && value.trim() === '') return undefined;
-  const n = Number(value);
-  return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorChapters');
 }
 
 /**
