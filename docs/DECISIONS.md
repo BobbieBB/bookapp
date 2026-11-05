@@ -176,6 +176,18 @@ fic auto-fill from AO3 (only with OTW permission).
 
 ## Dev defaults (pending PO review)
 Choices made during development where the decisions above don't say. Each one is easy to change.
+- **Moderation e-mail (2 Nov 2026):** goes to support@livami.app from `Livami <moderation@livami.app>`; the daily digest
+  leaves at 07:00 UTC and covers the last 24 hours. A report e-mail carries its kind, reason, story title and the
+  reporter's text (cut at 500 characters), never who reported; a removal-request e-mail carries the AO3 link and the
+  author's contact, because the PO answers authors herself. No reader's address is ever included.
+  An immediate e-mail goes out only for the first open report on a comment, review or reader that was really mailed
+  (a pile-on costs one e-mail; the queue shows the count; reports filed while sending was off, or whose mail Resend
+  refused, do not keep the next one quiet). Even so, one reader can file about 20 reports an hour on different targets, so
+  a single reader alone can use up Resend's free tier (100 a day): use a paid plan, or ask for a cap.
+- **E-mail failures are shown (2 Nov 2026):** pg_net sends after commit, so a refusal from Resend (unverified domain,
+  wrong key, quota) would be invisible. Every send is logged, an hourly job reads Resend's answers back, and the
+  Moderation screen warns admins when any e-mail failed in the last 24 hours (not while sending is off), counting
+  only failures after the latest e-mail that went through, so the warning goes as soon as the setup is fixed.
 - **Open Library contact (16 Oct 2026):** the `User-Agent` names the project page
   (`Livami/<version> (https://github.com/BobbieBB/bookapp)`) instead of an e-mail, until there is
   a project contact address to publish. Browsers don't let web pages set `User-Agent`, so this only
@@ -187,6 +199,23 @@ Choices made during development where the decisions above don't say. Each one is
   Good Omens, Sherlock, Star Wars, My Hero Academia, Genshin Impact, Percy Jackson), stored in
   `starter_fandoms` so it can be edited without an app release. "Library (almost) all complete fics"
   means at least 2 fics and at least 80% of them complete. Ties in a ranking go to the newest story.
+- **Reviews can be reported (2 Nov 2026):** every review on a book page, except your own, has the same Report action and reasons
+  as a comment (Apple expects reporting on all user-generated content); a moderator hides or dismisses it from the queue.
+- **User reports are dismiss-only (2 Nov 2026):** there is no banning in v1, so a report on a reader can only be closed;
+  the moderator's tools against a person are the comments they hide and the readers who block them.
+- **A lowered chapter count (2 Nov 2026):** accepting a count below what readers already reached would leave them "beyond
+  the end" (and make their next library update fail). The moderator accepts anyway, and readers past the new count are
+  moved back to it; readers who finished the book follow the count up or down and stay finished. Nothing else is
+  deleted (discussion rooms past the new count and their comments stay). A request for a count a book cannot take
+  (it is not a book with chapters) is refused.
+- **Removal request for a fic we do not have (2 Nov 2026):** "Hide" looks the AO3 link up when the moderator resolves
+  it, so a fic added after the request is still found. With no match there is nothing to hide, so the moderator can
+  only dismiss.
+- **Chapter-count request limit (2 Nov 2026):** at most 10 a day per reader, one open request per reader and book.
+- **Orphan cover files (19 Oct 2026):** cover files nothing points to any more (a deleted account, an
+  old cover that could not be removed) are swept daily after a 1-day grace period, at most 500 a
+  day. The grace period keeps a cover that is being uploaded right now, whose file lands a moment
+  before the row that points to it.
 
 ## Bulgarian books: where the data comes from (18 Oct 2026, PO)
 - Tested 7 Bulgarian titles (new romantasy/dark academia translations, Harry Potter, Wheel of Time, Foundation). No source covers them:
@@ -221,6 +250,13 @@ Choices made during development where the decisions above don't say. Each one is
 - The PO gets a small dashboard with 4–5 key numbers (weekly active readers, week-1 return, readers who reach a discussion,
   stories added by hand vs search, BG vs EN), so no SQL is needed.
 - Revisit a hosted tool (e.g. PostHog EU) only if the dashboard isn't enough once there are real readers.
+- The dashboard is Profile > Numbers, shown only to admins (`profiles.is_admin`). Each number is per week (Monday to Sunday, UTC)
+  and counted from `analytics_events` alone, so readers who switched analytics off are never in it:
+  *weekly active readers* = readers with any event that week; *week-1 return* = of the readers whose `sign_up` was that week, how
+  many had any event on days 7–13 after signing up, shown as "x of y" and "not yet" until the window has closed for all of them;
+  *readers who reach a discussion* = readers who opened a room (`room_opened`), commented or reacted; *stories added by hand vs
+  search* = `story_added` by `source` (Open Library search / by hand / AO3); *BG vs EN* = `story_added` by the book's edition
+  `language`, where AO3 fics and events from before this was recorded count as unknown.
 
 ## Push notifications (18 Oct 2026, PO)
 - v1 sends a push only for **replies to you and @mentions** (as in PR #13). Never comment text: "Maria replied in <story>, chapter 12".
@@ -259,6 +295,14 @@ Choices made during development where the decisions above don't say. Each one is
 - **Every progress bar looks the same:** taupe #8A7258 on a sand track #EAE6DE, never coloured per story.
 - Contrast stays WCAG AA or better (body text 13:1, buttons 8:1).
 - (A parchment variant was tried the same day and dropped: the PO preferred this beige.)
+- **Built (2 Nov 2026).** `calm` in `src/theme.ts` has the same roles as Light and Dark, plus `accent`, `progress` and
+  `progressAlt` (the bars; both taupe in Calm). Appearance lives in Profile as a card next to Language (there is no Settings
+  screen), stored per device under `livami.appearance`; `isDark` stays true for Dark only. Measured from the hexes: ink on cards
+  13.4:1, on the ground 12.4:1, button text on sand 8.5:1. Mood, not copy: the reaction emoji (❤️ …) keep their own colours.
+  Non-text marks (spinners, a selected chip's edge, progress fills) use the `signal`/`progress` roles, tested at 3:1 on the
+  ground and the cards in all three palettes, because the sand button colour is only 1.4:1 there. Choosing an appearance also
+  tells the phone (`Appearance.setColorScheme`), so the keyboard and alerts match; Auto hands control back. The first frame
+  waits for the stored choice (no splash hold: `expo-splash-screen` is not a dependency of this app).
 
 ## Deleting an account: what happens to comments (19 Oct 2026, PO)
 - Required before the App Store (Apple 5.1.1(v): account deletion inside the app) and by GDPR.
@@ -301,6 +345,9 @@ Choices made during development where the decisions above don't say. Each one is
   (report → hide the comment / dismiss; author request → hide the fic / dismiss; chapter count → accept / dismiss).
   Not in v1: stats, history, notes, banning (block and hide comments instead).
 - Why v1: Apple requires reporting, blocking and timely action for apps with user content, and the PO moderates from her phone.
+- **Built (2 Nov 2026):** `moderation_queue()` and `moderation_resolve(kind, id, action)` (admins only), `feedback.status`
+  and the `chapter_count_requests` table (see DATA_MODEL.md). Hiding a reported comment or review also closes every other
+  open report on it. The e-mail part is built separately.
 
 ## Chapter counts for books (20 Oct 2026, PO)
 - No public source gives chapter counts (Open Library and Google Books don't), and editions differ. So:

@@ -29,6 +29,39 @@ select test.ok((select total_sections from public.stories where id = '00000000-0
 select test.ok(test.error_of($$select public.set_book_chapter_count('00000000-0000-0000-0000-0000000007b1', 40)$$) like 'cannot set%',
   'once set, it is not changed this way');
 
+-- The key case: a SECOND reader has the book. stories_guard_update would block a plain update by
+-- carla (she isn't its creator), which is why the function is security definer.
+select test.logout();
+insert into public.stories (id, kind, language, title, author_name, has_chapters, total_sections, status)
+  values ('00000000-0000-0000-0000-0000000007b2', 'book', 'en', 'Shared Count Later', 'x', true, null, 'completed');
+select test.login('00000000-0000-0000-0000-0000000007c2');
+insert into public.library_entries (story_id, user_id, status)
+  values ('00000000-0000-0000-0000-0000000007b2', '00000000-0000-0000-0000-0000000007c2', 'want_to_read');
+select test.login('00000000-0000-0000-0000-0000000007c1');
+insert into public.library_entries (story_id, user_id, status)
+  values ('00000000-0000-0000-0000-0000000007b2', '00000000-0000-0000-0000-0000000007c1', 'want_to_read');
+select test.ok(test.error_of($$select public.set_book_chapter_count('00000000-0000-0000-0000-0000000007b2', 5001)$$) like 'chapters must be%',
+  'the count is at most 5000');
+select test.ok(test.error_of($$select public.set_book_chapter_count('00000000-0000-0000-0000-0000000007b2', 9)$$) is null,
+  'a reader sets the count of a book someone else also has');
+select test.ok((select total_sections from public.stories where id = '00000000-0000-0000-0000-0000000007b2') = 9,
+  'and it is saved for everyone');
+
+-- Only books: a fic and a hidden book are refused even for a reader who has them.
+select test.logout();
+insert into public.stories (id, kind, language, title, author_name, has_chapters, total_sections, status, source_url)
+  values ('00000000-0000-0000-0000-0000000007b3', 'fanfic', 'en', 'A Fic', 'x', true, null, 'ongoing', 'https://archiveofourown.org/works/7071');
+insert into public.stories (id, kind, language, title, author_name, has_chapters, total_sections, status, is_hidden)
+  values ('00000000-0000-0000-0000-0000000007b4', 'book', 'en', 'Hidden Book', 'x', true, null, 'completed', true);
+insert into public.library_entries (story_id, user_id, status) values
+  ('00000000-0000-0000-0000-0000000007b3', '00000000-0000-0000-0000-0000000007c1', 'want_to_read'),
+  ('00000000-0000-0000-0000-0000000007b4', '00000000-0000-0000-0000-0000000007c1', 'want_to_read');
+select test.login('00000000-0000-0000-0000-0000000007c1');
+select test.ok(test.error_of($$select public.set_book_chapter_count('00000000-0000-0000-0000-0000000007b3', 9)$$) like 'cannot set%',
+  'a fic has no book chapter count to set');
+select test.ok(test.error_of($$select public.set_book_chapter_count('00000000-0000-0000-0000-0000000007b4', 9)$$) like 'cannot set%',
+  'a hidden book is refused');
+
 select test.logout();
 \o
 \echo 'BOOK CHAPTER COUNT PASSED'

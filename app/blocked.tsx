@@ -35,7 +35,7 @@ export default function Blocked() {
           <Button variant="link" title={t('safety.back')} onPress={() => router.back()} />
         </View>
         <T v="h1">{t('safety.blockedTitle')}</T>
-        {!readers && error === undefined ? <ActivityIndicator color={c.primary} /> : null}
+        {!readers && error === undefined ? <ActivityIndicator color={c.signal} /> : null}
         <ErrorText>{failed || error !== undefined ? t('safety.error') : null}</ErrorText>
         {readers && readers.length === 0 ? <T v="muted">{t('safety.blockedEmpty')}</T> : null}
         {readers?.map((reader) => (

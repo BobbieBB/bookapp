@@ -13,7 +13,9 @@ import * as finishing from './messages/finishing';
 import * as notifications from './messages/notifications';
 import * as covers from './messages/covers';
 import * as account from './messages/account';
+import * as admin from './messages/admin';
+import * as moderation from './messages/moderation';
 
-export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en, ...notifications.en, ...covers.en, ...account.en };
+export const en = { ...common.en, ...auth.en, ...home.en, ...library.en, ...add.en, ...profile.en, ...story.en, ...room.en, ...discover.en, ...safety.en, ...finishing.en, ...notifications.en, ...covers.en, ...account.en, ...admin.en, ...moderation.en };
 
 export type MessageKey = keyof typeof en;

@@ -29,13 +29,13 @@ export function Button({
   disabled?: boolean;
   loading?: boolean;
 }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   const base: ViewStyle = { minHeight: 52, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.l };
   const style: ViewStyle =
     variant === 'primary'
-      ? { ...base, backgroundColor: c.primary, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: isDark ? 0.25 : 0.35, shadowRadius: 14, elevation: 3 }
+      ? { ...base, backgroundColor: c.primary, shadowColor: c.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: mode === 'dark' ? 0.25 : 0.35, shadowRadius: 14, elevation: 3 }
       : variant === 'secondary'
-        ? { ...base, backgroundColor: c.surface, ...softShadow(isDark, 'small') }
+        ? { ...base, backgroundColor: c.surface, ...softShadow(mode, 'small') }
         : { minHeight: 44, alignItems: 'center', justifyContent: 'center' };
   const textColor = variant === 'primary' ? c.onPrimary : c.ink;
 
@@ -93,6 +93,9 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
   );
 }
 
+// react-native-web paints the ON thumb from `activeThumbColor` (default teal); React Native's types don't list it.
+const WEB_ON_THUMB = (color: string): { activeThumbColor: string } => ({ activeThumbColor: color });
+
 export function Toggle({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
   return (
@@ -100,7 +103,7 @@ export function Toggle({ label, value, onChange, disabled }: { label: string; va
       {/* The label wraps (Bulgarian labels are long); the switch keeps its size and never leaves the card. */}
       <Text style={{ flex: 1, fontSize: 16, fontFamily: fonts.body, color: c.ink }}>{label}</Text>
       <Switch
-        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} accessibilityLabel={label} />
+        style={{ flexShrink: 0 }} value={value} onValueChange={onChange} disabled={disabled} accessibilityState={{ disabled: !!disabled }} trackColor={{ true: c.secondary, false: c.track }} thumbColor={c.thumb} {...WEB_ON_THUMB(c.thumb)} ios_backgroundColor={c.track} accessibilityLabel={label} />
     </View>
   );
 }
@@ -124,11 +127,13 @@ export function T({
   children,
   style,
   numberOfLines,
+  accessibilityLabel,
 }: {
   v?: 'h1' | 'h2' | 'moment' | 'body' | 'muted' | 'overline' | 'label';
   children: ReactNode;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  accessibilityLabel?: string;
 }) {
   const { c, fonts } = useTheme();
   const styles: Record<string, TextStyle> = {
@@ -137,18 +142,18 @@ export function T({
     moment: { fontFamily: fonts.moment, fontSize: 28, color: c.ink },
     body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: c.inkSoft },
     muted: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: c.muted },
-    overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.2, color: c.muted },
+    overline: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.2, color: c.accent },
     label: { fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink },
   };
   return (
-    <Text style={[styles[v], style]} numberOfLines={numberOfLines}>
+    <Text style={[styles[v], style]} numberOfLines={numberOfLines} accessibilityLabel={accessibilityLabel}>
       {children}
     </Text>
   );
 }
 
 export function Chip({ label, active, onPress, big }: { label: string; active: boolean; onPress: () => void; big?: boolean }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -160,8 +165,11 @@ export function Chip({ label, active, onPress, big }: { label: string; active: b
         borderRadius: radius.pill,
         justifyContent: 'center',
         alignItems: 'center', // centred also when the chip is stretched (Book / Fanfiction on Add)
+        // The selected chip carries an edge that shows on the cards in every palette (sand alone is 1.4:1 in Calm).
+        borderWidth: 2,
+        borderColor: active ? c.signal : 'transparent',
         backgroundColor: active ? c.primary : c.surface,
-        ...(active ? {} : softShadow(isDark, 'small')),
+        ...(active ? {} : softShadow(mode, 'small')),
       }}
     >
       <Text style={{ fontSize: big ? 16 : 14, fontFamily: active ? fonts.bodyBold : fonts.body, color: active ? c.onPrimary : c.inkSoft }}>

@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppearanceProvider } from '@/appearance';
 import { PushEffects } from '@/components/PushEffects';
 import { Button, T } from '@/components/ui';
 import { FONT_FILES } from '@/fonts';
@@ -20,7 +21,7 @@ function Loading() {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.ground }}>
-      <ActivityIndicator color={c.primary} />
+      <ActivityIndicator color={c.signal} />
     </View>
   );
 }
@@ -92,6 +93,8 @@ export function RootStack() {
           <Stack.Screen name="feedback" />
           <Stack.Screen name="authors" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="moderation" />
           <Stack.Screen name="delete-account" />
         </Stack.Protected>
       </Stack>
@@ -99,17 +102,23 @@ export function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function ThemedStatusBar() {
   const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
+
+export default function RootLayout() {
   const [fontsLoaded] = useFonts(FONT_FILES);
 
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          {fontsLoaded ? <RootStack /> : <Loading />}
-        </AuthProvider>
+        <AppearanceProvider>
+          <AuthProvider>
+            <ThemedStatusBar />
+            {fontsLoaded ? <RootStack /> : <Loading />}
+          </AuthProvider>
+        </AppearanceProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );

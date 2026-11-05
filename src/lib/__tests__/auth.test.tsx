@@ -3,6 +3,8 @@ import { Text } from 'react-native';
 
 import { holdRequest } from '../../../test/network';
 import { AuthProvider, useAuth } from '../auth';
+import { myCoverUrl, uploadCover } from '../covers';
+import { addToLibrary, createManualBook } from '../stories';
 import { supabase } from '../supabase';
 
 // Real users in the local Supabase stack; e-mail confirmation is off there (supabase/config.toml).
@@ -117,4 +119,26 @@ test('signing out clears the profile', async () => {
   await waitFor(() => expect(authState().username).toBe(alice.username));
   await act(() => supabase.auth.signOut().then(() => undefined));
   await waitFor(() => expect(authState()).toEqual({ loading: false, user: null, username: null, profileState: 'ready' }));
+});
+
+// A 1×1 PNG.
+const PNG = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (ch) => ch.charCodeAt(0));
+
+test('a change of reader, however the session changed, forgets the signed cover links', async () => {
+  await render(<AuthProvider><Probe /></AuthProvider>);
+  await waitFor(() => expect(authState().loading).toBe(false));
+  const signIn = (u: User) => act(() => supabase.auth.signInWithPassword({ email: u.email, password }).then(() => undefined));
+  await signIn(alice);
+  await waitFor(() => expect(authState().username).toBe(alice.username));
+  const storyId = (await createManualBook({ title: 'Alice Cover', author: 'x', chapters: 1, language: 'en' })).id;
+  await addToLibrary(storyId, 'want_to_read');
+  await uploadCover(storyId, PNG.buffer, 'image/png');
+  const first = await myCoverUrl(storyId);
+  await new Promise((resolve) => setTimeout(resolve, 1100)); // a new signature would carry a later time
+  // Straight to another reader and back, through supabase.auth (no signOut from useAuth).
+  await signIn(bob);
+  await waitFor(() => expect(authState().username).toBe(bob.username));
+  await signIn(alice);
+  await waitFor(() => expect(authState().username).toBe(alice.username));
+  expect(await myCoverUrl(storyId)).not.toBe(first);
 });
