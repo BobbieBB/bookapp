@@ -240,8 +240,8 @@ function SmallCover({ title, author, url, id }: { title: string; author: string;
   const theme = useTheme();
   const t = useT();
   const { fonts } = theme;
-  const col = coverColor(id, theme.isDark);
-  const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(theme.isDark, 'small') };
+  const col = coverColor(id, theme.mode);
+  const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(theme.mode, 'small') };
   if (url) return <Image source={{ uri: url }} style={style} accessibilityLabel={t('add.cover', { title })} />;
   return (
     <View accessible accessibilityLabel={t('add.cover', { title })} style={[style, { backgroundColor: col.bg, padding: 4, justifyContent: 'space-between', overflow: 'hidden' }]}>

@@ -62,7 +62,7 @@ export default function Home() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={c.primary} />
+          <ActivityIndicator color={c.signal} />
         ) : groups.length ? (
           groups.map(({ kind, items }) => (
             <View key={kind} style={{ gap: space.m }}>

@@ -70,7 +70,7 @@ export default function StoryScreen() {
           <Button title={t('common.tryAgain')} onPress={reload} />
         </View>
       ) : (
-        <ActivityIndicator color={c.primary} />
+        <ActivityIndicator color={c.signal} />
       )}
     </ScrollView>
   );
@@ -80,7 +80,7 @@ function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | 
   const th = useTheme();
   const t = useT();
   const { fonts } = th;
-  const size = { width: 96, height: 140, borderRadius: 14, ...softShadow(th.isDark, 'small') };
+  const size = { width: 96, height: 140, borderRadius: 14, ...softShadow(th.mode, 'small') };
   const label = t('library.coverLabel', { title: story.title });
   if (customUrl) {
     return <Image source={{ uri: customUrl }} accessibilityLabel={t('covers.customLabel', { title: story.title })} style={size} />;
@@ -88,7 +88,7 @@ function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | 
   if (story.kind === 'book' && story.cover_url) {
     return <Image source={{ uri: story.cover_url }} accessibilityLabel={label} style={size} />;
   }
-  const cover = coverColor(story.id, th.isDark);
+  const cover = coverColor(story.id, th.mode);
   return (
     <View accessible accessibilityLabel={label} style={[size, { backgroundColor: cover.bg, justifyContent: 'space-between', padding: 8 }]}>
       <Text numberOfLines={5} style={{ fontFamily: fonts.moment, fontSize: 20, lineHeight: 20, color: cover.fg }}>
@@ -113,7 +113,7 @@ function LabelledLine({ label, value }: { label: string; value: string }) {
 }
 
 function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 'secondary' }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   return (
     <View
       style={{
@@ -121,7 +121,7 @@ function Tag({ label, tone = 'surface' }: { label: string; tone?: 'surface' | 's
         paddingVertical: 6,
         borderRadius: radius.pill,
         backgroundColor: tone === 'secondary' ? c.secondary : c.surface,
-        ...(tone === 'secondary' ? {} : softShadow(isDark, 'small')),
+        ...(tone === 'secondary' ? {} : softShadow(mode, 'small')),
       }}
     >
       <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, color: tone === 'secondary' ? c.onSecondary : c.inkSoft }}>{label}</Text>
@@ -226,7 +226,7 @@ function StoryBody({
   userId: string;
   onChanged: () => void;
 }) {
-  const { c, isDark, fonts } = useTheme();
+  const { c, mode, fonts } = useTheme();
   const t = useT();
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
@@ -410,8 +410,10 @@ function StoryBody({
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderRadius: radius.pill,
+                        borderWidth: 2,
+                        borderColor: entry.progress_section === n ? c.signal : 'transparent',
                         backgroundColor: entry.progress_section === n ? c.primary : c.surface,
-                        ...(entry.progress_section === n ? {} : softShadow(isDark, 'small')),
+                        ...(entry.progress_section === n ? {} : softShadow(mode, 'small')),
                       }}
                     >
                       <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: entry.progress_section === n ? c.onPrimary : c.inkSoft }}>{n}</Text>

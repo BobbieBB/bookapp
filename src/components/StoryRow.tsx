@@ -39,7 +39,7 @@ export function StoryRow({
       : [showStatus ? tr(statusKey(entry.status, s)) : null, entry.progress_section > 0 ? progressLine(entry, tr) : null]
           .filter(Boolean)
           .join(' · ');
-  const cover = coverColor(s.id, t.isDark);
+  const cover = coverColor(s.id, t.mode);
   // The link that failed to load, so a broken image falls back to the typographic cover. The link is
   // forgotten too, so the next load (the lists reload on focus) signs a new one and tries again.
   const [failedUrl, setFailedUrl] = useState<string | undefined>();
@@ -62,7 +62,7 @@ export function StoryRow({
             setFailedUrl(custom);
             forgetCoverLink(custom);
           }}
-          style={{ ...COVER, ...softShadow(t.isDark, 'small') }}
+          style={{ ...COVER, ...softShadow(t.mode, 'small') }}
         />
       ) : (
         <View
@@ -71,7 +71,7 @@ export function StoryRow({
           style={{
             ...COVER,
             backgroundColor: cover.bg,
-            ...softShadow(t.isDark, 'small'),
+            ...softShadow(t.mode, 'small'),
             justifyContent: 'space-between',
             padding: 7,
           }}
@@ -102,7 +102,7 @@ export function StoryRow({
             marginTop: 6,
           }}
         >
-          <View style={{ height: '100%', borderRadius: 999, width: `${pct}%`, backgroundColor: s.kind === 'fanfic' ? c.secondary : c.primary }} />
+          <View style={{ height: '100%', borderRadius: 999, width: `${pct}%`, backgroundColor: s.kind === 'fanfic' ? c.progressAlt : c.progress }} />
         </View>
       </View>
     </Pressable>

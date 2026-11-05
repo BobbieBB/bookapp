@@ -58,7 +58,7 @@ export default function Moderation() {
             {items ? (
               <ModerationQueue items={items} onResolved={() => setVersion((v) => v + 1)} />
             ) : (
-              <ActivityIndicator color={c.primary} accessibilityLabel={t('moderation.loading')} />
+              <ActivityIndicator color={c.signal} accessibilityLabel={t('moderation.loading')} />
             )}
           </>
         )}

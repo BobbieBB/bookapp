@@ -1,7 +1,8 @@
 // Ink & Bloom design tokens. Colours chosen 14 Oct 2026; modern look ("Modern A, bold
 // colours": no outlines, soft shadows, rounder corners) chosen 15 Oct 2026.
-// Same roles in light and dark:
+// Same roles in light, dark and calm (docs/DECISIONS.md, "Calm theme"):
 // components ask for a role (e.g. `c.mine` for your own posts), never a hex.
+import { createContext, use } from 'react';
 import { useColorScheme } from 'react-native';
 
 const light = {
@@ -24,6 +25,11 @@ const light = {
   danger: '#B3123F',
   success: '#1F6B45',
   track: '#E9EEEB',
+  accent: '#4E4459', // small headings and links
+  progress: '#F2437B', // progress bar fill: books (3:1 on white and the ground)
+  progressAlt: '#2A9D78', // progress bar fill: fanfiction
+  signal: '#F2437B', // non-text marks that must show on ground and cards: spinners, a selected chip's edge
+  thumb: '#FFFFFF', // switch thumb (the platform default is teal on web and Android)
 };
 
 const dark: typeof light = {
@@ -46,8 +52,43 @@ const dark: typeof light = {
   danger: '#FF7A93',
   success: '#8EE6CC',
   track: '#2E2436',
+  accent: '#B4A6BD',
+  progress: '#FF6B97',
+  progressAlt: '#4FD1A6',
+  signal: '#FF6B97',
+  thumb: '#F7EEF3',
 };
 
+// "Calm": one warm beige family, no pink and no green, for readers sensitive to bright colours. Every
+// progress bar is the same taupe on the same sand track, never coloured per story.
+const calm: typeof light = {
+  ground: '#F3F1EC',
+  scrim: 'rgba(47, 42, 53, 0.35)',
+  surface: '#FBFAF7',
+  band: '#E3D5C0',
+  ink: '#2F2A35',
+  inkSoft: '#413A47',
+  muted: '#5E5650',
+  hairline: '#DDD5C8',
+  shadow: '#6B5440', // warm brown, not the plum of Light
+  primary: '#D8C7AE', // buttons, the active tab and chips: sand with ink text
+  onPrimary: '#2F2A35',
+  secondary: '#7A5F45', // switches and highlighted chips
+  onSecondary: '#FBFAF7',
+  mine: '#ECE3D4',
+  safe: '#E3D5C0',
+  onSafe: '#2F2A35',
+  danger: '#8A3B2A', // brick: an error stays readable without being pink
+  success: '#5E4B36',
+  track: '#EAE6DE',
+  accent: '#7A5F45',
+  progress: '#8A7258',
+  progressAlt: '#8A7258',
+  signal: '#7A5F45', // sand (primary) is only 1.4:1 on the cards; the accent brown shows
+  thumb: '#FBFAF7',
+};
+
+export const palettes = { light, dark, calm };
 export type Palette = typeof light;
 
 // Cover colours for stories without a real cover (all fics, books without one).
@@ -70,10 +111,18 @@ const coverDark = [
   { bg: '#F7EEF3', fg: '#1E1328' },
 ];
 
-export function coverColor(storyId: string, isDark: boolean) {
+const coverCalm = [
+  { bg: '#E3D5C0', fg: '#2F2A35' },
+  { bg: '#D8C7AE', fg: '#2F2A35' },
+  { bg: '#CBB9A3', fg: '#2F2A35' },
+];
+
+export type Mode = 'light' | 'dark' | 'calm';
+
+export function coverColor(storyId: string, mode: Mode) {
   let h = 0;
   for (let i = 0; i < storyId.length; i++) h = (h * 31 + storyId.charCodeAt(i)) >>> 0;
-  const set = isDark ? coverDark : coverLight;
+  const set = mode === 'dark' ? coverDark : mode === 'calm' ? coverCalm : coverLight;
   return set[h % set.length]!;
 }
 
@@ -91,30 +140,42 @@ export const radius = { s: 14, m: 20, l: 22, pill: 999 };
 export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
 
 /** Soft drop shadow (iOS shadow props + Android elevation). */
-export function softShadow(isDark: boolean, strength: 'card' | 'small' = 'card') {
+export function softShadow(mode: Mode, strength: 'card' | 'small' = 'card') {
   const big = strength === 'card';
   return {
-    shadowColor: isDark ? '#000000' : '#1E1328',
+    shadowColor: palettes[mode].shadow,
     shadowOffset: { width: 0, height: big ? 10 : 3 },
-    shadowOpacity: isDark ? 0.35 : big ? 0.09 : 0.1,
+    shadowOpacity: mode === 'dark' ? 0.35 : mode === 'calm' ? (big ? 0.12 : 0.14) : big ? 0.09 : 0.1,
     shadowRadius: big ? 22 : 6,
     elevation: big ? 4 : 2,
   };
 }
 
+/** What the reader picked in Profile → Appearance; Auto follows the phone. */
+export type Appearance = 'auto' | 'light' | 'dark' | 'calm';
+
+type AppearanceState = { appearance: Appearance; setAppearance: (a: Appearance) => void };
+
+/** Provided by <AppearanceProvider> (src/appearance.tsx); without one, the theme simply follows the phone. */
+export const AppearanceContext = createContext<AppearanceState | null>(null);
+
 export function useTheme() {
   const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
-  const c = isDark ? dark : light;
+  const appearance = use(AppearanceContext)?.appearance ?? 'auto';
+  const mode: Mode = appearance === 'auto' ? (scheme === 'dark' ? 'dark' : 'light') : appearance;
+  // Calm is light-based: `isDark` (status bar, shadows) stays true for Dark only.
+  const isDark = mode === 'dark';
+  const c = palettes[mode];
   return {
     isDark,
+    mode,
     c,
     fonts,
     // Modern card: no outline, soft shadow, generous corners.
     card: {
       backgroundColor: c.surface,
       borderRadius: radius.l,
-      ...softShadow(isDark),
+      ...softShadow(mode),
     },
   };
 }

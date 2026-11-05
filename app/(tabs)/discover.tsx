@@ -24,7 +24,7 @@ const TIER_KEY = {
 function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }) {
   const t = useTheme();
   const tr = useT();
-  const cover = coverColor(story.id, t.isDark);
+  const cover = coverColor(story.id, t.mode);
   const subtitle = [story.author_name, story.fandoms[0]].filter(Boolean).join(' · ');
   const tag = story.status === 'completed' ? tr('add.complete') : story.status === 'ongoing' ? tr('add.wip') : null;
   return (
@@ -42,7 +42,7 @@ function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }
           height: 92,
           borderRadius: 10,
           backgroundColor: cover.bg,
-          ...softShadow(t.isDark, 'small'),
+          ...softShadow(t.mode, 'small'),
           justifyContent: 'space-between',
           padding: 6,
         }}
@@ -142,7 +142,7 @@ export default function Discover() {
         {mine.error !== undefined ? (
           <ErrorText>{t('discover.error')}</ErrorText>
         ) : !mine.data ? (
-          <ActivityIndicator color={c.primary} accessibilityLabel={t('discover.loading')} />
+          <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
         ) : !fanficReader ? (
           <Card>
             <T v="h2">{t('discover.fanficOnly')}</T>
@@ -181,7 +181,7 @@ export default function Discover() {
               {feed.error !== undefined ? (
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
-                <ActivityIndicator color={c.primary} accessibilityLabel={t('discover.loading')} />
+                <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
               ) : feed.data.length === 0 ? (
                 <Card style={{ gap: space.s }}>
                   <T v="muted">{t('discover.empty')}</T>

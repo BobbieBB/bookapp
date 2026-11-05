@@ -100,7 +100,7 @@ export default function Admin() {
         {error !== undefined ? (
           <ErrorText>{refused(error) ? t('admin.refused') : t('admin.error')}</ErrorText>
         ) : !data ? (
-          <ActivityIndicator color={c.primary} />
+          <ActivityIndicator color={c.signal} />
         ) : (
           <>
             <T v="muted">{t('admin.intro')}</T>

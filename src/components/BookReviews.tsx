@@ -26,7 +26,7 @@ export function BookReviews({ storyId, version }: { storyId: string; version: nu
       {shownReviews ? (
         shownReviews.map((r) => <ReviewCard key={r.id} review={r} />)
       ) : reviews.error ? null : (
-        <ActivityIndicator color={c.primary} />
+        <ActivityIndicator color={c.signal} />
       )}
     </View>
   );

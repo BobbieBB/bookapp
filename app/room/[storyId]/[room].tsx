@@ -62,7 +62,7 @@ export default function RoomScreen() {
   if (!target || (!room.error && !opened) || (!page && story.loading) || (opened && !list && comments.loading)) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, justifyContent: 'center', padding: space.xl }}>
-        {!target ? <ErrorText>{t('room.error')}</ErrorText> : <ActivityIndicator color={c.primary} />}
+        {!target ? <ErrorText>{t('room.error')}</ErrorText> : <ActivityIndicator color={c.signal} />}
       </SafeAreaView>
     );
   }
