@@ -49,6 +49,11 @@ Before launch:
   mailer only sends to the team's addresses. Then set the hosted e-mail rate limit (Auth → Rate limits); the
   `email_sent` value in `supabase/config.toml` is for the local stack only.
 - **Copy:** a native read of the Bulgarian copy.
+- **Terms and privacy:** publish the texts at `TERMS_URL` and `PRIVACY_URL` (`src/lib/legal.ts`), set
+  `MIN_AGE` (the PO's call; 16 is a dev default) and bump `TERMS_VERSION` whenever the text changes, so
+  every reader accepts the new version. Apply the terms migration (`20261103000000_terms_acceptance.sql`)
+  to the hosted database **before** shipping an app build that includes it: the app reads
+  `profiles.terms_version` at sign-in, and without the column that read fails for every reader.
 
 Planning lives on the Trello board *Book club app*.
 

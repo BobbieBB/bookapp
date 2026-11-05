@@ -11,6 +11,8 @@ export type Profile = {
   reads_books: boolean;
   reads_fanfic: boolean;
   is_admin: boolean; // sees Profile > Numbers (set only in the database)
+  /** The terms version this reader accepted; null for readers from before the terms (src/lib/legal.ts). */
+  terms_version: string | null;
 };
 
 export type Story = {

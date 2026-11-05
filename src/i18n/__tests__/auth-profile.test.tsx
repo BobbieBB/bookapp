@@ -96,6 +96,8 @@ describe.each(languages)('onboarding in %s', (language) => {
       start: 'Start reading',
       signOut: 'Sign out',
       badName: 'Names use 3–30 letters, numbers or underscores, no spaces.',
+      terms: /I accept the Terms/,
+      age: /I’m at least/,
     },
     bg: {
       title: 'Чувствай се като у дома си',
@@ -103,6 +105,8 @@ describe.each(languages)('onboarding in %s', (language) => {
       start: 'Започни да четеш',
       signOut: 'Изход',
       badName: 'Имената са от 3 до 30 латински букви, цифри или долни черти, без интервали.',
+      terms: /Приемам Условията/,
+      age: /Аз съм на поне/,
     },
   }[language];
 
@@ -113,6 +117,9 @@ describe.each(languages)('onboarding in %s', (language) => {
     expect(screen.getByText(text.question)).toBeTruthy();
     expect(screen.getByText(text.signOut)).toBeTruthy();
 
+    // Start opens once both are ticked (terms and age, 2 Nov 2026).
+    await fireEvent.press(screen.getByRole('checkbox', { name: text.terms }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: text.age }));
     await fireEvent.press(screen.getByText(text.start));
     expect(await screen.findByText(text.badName)).toBeTruthy();
   });

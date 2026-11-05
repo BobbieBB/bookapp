@@ -388,3 +388,16 @@ Choices made during development where the decisions above don't say. Each one is
 - Accepted: a reader whose app is killed (or who is offline even for signing out) between the code and the new
   password stays signed in without a new password. They have shown they own the address.
 - Out of scope here: sign-up's "This email already has an account" still tells anyone whether an address has one.
+
+## Terms and age: ticked at sign-up (2 Nov 2026, user decision)
+- The full terms and privacy policy live on **web pages the app links to** (`TERMS_URL`, `PRIVACY_URL` in
+  `src/lib/legal.ts`), so the text can change without an app release.
+- **One sign-up step, two ticks**, both needed before Start: "I accept the Terms and the Privacy Policy" and
+  "I'm at least {MIN_AGE}", with a note that Livami is for readers aged {MIN_AGE}+. Nothing is pre-ticked.
+- **Only yes/no is stored, never a birth date:** the profile keeps the accepted `terms_version`, the server's
+  time of acceptance and `age_confirmed` (docs/DATA_MODEL.md, "Terms and age"). Acceptance can't be withdrawn;
+  leaving means deleting the account.
+- **When the text changes, bump `TERMS_VERSION`:** every reader whose accepted version differs (including
+  readers from before this step) sees "Our terms have changed" before the app opens, with Accept, Sign out
+  and Delete my account.
+- **`MIN_AGE` = 16 is a dev default** pending the PO's call.

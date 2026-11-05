@@ -22,6 +22,7 @@ psql -v ON_ERROR_STOP=1 -d $DB -f tests/account.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/moderation.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/moderation_email.test.sql
 bash tests/moderation_email_log.test.sh
+psql -v ON_ERROR_STOP=1 -d $DB -f tests/terms_acceptance.test.sql
 bash tests/account_race.test.sh
 bash tests/bump_race.test.sh
 bash tests/push_race.test.sh

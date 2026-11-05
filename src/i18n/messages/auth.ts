@@ -55,6 +55,7 @@ export const en = {
   'auth.errorPickOne': 'Pick at least one: books or fanfiction.',
   'auth.errorNameTaken': 'That name is taken. Try another one.',
   'auth.startReading': 'Start reading',
+  'auth.saveFailed': 'We couldn’t save your profile. Please try again.',
   'auth.profileLoadFailed': 'We couldn’t load your profile',
   'auth.profileLoadHint': 'Check your connection and try again.',
 } as const satisfies Messages;
@@ -80,7 +81,7 @@ export const bg: Translation<typeof en> = {
   'auth.errorAlreadyRegistered': 'Този имейл вече има акаунт. Опитай да влезеш.',
   'auth.errorNotConfirmed': 'Първо потвърди имейла си. Провери пощата си.',
   'auth.errorRateLimit': 'Твърде много опити. Изчакай минута и опитай пак.',
-  'auth.forgotPassword': 'Забрави паролата си?',
+  'auth.forgotPassword': 'Забравена парола?',
   'auth.resetTitle': 'Смени паролата си',
   'auth.resetIntro': 'Въведи имейла, с който се регистрира, и ще ти изпратим 6-цифрен код.',
   'auth.sendCode': 'Изпрати код',
@@ -112,6 +113,7 @@ export const bg: Translation<typeof en> = {
   'auth.errorPickOne': 'Избери поне едно: книги или фенфикшън.',
   'auth.errorNameTaken': 'Това име е заето. Опитай друго.',
   'auth.startReading': 'Започни да четеш',
+  'auth.saveFailed': 'Не успяхме да запазим профила ти. Опитай пак.',
   'auth.profileLoadFailed': 'Не успяхме да заредем профила ти',
   'auth.profileLoadHint': 'Провери връзката си и опитай пак.',
 };

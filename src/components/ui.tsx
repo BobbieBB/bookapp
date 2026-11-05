@@ -21,9 +21,11 @@ export function Button({
   disabled,
   loading,
   accessibilityLabel,
+  accessibilityHint,
 }: {
   title: string;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'link';
   disabled?: boolean;
@@ -43,6 +45,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [style, (pressed || disabled) && { opacity: 0.75, transform: [{ scale: 0.98 }] }]}
