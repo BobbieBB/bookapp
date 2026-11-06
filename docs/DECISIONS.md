@@ -102,7 +102,12 @@ fic auto-fill from AO3 (only with OTW permission).
 - Replaces "New chapters today" (WIP-only). Discover is for stories you don't read yet; new chapters of stories you DO read go to Home and notifications.
 - Shows complete and WIP fics (DONE/WIP tag), ranked by discussion activity this week, in your fandoms.
 - Never empty: if this week is quiet, widen to 30 days, then to all-time most-read in your fandoms, then to the curated starter list.
-- Readers who don't follow WIPs: if your library is (almost) all complete fics, complete ones rank first. Later: a "Complete only" filter.
+- Readers who don't follow WIPs: if your library is (almost) all complete fics, complete ones rank first.
+- **"Complete only" filter (built, 6 Nov 2026):** a chip under the section heading („Само завършени“). On, the list shows only
+  complete fics and still never empties the same way (7 days → 30 days → most read → starter fandoms, all complete only); if even
+  the starter fandoms have none you don't read, a short message suggests turning the filter off. Off by default for everyone (also
+  readers whose library is all complete fics: they already see complete ones first); the choice is remembered on this device only,
+  like Appearance, never on the server.
 
 ## Add a book: "Can't find it? Add it by hand" (14 Oct 2026)
 - Hidden before the first search. After a search it always sits at the END of the results list (not sticky).
