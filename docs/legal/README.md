@@ -7,7 +7,7 @@
 - `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics opt-out, security).
 - `terms.md`: Terms of Use (eligibility, accounts, content licence, community rules, moderation, fanfiction stance, IP/takedown, termination, liability, governing law).
 
-Both were derived from the code at `origin/main` (migrations up to `20261020000000`, `src/lib/analytics.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Markers `[after PR #20 merge]` (daily orphan-cover sweep), `[after PR #23 merge]` (Moderation screen, chapter-count requests) and `[after PR #24 merge]` (moderation e-mail via Resend) must be resolved when each PR merges: remove the marker if the PR merges as described, or delete the passage if it does not.
+Both were derived from the code at `origin/main` (migrations up to `20261103000000`, `src/lib/analytics.ts`, `legal.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`, `app/onboarding.tsx`, `app/accept-terms.tsx`, `app/reset-password.tsx`, the moderation and moderation-e-mail migrations) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. The earlier `[after PR #N merge]` markers (#20 orphan-cover sweep, #23 Moderation screen and chapter-count requests, #24 moderation e-mail via Resend) are gone: all three PRs are merged and the text now states what the code does. The Calm theme/appearance choice is not in the policy on purpose: it is stored only on the phone (`AsyncStorage`, key `livami.appearance`, `src/appearance.tsx`), not on the server.
 
 ## Bulgarian versions
 
@@ -17,8 +17,8 @@ Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documen
 
 **PO decides**
 1. Operator identity: legal name, address, EIK/VAT, contact mailbox (support@livami.app must exist and be monitored).
-2. Minimum age (13/14/16) and whether an age confirmation or date of birth is added at sign-up (none exists now). Whether Mature/Explicit AO3 works need a higher age or gate.
-3. Retention periods: inactive accounts, feedback, removal requests, moderation e-mails, logs, backups.
+2. Minimum age (13/14/16): `MIN_AGE = 16` in `src/lib/legal.ts` is a dev default. The app now stores a self-declared yes/no tick (`age_confirmed`), never a birth date; decide whether that suffices. Whether Mature/Explicit AO3 works need a higher age or gate. Publish the pages at `TERMS_URL` / `PRIVACY_URL` and set `TERMS_VERSION` to match the published text (bumping it makes every reader accept again).
+3. Retention periods: inactive accounts, feedback, removal requests, resolved chapter-count requests, moderation e-mails (also at Resend), accounts that never reach the profile step, proof of terms acceptance, logs, backups.
 4. Library visibility: the database default is "public" and no screen sets it. Decide the product behaviour (private by default is safer).
 5. Analytics basis: legitimate interests with opt-out (as in DECISIONS) vs. opt-in consent.
 6. Promises in the terms: no AI training on user content, one account per person, 24-hour moderation target.
@@ -35,6 +35,7 @@ Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documen
 
 **Engineering confirms** (see "Code checks" below)
 - Supabase project region (EU?); Supabase log and backup retention.
+- Which SMTP service sends the password-reset code (README suggests Resend); if it is not Resend, update the processor table. Check the hosted recovery e-mail template matches `supabase/templates/recovery.html`.
 - Settings menu paths quoted in the policy ("Delete my account", "Help us improve the app", "Notifications on this phone").
 - No additional SDKs (crash reporting, ads) are added before release.
 
@@ -42,11 +43,11 @@ Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documen
 
 - `feedback.device` exists in the schema, but the app writes only `app_version` (`src/lib/safety.ts`). The policy says so.
 - `profiles.avatar_url` exists, but no app screen was found that uses it. The policy does not claim avatar uploads.
-- No age check, no password-reset flow and no data-export feature were found in the code.
+- No data-export feature was found in the code. The age tick, terms acceptance (`terms_version`, `terms_accepted_at`, `age_confirmed`) and password reset by e-mail code now exist and are described. The account (e-mail, password) is created at sign-up before the terms are ticked at profile creation; the policy says so.
 - Library entries default to `visibility = public` and the RLS lets any signed-in reader read public entries; no screen that changes it was found.
 - Open Library's `User-Agent` carries the GitHub project URL, not an e-mail (DECISIONS says "app name and contact email", the dev default says project page). The policy follows the code.
-- Moderation e-mail (Resend, PR #24), the Moderation screen and chapter-count requests (PR #23) and the orphan-cover sweep (PR #20) are not in `main`, so they are marked.
-- Reviews cannot be reported yet (`src/lib/safety.ts` has `reportComment` and `reportUser` only); a fix is planned.
+- Moderation e-mail (Resend), the Moderation screen, chapter-count requests and the orphan-cover sweep are in `main` and described without markers. Moderation e-mail is off until `moderation_email_settings.enabled` is set; the text describes it as it will run at launch.
+- Reviews can now be reported (`reportReview` in `src/lib/safety.ts`, used by `BookReviews.tsx`).
 - Profiles, per-user book ratings and public library entries are readable by every signed-in reader (`init.sql` profiles_read, ratings_read, library_read).
 
 ## Sign-off
@@ -65,6 +66,6 @@ Both stores need a **public URL** for the privacy policy, reachable without logi
 
 - Host on the owned domain **livami.app**, for example `https://livami.app/privacy` and `https://livami.app/terms` [TO CONFIRM: a static page or small site on that domain; DNS is at Porkbun]. Serve English and Bulgarian versions (for example `/bg/privacy`, `/bg/terms`).
 - Required places for the URL: App Store Connect (App Privacy: Privacy Policy URL, required; Terms URL optional or in the description/EULA field) and Google Play Console (Store listing and the Data safety form: Privacy policy URL, required).
-- Also link them inside the app (sign-up screen, Profile > About) [TO CONFIRM: not present today].
+- The app links to them at profile creation and on the "Our terms have changed" screen (`TermsConsent`, using `TERMS_URL` / `PRIVACY_URL`); a link in Profile > About was not found [TO CONFIRM: add one].
 - Keep the URLs stable; update the text in place and keep dated older versions.
 - Fill in Apple's privacy "nutrition label" and Google's Data safety form from section 3 of the privacy policy, and the age-rating questionnaires from the minimum-age decision.

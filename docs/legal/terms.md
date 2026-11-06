@@ -8,19 +8,19 @@
 
 ## 1. Who we are and what these terms cover
 
-Livami (the "app", "we") is a social reading app for books and fanfiction, run by [TO CONFIRM: legal name, address, company ID (EIK) of the operator]. By creating an account or using the app you agree to these terms. How we handle personal data is in the Privacy Policy, which is part of these terms for that purpose only.
+Livami (the "app", "we") is a social reading app for books and fanfiction, run by [TO CONFIRM: legal name, address, company ID (EIK) of the operator]. You accept these terms explicitly: when you create your profile the app asks you to tick "I accept the Terms and the Privacy Policy" (with links to both) and you cannot continue without it. We record the version you accepted and the time. When we publish a new version, the app asks you to accept it again before it opens; if you do not agree, you can sign out or delete your account instead. The accepted version cannot be withdrawn, but you can delete your account at any time. How we handle personal data is in the Privacy Policy, which is part of these terms for that purpose only.
 
 Contact: **support@livami.app** [TO CONFIRM: mailbox exists].
 
 ## 2. Who can use Livami
 
-You must be at least **[TO CONFIRM: 16 / 14 / 13]** years old (see the Privacy Policy, "Children") and able to enter a contract under the law where you live. If you are below the age of majority, you confirm you have your parent's or guardian's permission [TO CONFIRM: with counsel]. The app currently has no age check at sign-up [TO CONFIRM: add one]. The app is aimed at users in the European Union [TO CONFIRM: other countries? Store availability settings].
+You must be at least **[TO CONFIRM: 16 / 14 / 13; the app uses 16 as a development default]** years old (see the Privacy Policy, "Children") and able to enter a contract under the law where you live. When you create your profile you confirm this by ticking "I'm at least [age]". This is your own statement: we do not check your age or ask for a date of birth, and by ticking you state that it is true. If you are below the age of majority, you confirm you have your parent's or guardian's permission [TO CONFIRM: with counsel]. [TO CONFIRM: whether the self-declared tick is enough for the chosen age.] The app is aimed at users in the European Union [TO CONFIRM: other countries? Store availability settings].
 
 Some fanfiction that readers add is rated Mature or Explicit on AO3. Livami links to those works but does not host them (section 8) [TO CONFIRM: minimum age or age gate for such content].
 
 ## 3. Your account
 
-- You sign up with an e-mail address and a password (at least 8 characters). Keep them secret and give us true contact information.
+- You sign up with an e-mail address and a password (at least 8 characters). Keep them secret and give us true contact information. If you forget the password, "Forgot password" sends a 6-digit code to your e-mail address, which you type in the app to choose a new one. Do not share the code.
 - You choose one unique **Name** (3 to 30 letters, numbers or underscores). It is shown everywhere in the app. Do not impersonate others or choose a Name that is offensive or misleading.
 - One person, one account [TO CONFIRM].
 - You are responsible for what happens on your account. Tell us at once if you think someone else is using it.
@@ -55,9 +55,9 @@ Be kind. Do not:
 
 ## 6. Reporting, blocking and moderation
 
-- **Report** any comment or reader that breaks these rules. [TO CONFIRM: reviews can be reported once the report button ships; the app currently lets you report comments and readers only.] You can block a reader: you no longer see each other's comments, reviews, reactions or notifications, and neither of you can reply to the other.
-- We look at reports and author removal requests as fast as we can and aim to act within **24 hours** [TO CONFIRM: the product owner is the only moderator today; the aim must be realistic, include weekends and holidays, or say "within 24 hours on a best-effort basis"]. Reports and removal requests reach the product owner by e-mail [after PR #24 merge] and through an admin-only Moderation screen [after PR #23 merge].
-- Moderation may hide a comment or a story, or dismiss a report. [TO CONFIRM: the migrations have an `is_suspended` flag on profiles, but the DECISIONS doc says v1 has no banning (block and hide comments instead). State here only what exists at launch.]
+- **Report** any comment, book review or reader that breaks these rules. You can block a reader: you no longer see each other's comments, reviews, reactions or notifications, and neither of you can reply to the other.
+- We look at reports and author removal requests as fast as we can and aim to act within **24 hours** [TO CONFIRM: the product owner is the only moderator today; the aim must be realistic, include weekends and holidays, or say "within 24 hours on a best-effort basis"]. Reports and removal requests reach the product owner by e-mail and through an admin-only Moderation screen, which also shows feedback and chapter-count requests ("Wrong chapter count?"). The e-mail never says who filed a report.
+- Moderation may hide a comment, a book review or a story, accept or dismiss a chapter-count request, or dismiss a report. Each report, request and feedback item has a status (open, actioned or dismissed). [TO CONFIRM: the migrations have an `is_suspended` flag on profiles, but the DECISIONS doc says v1 has no banning (block and hide comments instead). State here only what exists at launch.]
 - We tell the person affected and give a reason where the law requires it [TO CONFIRM: Digital Services Act duties for hosting services: notice-and-action mechanism, statement of reasons, point of contact, complaint handling, and what applies to a micro/small enterprise].
 - Reports may contain personal data; see the Privacy Policy.
 
@@ -112,7 +112,7 @@ Apple and Google are not party to these terms and are not responsible for the ap
 
 ## 15. Changes
 
-We may change these terms, for example when the app gets new features. For material changes we will tell you in the app (or by e-mail) at least [TO CONFIRM: 30] days before they apply. If you do not agree, you may delete your account before then. Continued use after the change means you accept it [TO CONFIRM: check whether this mechanism is enforceable against consumers; an explicit acceptance may be needed].
+We may change these terms, for example when the app gets new features. For material changes we will tell you in the app (or by e-mail) at least [TO CONFIRM: 30] days before they apply. If you do not agree, you may delete your account before then. Continued use after the change means you accept it For changes to the text, the app asks you to accept the new version explicitly before you go on (section 1), so continued use is not the only sign of agreement [TO CONFIRM: whether the in-app re-acceptance is enough for material changes, and how the notice period fits with it].
 
 ## 16. General
 
