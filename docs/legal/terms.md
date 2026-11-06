@@ -57,7 +57,7 @@ Be kind. Do not:
 
 - **Report** any comment, book review or reader that breaks these rules. You can block a reader: you no longer see each other's comments, reviews, reactions or notifications, and neither of you can reply to the other.
 - We look at reports and author removal requests as fast as we can and aim to act within **24 hours** [TO CONFIRM: the product owner is the only moderator today; the aim must be realistic, include weekends and holidays, or say "within 24 hours on a best-effort basis"]. Reports and removal requests reach the product owner by e-mail and through an admin-only Moderation screen, which also shows feedback and chapter-count requests ("Wrong chapter count?"). The e-mail never says who filed a report.
-- Moderation may hide a comment, a book review or a story, accept or dismiss a chapter-count request, or dismiss a report. Each report, request and feedback item has a status (open, actioned or dismissed). [TO CONFIRM: the migrations have an `is_suspended` flag on profiles, but the DECISIONS doc says v1 has no banning (block and hide comments instead). State here only what exists at launch.]
+- Moderation may hide a comment or a book review (on a report), hide a fic (only on an author removal request), dismiss a report (a report on a reader can only be dismissed), accept or dismiss a chapter-count request, and mark feedback done or dismiss it. Each report, request and feedback item has a status (open, actioned or dismissed). [TO CONFIRM: the migrations have an `is_suspended` flag on profiles, but the DECISIONS doc says v1 has no banning (block and hide comments instead). State here only what exists at launch.]
 - We tell the person affected and give a reason where the law requires it [TO CONFIRM: Digital Services Act duties for hosting services: notice-and-action mechanism, statement of reasons, point of contact, complaint handling, and what applies to a micro/small enterprise].
 - Reports may contain personal data; see the Privacy Policy.
 
@@ -112,7 +112,7 @@ Apple and Google are not party to these terms and are not responsible for the ap
 
 ## 15. Changes
 
-We may change these terms, for example when the app gets new features. For material changes we will tell you in the app (or by e-mail) at least [TO CONFIRM: 30] days before they apply. If you do not agree, you may delete your account before then. Continued use after the change means you accept it For changes to the text, the app asks you to accept the new version explicitly before you go on (section 1), so continued use is not the only sign of agreement [TO CONFIRM: whether the in-app re-acceptance is enough for material changes, and how the notice period fits with it].
+We may change these terms, for example when the app gets new features. For material changes we will tell you in the app (or by e-mail) at least [TO CONFIRM: 30] days before they apply. If you do not agree, you may delete your account before then. Continued use after the change means you accept it. For changes to the text, the app asks you to accept the new version explicitly before you go on (section 1), so continued use is not the only sign of agreement [TO CONFIRM: whether the in-app re-acceptance is enough for material changes, and how the notice period fits with it].
 
 ## 16. General
 
