@@ -1,6 +1,6 @@
 import type { Messages, Translation } from '../types';
 
-// Sign in, sign up and onboarding.
+// Sign in, sign up, password reset and onboarding.
 export const en = {
   'auth.welcomeBack': 'Welcome back',
   'auth.joinReaders': 'Join the readers',
@@ -22,6 +22,24 @@ export const en = {
   'auth.errorAlreadyRegistered': 'This email already has an account. Try signing in.',
   'auth.errorNotConfirmed': 'Please confirm your email first. Check your inbox.',
   'auth.errorRateLimit': 'Too many attempts. Please wait a minute and try again.',
+  'auth.forgotPassword': 'Forgot password?',
+  'auth.resetTitle': 'Reset your password',
+  'auth.resetIntro': 'Enter the email you signed up with and we’ll send you a 6-digit code.',
+  'auth.sendCode': 'Send code',
+  'auth.codeSent':
+    'If an account exists for this email, we’ve sent a 6-digit code. It can take a minute; after that you can ask for a new one.',
+  'auth.codeIntro': 'Type the code from the email to {email}, then choose a new password.',
+  'auth.code': 'Code from the email',
+  'auth.codePlaceholder': '6 digits',
+  'auth.newPassword': 'New password',
+  'auth.setNewPassword': 'Set new password',
+  'auth.sendNewCode': 'Send a new code',
+  'auth.back': 'Back',
+  'auth.errorCode': 'Enter the 6-digit code from the email.',
+  'auth.errorBadCode': 'That code is wrong or has expired. Check the email, or send a new code.',
+  'auth.errorSamePassword':
+    'Your new password must be different from the old one. That code is now used up, so please ask for a new one.',
+  'auth.errorCodeSpent': 'We couldn’t save your new password, and that code is now used up. Please ask for a new one.',
   'auth.onboardTitle': 'Make yourself at home',
   'auth.onboardIntro': 'Pick a name other readers will see in discussions.',
   'auth.namePlaceholder': 'e.g. nightowl_reads',
@@ -37,6 +55,7 @@ export const en = {
   'auth.errorPickOne': 'Pick at least one: books or fanfiction.',
   'auth.errorNameTaken': 'That name is taken. Try another one.',
   'auth.startReading': 'Start reading',
+  'auth.saveFailed': 'We couldn’t save your profile. Please try again.',
   'auth.profileLoadFailed': 'We couldn’t load your profile',
   'auth.profileLoadHint': 'Check your connection and try again.',
 } as const satisfies Messages;
@@ -62,6 +81,23 @@ export const bg: Translation<typeof en> = {
   'auth.errorAlreadyRegistered': 'Този имейл вече има акаунт. Опитай да влезеш.',
   'auth.errorNotConfirmed': 'Първо потвърди имейла си. Провери пощата си.',
   'auth.errorRateLimit': 'Твърде много опити. Изчакай минута и опитай пак.',
+  'auth.forgotPassword': 'Забравена парола?',
+  'auth.resetTitle': 'Смени паролата си',
+  'auth.resetIntro': 'Въведи имейла, с който се регистрира, и ще ти изпратим 6-цифрен код.',
+  'auth.sendCode': 'Изпрати код',
+  'auth.codeSent':
+    'Ако има акаунт с този имейл, изпратихме ти 6-цифрен код. Може да отнеме минута; след това можеш да поискаш нов.',
+  'auth.codeIntro': 'Въведи кода от имейла до {email} и избери нова парола.',
+  'auth.code': 'Код от имейла',
+  'auth.codePlaceholder': '6 цифри',
+  'auth.newPassword': 'Нова парола',
+  'auth.setNewPassword': 'Запази новата парола',
+  'auth.sendNewCode': 'Изпрати нов код',
+  'auth.back': 'Назад',
+  'auth.errorCode': 'Въведи 6-цифрения код от имейла.',
+  'auth.errorBadCode': 'Кодът е грешен или е изтекъл. Провери имейла или поискай нов код.',
+  'auth.errorSamePassword': 'Новата парола трябва да е различна от старата. Кодът вече е използван, затова поискай нов.',
+  'auth.errorCodeSpent': 'Не успяхме да запазим новата ти парола, а кодът вече е използван. Моля, поискай нов.',
   'auth.onboardTitle': 'Чувствай се като у дома си',
   'auth.onboardIntro': 'Избери име, което другите читатели ще виждат в обсъжданията.',
   'auth.namePlaceholder': 'напр. nightowl_reads',
@@ -69,14 +105,15 @@ export const bg: Translation<typeof en> = {
   'auth.whatDoYouRead': 'Какво четеш?',
   'auth.books': 'Книги',
   'auth.fanfiction': 'Фенфикшън',
-  'auth.sectionsHint': 'Книгите и фиковете са в отделни раздели. Можеш да промениш това по-късно.',
-  'auth.giftQuote': 'Всеки фик е подарък. Цени го. Пази го.',
+  'auth.sectionsHint': 'Книгите и фикшъните са в отделни раздели. Можеш да промениш това по-късно.',
+  'auth.giftQuote': 'Всеки фикшън е подарък. Цени го. Пази го.',
   'auth.etiquette':
-    'Това приложение спазва етикета на фенфикшъна. Фиковете остават там, където авторите са ги публикували. Ти ги четеш там, а говориш за тях тук.',
+    'Това приложение спазва етикета на фенфикшъна. Фикшъните остават там, където авторите са ги публикували. Ти ги четеш там, а говориш за тях тук.',
   'auth.errorBadName': 'Имената са от 3 до 30 латински букви, цифри или долни черти, без интервали.',
   'auth.errorPickOne': 'Избери поне едно: книги или фенфикшън.',
   'auth.errorNameTaken': 'Това име е заето. Опитай друго.',
   'auth.startReading': 'Започни да четеш',
+  'auth.saveFailed': 'Не успяхме да запазим профила ти. Опитай пак.',
   'auth.profileLoadFailed': 'Не успяхме да заредем профила ти',
   'auth.profileLoadHint': 'Провери връзката си и опитай пак.',
 };

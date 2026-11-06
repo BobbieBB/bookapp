@@ -30,7 +30,7 @@ export default function Notifications() {
           <Button variant="link" title={t('notifications.back')} onPress={() => router.back()} />
         </View>
         <T v="h1">{t('notifications.title')}</T>
-        {!data && error === undefined ? <ActivityIndicator color={c.primary} /> : null}
+        {!data && error === undefined ? <ActivityIndicator color={c.signal} /> : null}
         <ErrorText>{error !== undefined ? t('notifications.error') : null}</ErrorText>
         {data?.length === 0 ? <T v="muted">{t('notifications.empty')}</T> : null}
         {data?.map((n) => <NotificationRow key={n.id} n={n} />)}

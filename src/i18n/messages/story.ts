@@ -58,6 +58,6 @@ export const bg: Translation<typeof en> = {
   'story.savePage': 'Запази страницата',
   'story.pageInvalid': 'Въведи номер на страница, например 143.',
   'story.percentRead': 'Прочетено: {n}%',
-  'story.markComplete': 'Фикът е завършен',
+  'story.markComplete': 'Фикшънът е завършен',
   'story.reopen': 'Не е завършен? Върни го като текущ',
 };

@@ -9,7 +9,7 @@ import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
 import { addFavouriteFandom } from '@/lib/discover';
 import { statusKey } from '@/lib/library';
-import { finishStory } from '@/lib/story';
+import { chaptersError, finishStory } from '@/lib/story';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useLookup } from '@/lib/useLookup';
@@ -105,16 +105,6 @@ function StatusPicker({
 }
 
 /**
- * Chapter count check: a whole number from 1 to 5000. Optional for "Want to read": you may not
- * have the book in hand yet; the count is asked on its page when you start (PO, 20 Oct 2026).
- */
-function chaptersError(value: string, t: ReturnType<typeof useT>, optional = false): string | undefined {
-  if (optional && value.trim() === '') return undefined;
-  const n = Number(value);
-  return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorChapters');
-}
-
-/**
  * When to show a field's error: once the reader has left the field, or tried to save. A chapter
  * count that is already wrong while typing (e.g. 86292) shows at once.
  */
@@ -151,16 +141,28 @@ async function followFandoms(fandoms: string[]) {
   await Promise.all(fandoms.filter(Boolean).map((f) => addFavouriteFandom(f).catch(() => undefined)));
 }
 
-async function finish(story: Story, status: LibraryStatus, kind: StoryKind, source: 'open_library' | 'manual' | 'ao3') {
+// A book's edition language goes with the event (the PO's "BG vs EN"); AO3 fics have none.
+async function finish(
+  story: Story,
+  status: LibraryStatus,
+  kind: StoryKind,
+  source: 'open_library' | 'manual' | 'ao3',
+  language?: BookLanguage,
+  fandoms: string[] = [],
+) {
   await addToLibrary(story.id, status);
-  void track('story_added', { kind, source, status });
+  // Only once the fic is in the library: a failed add must not leave its fandom followed.
+  await followFandoms(fandoms);
+  void track('story_added', language ? { kind, source, status, language } : { kind, source, status });
   if (status === 'finished') {
     // Same as tapping Finished on the story page: a WIP is caught up to its published chapters,
     // and the "You finished it!" screen follows (rate a book, The Epilogue, or "caught up").
     const userId = (await supabase.auth.getSession()).data.session?.user.id;
     if (userId) await finishStory(story, userId).catch(() => undefined);
     void track('story_finished', { kind });
-    router.replace(`/finished/${story.id}`);
+    // The story replaces Add and Finished sits on top, so Back from Finished always lands on the story.
+    router.replace(`/story/${story.id}`);
+    router.push(`/finished/${story.id}`);
     return;
   }
   // Opened from a link with nothing behind it: go Home instead of nowhere.
@@ -243,8 +245,8 @@ function SmallCover({ title, author, url, id }: { title: string; author: string;
   const theme = useTheme();
   const t = useT();
   const { fonts } = theme;
-  const col = coverColor(id, theme.isDark);
-  const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(theme.isDark, 'small') };
+  const col = coverColor(id, theme.mode);
+  const style = { width: 44, height: 64, borderRadius: 8, ...softShadow(theme.mode, 'small') };
   if (url) return <Image source={{ uri: url }} style={style} accessibilityLabel={t('add.cover', { title })} />;
   return (
     <View accessible accessibilityLabel={t('add.cover', { title })} style={[style, { backgroundColor: col.bg, padding: 4, justifyContent: 'space-between', overflow: 'hidden' }]}>
@@ -302,7 +304,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     setError('');
     try {
       const story = existing ?? (await createBook(book, { chapters: chapters.trim() ? n : null }, language));
-      await finish(story, status, 'book', 'open_library');
+      await finish(story, status, 'book', 'open_library', language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -369,7 +371,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setError('');
     try {
       const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: chapters.trim() ? n : null, language });
-      await finish(story, status, 'book', 'manual');
+      await finish(story, status, 'book', 'manual', language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -471,8 +473,7 @@ function AddFic() {
     setError('');
     try {
       if (existing) {
-        await followFandoms(existing.fandoms);
-        await finish(existing, status, 'fanfic', 'ao3');
+        await finish(existing, status, 'fanfic', 'ao3', undefined, existing.fandoms);
         return;
       }
       const n = Number(chapters);
@@ -487,8 +488,7 @@ function AddFic() {
         rating,
         warnings,
       });
-      await followFandoms([fandom.trim()]);
-      await finish(story, status, 'fanfic', 'ao3');
+      await finish(story, status, 'fanfic', 'ao3', undefined, [fandom.trim()]);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);

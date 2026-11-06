@@ -44,4 +44,20 @@ describe('parseAo3Share', () => {
     expect(parseAo3Share('https://archiveofourown.org/works/1000001')).toBeNull();
     expect(parseAo3Share('<a href="https://example.com/x">x</a>')).toBeNull();
   });
+
+  it('a title with ") by " in it does not become the author', () => {
+    const tricky =
+      '<a href="https://archiveofourown.org/works/1000002"><strong>Love (Part 1) by Moonlight</strong></a> (45000 words) by ' +
+      '<a href="https://archiveofourown.org/users/inkwell_writer"><strong>inkwell_writer</strong></a><br />Chapters: 1/?<br />';
+    const got = parseAo3Share(tricky);
+    expect(got?.title).toBe('Love (Part 1) by Moonlight');
+    expect(got?.author).toBe('inkwell_writer');
+  });
+
+  it('a numeric entity beyond Unicode is left as written instead of throwing', () => {
+    const odd =
+      '<a href="https://archiveofourown.org/works/1000003"><strong>Odd &#x110000; &#1114112; Title</strong></a> (10 words) by ' +
+      '<a href="https://archiveofourown.org/users/a"><strong>a</strong></a><br />Chapters: 1/1<br />';
+    expect(parseAo3Share(odd)?.title).toBe('Odd &#x110000; &#1114112; Title');
+  });
 });

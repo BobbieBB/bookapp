@@ -72,6 +72,8 @@ export function progressLine(entry: LibraryEntry, t: Translate) {
   const total = sectionTotal(entry);
   const n = entry.progress_section;
   if (entry.status === 'finished' && entry.story.kind === 'fanfic' && entry.story.status === 'ongoing' && total) {
+    // A new chapter is out: no longer caught up, so just say how far (the Home hint names the new one).
+    if (entry.story.published_sections && entry.story.published_sections > n) return t('library.chaptersOf', { n, total });
     return t('library.caughtUpOf', { n: Math.min(n, total), total });
   }
   if (entry.status === 'finished') return t('library.status.finished');

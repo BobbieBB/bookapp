@@ -120,6 +120,35 @@ describe('finishing', () => {
     expect(screen.getByText('Back to the story')).toBeOnTheScreen();
   });
 
+  it('story → Finished → Back lands on the story, and Back again leaves it (nothing duplicated)', async () => {
+    await as(me);
+    const id = await fic(false);
+    const routes = { index: () => <Text>home</Text>, ...finishedRoutes };
+    await renderScreen('en', routes, '/');
+    await act(async () => router.push(`/story/${id}`));
+    await screen.findByTestId('story-title', {}, { timeout: 8000 });
+    await act(async () => router.push(`/finished/${id}`)); // as the Finished chip does
+    await fireEvent.press(await screen.findByText('Back to the story', {}, { timeout: 8000 }));
+    expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await act(async () => router.back());
+    expect(await screen.findByText('home')).toBeOnTheScreen();
+    expect(screen.queryByTestId('story-title')).toBeNull();
+  });
+
+  it('Add (as Finished) → Finished → Back lands on the story, not on what was under Add', async () => {
+    await as(me);
+    const id = await fic(false);
+    const routes = { index: () => <Text>home</Text>, add: () => <Text>add</Text>, ...finishedRoutes };
+    await renderScreen('en', routes, '/');
+    await act(async () => router.push('/add'));
+    await act(async () => {
+      router.replace(`/story/${id}`); // what Add does once the fic is in the library
+      router.push(`/finished/${id}`);
+    });
+    await fireEvent.press(await screen.findByText('Back to the story', {}, { timeout: 8000 }));
+    expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
   it('caught up on a WIP that has ended on AO3: mark it complete and go straight into The Epilogue', async () => {
     await as(me);
     const id = await fic(false);
@@ -237,10 +266,12 @@ describe('a book page', () => {
     await saveReview(id, 'Beautiful and strange', false);
     await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${id}`);
     expect(await screen.findByText('★ 3.8 · 2 ratings', {}, { timeout: 8000 })).toBeOnTheScreen();
+    // The ratings line and the review list load separately: wait for the reviews themselves.
+    const spoiler = await screen.findByText('Contains spoilers. Tap to show.', {}, { timeout: 8000 });
+    expect(await screen.findByText('Beautiful and strange', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByText('The twist at the end is that the narrator')).toBeNull();
-    await fireEvent.press(screen.getByText('Contains spoilers. Tap to show.'));
+    await fireEvent.press(spoiler);
     expect(screen.getByText('The twist at the end is that the narrator')).toBeOnTheScreen();
-    expect(screen.getByText('Beautiful and strange')).toBeOnTheScreen();
   });
 
   it('shows a new rating when it comes back into view', async () => {

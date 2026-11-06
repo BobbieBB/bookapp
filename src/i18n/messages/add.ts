@@ -106,7 +106,7 @@ export const bg: Translation<typeof en> = {
   'add.errorAuthor': 'Добави автора.',
   'add.statusLabel': 'Добави като',
   'add.errorFandom': 'Добави фендъма.',
-  'add.errorLink': 'Постави линка към фика в AO3.',
+  'add.errorLink': 'Постави линка към фикшъна в AO3.',
   'add.ao3Link': 'Линк към AO3',
   'add.ao3Placeholder': 'archiveofourown.org/works/…',
   'add.checking': 'Проверяваме…',

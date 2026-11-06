@@ -1,12 +1,15 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import Authors from '../../../app/authors';
 import Blocked from '../../../app/blocked';
 import Feedback from '../../../app/feedback';
+import StoryScreen from '../../../app/story/[id]';
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
+import { saveReview } from '../../lib/reviews';
 import { block } from '../../lib/safety';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
@@ -70,6 +73,64 @@ describe('in a discussion', () => {
     expect(within(card).queryByText('Report')).toBeNull(); // reported once is enough
     expect(screen.queryByLabelText(`Report comment by ${troll.username}`)).toBeNull();
     expect((await rows('reports', 'reporter_id')).map((r) => [r.comment_id, r.reason])).toEqual([[trollCommentId, 'harassment']]);
+  });
+
+  it('reporting a comment you already reported says thanks again, not an error', async () => {
+    await as(me);
+    await renderScreen('en', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
+    const card = await screen.findByTestId(`comment-${trollCommentId}`, {}, { timeout: 8000 });
+    await fireEvent.press(within(card).getByLabelText(`Report comment by ${troll.username}`)); // reported in the first test
+    await fireEvent.press(screen.getByText('Spam'));
+    await fireEvent.press(screen.getByText('Send report'));
+    expect(await screen.findByText('Thanks. A moderator will take a look.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('Something went wrong. Try again in a moment.')).toBeNull();
+    expect((await rows('reports', 'reporter_id')).filter((r) => r.comment_id === trollCommentId)).toHaveLength(1);
+  });
+
+  it('a review can be reported, and your own cannot', async () => {
+    await as(troll);
+    const bookId = (await createManualBook({ title: 'Reviewed Safe Book', author: 'x', chapters: 2, language: 'en' })).id;
+    await addToLibrary(bookId, 'finished');
+    await saveReview(bookId, 'Everyone who liked this is a fool', false);
+    await as(me);
+    await addToLibrary(bookId, 'finished');
+    await saveReview(bookId, 'A gentle read', false);
+    await renderScreen('en', { 'story/[id]': StoryScreen }, `/story/${bookId}`);
+    await fireEvent.press(await screen.findByLabelText(`Report review by ${troll.username}`, {}, { timeout: 8000 }));
+    expect(screen.queryByLabelText(`Report review by ${me.username}`)).toBeNull();
+    await fireEvent.press(screen.getByText('Harassment'));
+    await fireEvent.press(screen.getByText('Send report'));
+    expect(await screen.findByText('Thanks. A moderator will take a look.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText(`Report review by ${troll.username}`)).toBeNull();
+    const sent = (await rows('reports', 'reporter_id')).filter((r) => r.review_id);
+    expect(sent.map((r) => r.reason)).toEqual(['harassment']);
+  });
+
+  it('a long name in "Block <name>" is cut with an ellipsis, not off the edge, and stays whole for screen readers', async () => {
+    await as(me);
+    await renderScreen('bg', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
+    const card = await screen.findByTestId(`comment-${trollCommentId}`, {}, { timeout: 8000 });
+    const label = within(card).getByText(`Блокирай ${troll.username}`);
+    expect(label.props.numberOfLines).toBe(1);
+    expect(label.props.ellipsizeMode).toBe('tail');
+    expect(within(card).getByRole('button', { name: `Блокирай ${troll.username}` })).toBeOnTheScreen();
+  });
+
+  it('a 30-character username in a comment header is cut with an ellipsis, not run past the card', async () => {
+    const wide = 'W'.repeat(30 - run.length) + run; // 30 characters, and unique per run
+    const email = `wide-${run}@example.test`;
+    const { data } = await supabase.auth.signUp({ email, password });
+    await supabase.from('profiles').insert({ id: data.user!.id, username: wide }).throwOnError();
+    await addToLibrary(storyId, 'finished');
+    const ch1 = (await openRoom(storyId, 'chapter', 1)).id;
+    const wideComment = (await postComment(ch1, 'From someone with a very wide name')).id;
+    await as(me);
+    await renderScreen('bg', { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
+    const card = await screen.findByTestId(`comment-${wideComment}`, {}, { timeout: 8000 });
+    const name = within(card).getByText(wide);
+    expect(name.props.numberOfLines).toBe(1);
+    expect(StyleSheet.flatten(name.props.style).flexShrink).toBe(1);
+    expect(name.props.accessibilityLabel).toBe(wide);
   });
 
   it('blocking someone hides their comments', async () => {

@@ -85,12 +85,20 @@ describe('Home', () => {
     expect(await screen.findByText('all notifications', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
-  it('no See all while there are no replies to you yet', async () => {
-    const quiet = await signUp('hush');
-    await as(quiet);
+  it('a reader whose only notification is a reaction can still open the notifications list', async () => {
+    const fan = await signUp('fanny');
+    await as(fan);
+    await addToLibrary(storyId, 'currently_reading');
+    await supabase.from('library_entries').update({ progress_section: 1 }).eq('story_id', storyId).eq('user_id', fan.id).throwOnError();
+    const cid = (await openRoom(storyId, 'chapter', 1)).id;
+    const note = await postComment(cid, 'Only a reaction will come');
+    await as(pal);
+    await toggleReaction(note.id, '🔥', false);
+    await as(fan);
     await renderScreen('en', { index: Home, notifications: NotificationsStub }, '/');
     expect(await screen.findByText('When someone replies to you or mentions you, you’ll see it here.', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByText('See all')).toBeNull();
+    await fireEvent.press(screen.getByText('See all'));
+    expect(await screen.findByText('all notifications', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('nothing being read, but a library: says so and points to My Library (not "add your first story")', async () => {
