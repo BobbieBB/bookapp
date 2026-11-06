@@ -7,6 +7,7 @@ import {
   searchFandoms,
   suggestedFandoms,
 } from '../discover';
+import { recordRequests } from '../../../test/network';
 import { addToLibrary, createFic } from '../stories';
 import { supabase } from '../supabase';
 
@@ -118,4 +119,16 @@ it('Complete only: only complete fics, and the never-empty fallback still widens
   const widened = await lively([WIPS], true);
   expect(widened.map((s) => s.title)).not.toContain('Only a WIP');
   expect(widened.every((s) => s.status === 'completed' && s.tier === 'starter')).toBe(true);
+});
+
+it('the filter is sent only when on, so filter-off readers keep working on a database without it', async () => {
+  await as(reader);
+  const sent = recordRequests((url) => url.includes('/rpc/lively_in_fandoms'));
+  try {
+    await lively([MIXED]);
+    await lively([MIXED], true);
+  } finally {
+    sent.stop();
+  }
+  expect(sent.bodies.map((b) => JSON.parse(b))).toEqual([{ p_fandoms: [MIXED] }, { p_fandoms: [MIXED], p_complete_only: true }]);
 });

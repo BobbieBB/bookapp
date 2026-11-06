@@ -54,6 +54,9 @@ Before launch:
   every reader accepts the new version. Apply the terms migration (`20261103000000_terms_acceptance.sql`)
   to the hosted database **before** shipping an app build that includes it: the app reads
   `profiles.terms_version` at sign-in, and without the column that read fails for every reader.
+- **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
+  **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
+  but with the filter on, Discover's list fails to load until the migration is in.
 
 Planning lives on the Trello board *Book club app*.
 
