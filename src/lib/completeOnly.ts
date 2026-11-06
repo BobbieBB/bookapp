@@ -14,7 +14,8 @@ export function useCompleteOnly(): [boolean | null, (on: boolean) => void] {
     AsyncStorage.getItem(COMPLETE_ONLY_STORAGE_KEY)
       .catch(() => null) // unreadable storage: the filter stays off
       .then((stored) => {
-        if (live) setState(stored === 'true');
+        // A tap that came before the read wins: it is newer than what was stored.
+        if (live) setState((chosen) => chosen ?? stored === 'true');
       });
     return () => {
       live = false;

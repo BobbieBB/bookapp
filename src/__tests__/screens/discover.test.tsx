@@ -82,6 +82,7 @@ beforeAll(async () => {
     if (left.length === 0) break;
     for (const story of left) await addToLibrary(story.id, 'finished');
   }
+  expect(await lively([ONLY_WIPS], true)).toEqual([]); // the empty-state test's precondition
 });
 
 beforeEach(() => AsyncStorage.removeItem(COMPLETE_ONLY_KEY));
@@ -183,6 +184,56 @@ describe('Discover: Complete only', () => {
       expect(screen.getByRole('button', { name: 'Complete only' })).not.toBeSelected();
     } finally {
       AsyncStorage.getItem = getItem;
+    }
+  });
+
+  it('a tap while the remembered choice is still being read is not undone by the read', async () => {
+    await AsyncStorage.setItem(COMPLETE_ONLY_KEY, 'false');
+    const getItem = AsyncStorage.getItem;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    // The read sees storage as it was before the tap ('false') and answers only after it.
+    AsyncStorage.getItem = (key, ...rest) => {
+      const value = getItem(key, ...rest);
+      return key === COMPLETE_ONLY_KEY ? held.then(() => value) : value;
+    };
+    try {
+      await as(filterReader);
+      await renderScreen('en', routes, '/discover');
+      await fireEvent.press(await screen.findByText('Complete only', {}, { timeout: 8000 }));
+      release();
+      await waitFor(
+        () => {
+          expect(screen.getByText('Toggle complete')).toBeOnTheScreen();
+          expect(screen.queryByText('Toggle WIP')).toBeNull();
+        },
+        { timeout: 8000 },
+      );
+      expect(screen.getByRole('button', { name: 'Complete only' })).toBeSelected();
+    } finally {
+      AsyncStorage.getItem = getItem;
+    }
+  });
+
+  it('a choice that cannot be saved still applies, without an error', async () => {
+    const setItem = AsyncStorage.setItem;
+    AsyncStorage.setItem = (key, ...rest) => (key === COMPLETE_ONLY_KEY ? Promise.reject(new Error('disk full')) : setItem(key, ...rest));
+    try {
+      await as(filterReader);
+      await renderScreen('en', routes, '/discover');
+      expect(await screen.findByText('Toggle WIP', {}, { timeout: 8000 })).toBeOnTheScreen();
+      await fireEvent.press(screen.getByText('Complete only'));
+      await waitFor(
+        () => {
+          expect(screen.getByText('Toggle complete')).toBeOnTheScreen();
+          expect(screen.queryByText('Toggle WIP')).toBeNull();
+        },
+        { timeout: 8000 },
+      );
+      expect(screen.getByRole('button', { name: 'Complete only' })).toBeSelected();
+      expect(await AsyncStorage.getItem(COMPLETE_ONLY_KEY)).toBeNull();
+    } finally {
+      AsyncStorage.setItem = setItem;
     }
   });
 
