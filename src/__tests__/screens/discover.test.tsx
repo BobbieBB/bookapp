@@ -1,10 +1,12 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
 import Discover from '../../../app/(tabs)/discover';
 import Profile from '../../../app/(tabs)/profile';
 import { renderScreen } from '../../../test/router';
+import { lively } from '../../lib/discover';
 import { addToLibrary, createFic } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -14,6 +16,10 @@ const password = 'test-password-1234';
 const run = Date.now().toString(36);
 const PICKED = `Picked Fandom ${run}`;
 const FROM_LIBRARY = `Library Fandom ${run}`;
+const TOGGLE = `Toggle Fandom ${run}`;
+const ONLY_WIPS = `Only Wips Fandom ${run}`;
+// The "Complete only" choice, remembered per device (the in-memory AsyncStorage is shared by this file's tests).
+const COMPLETE_ONLY_KEY = 'livami.discover.completeOnly';
 type User = { email: string; id: string };
 
 async function signUp(name: string, profile: Record<string, unknown> = {}): Promise<User> {
@@ -47,13 +53,20 @@ const fic = (title: string, fandom: string, complete: boolean) =>
 
 let reader: User;
 let bookReader: User;
+let filterReader: User;
+let wipReader: User;
 let popularId: string;
 
 beforeAll(async () => {
   const writer = await signUp('dwriter');
   reader = await signUp('dreader', { favourite_fandoms: [PICKED] });
   bookReader = await signUp('dbooks', { reads_fanfic: false });
+  filterReader = await signUp('dfilter', { favourite_fandoms: [TOGGLE] });
+  wipReader = await signUp('dwips', { favourite_fandoms: [ONLY_WIPS] });
   await as(writer);
+  await addToLibrary((await fic('Toggle WIP', TOGGLE, false)).id, 'currently_reading');
+  await addToLibrary((await fic('Toggle complete', TOGGLE, true)).id, 'finished');
+  await addToLibrary((await fic('Lonely WIP', ONLY_WIPS, false)).id, 'currently_reading');
   const popular = await fic('Popular WIP', PICKED, false);
   popularId = popular.id;
   await addToLibrary(popular.id, 'currently_reading');
@@ -61,7 +74,17 @@ beforeAll(async () => {
   await addToLibrary(other.id, 'finished');
   await as(reader);
   await addToLibrary((await fic('My own fic', FROM_LIBRARY, true)).id, 'currently_reading');
+  // The filtered list falls back to complete fics in the starter fandoms; this reader already reads them
+  // all, so for them nothing complete is left anywhere.
+  await as(wipReader);
+  for (let round = 0; round < 5; round++) {
+    const left = await lively([ONLY_WIPS], true);
+    if (left.length === 0) break;
+    for (const story of left) await addToLibrary(story.id, 'finished');
+  }
 });
+
+beforeEach(() => AsyncStorage.removeItem(COMPLETE_ONLY_KEY));
 
 
 function StoryStub() {
@@ -111,6 +134,75 @@ describe('Discover', () => {
     await as(bookReader);
     await renderScreen('en', { discover: Discover }, '/discover');
     expect(await screen.findByText('Discover is for fanfiction for now.', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+});
+
+describe('Discover: Complete only', () => {
+  const routes = { discover: Discover, 'story/[id]': StoryStub };
+
+  it('the chip hides WIPs and brings them back', async () => {
+    await as(filterReader);
+    await renderScreen('en', routes, '/discover');
+    expect(await screen.findByText('Toggle WIP', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByText('Toggle complete')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Complete only'));
+    // The filtered list has loaded (not just the old one gone): the complete fic is back, the WIP is not.
+    await waitFor(
+      () => {
+        expect(screen.getByText('Toggle complete')).toBeOnTheScreen();
+        expect(screen.queryByText('Toggle WIP')).toBeNull();
+      },
+      { timeout: 8000 },
+    );
+    await fireEvent.press(screen.getByText('Complete only'));
+    expect(await screen.findByText('Toggle WIP', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('the choice is remembered on this device', async () => {
+    await as(filterReader);
+    await renderScreen('en', routes, '/discover');
+    await fireEvent.press(await screen.findByText('Complete only', {}, { timeout: 8000 }));
+    await waitFor(() => expect(screen.queryByText('Toggle WIP')).toBeNull(), { timeout: 8000 });
+    screen.unmount();
+    await renderScreen('en', routes, '/discover');
+    expect(await screen.findByText('Toggle complete', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('Toggle WIP')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Complete only' })).toBeSelected();
+  });
+
+  it('storage that cannot be read leaves the filter off', async () => {
+    await AsyncStorage.setItem(COMPLETE_ONLY_KEY, 'true');
+    // Only this key fails: the language, appearance and session are still read. (A jest spy would wipe
+    // the stand-in's own implementation when restored.)
+    const getItem = AsyncStorage.getItem;
+    AsyncStorage.getItem = (key, ...rest) => (key === COMPLETE_ONLY_KEY ? Promise.reject(new Error('unreadable')) : getItem(key, ...rest));
+    try {
+      await as(filterReader);
+      await renderScreen('en', routes, '/discover');
+      expect(await screen.findByText('Toggle WIP', {}, { timeout: 8000 })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Complete only' })).not.toBeSelected();
+    } finally {
+      AsyncStorage.getItem = getItem;
+    }
+  });
+
+  it('with nothing complete anywhere, suggests turning the filter off', async () => {
+    await AsyncStorage.setItem(COMPLETE_ONLY_KEY, 'true');
+    await as(wipReader);
+    await renderScreen('en', routes, '/discover');
+    expect(
+      await screen.findByText('No complete fics here yet. Turn off "Complete only" to see WIPs too.', {}, { timeout: 8000 }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Lonely WIP')).toBeNull();
+  });
+
+  it('in Bulgarian', async () => {
+    await AsyncStorage.setItem(COMPLETE_ONLY_KEY, 'true');
+    await as(filterReader);
+    await renderScreen('bg', routes, '/discover');
+    expect(await screen.findByText('Toggle complete', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Само завършени' })).toBeSelected();
+    expect(screen.queryByText('Toggle WIP')).toBeNull();
   });
 });
 

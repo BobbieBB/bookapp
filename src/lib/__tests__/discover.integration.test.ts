@@ -15,6 +15,8 @@ const password = 'test-password-1234';
 const run = Date.now().toString(36);
 const FANDOM = `Test Fandom ${run}`;
 const OTHER = `Other Fandom ${run}`;
+const MIXED = `Mixed Fandom ${run}`;
+const WIPS = `Wip Fandom ${run}`;
 type User = { email: string; id: string };
 
 async function signUp(name: string): Promise<User> {
@@ -33,14 +35,14 @@ async function as(u: User) {
 }
 
 let n = 0;
-const fic = (title: string, fandom: string) =>
+const fic = (title: string, fandom: string, complete = true) =>
   createFic({
     ao3Link: `https://archiveofourown.org/works/${(parseInt(run, 36) % 1_000_000_000) + 100 + n++}`,
     title,
     author: 'w',
     fandom,
     ship: '',
-    complete: true,
+    complete,
     chapters: 3,
     rating: 'Not Rated',
     warnings: [],
@@ -56,6 +58,9 @@ beforeAll(async () => {
   const a = await fic('Read by many', FANDOM);
   await addToLibrary(a.id, 'finished');
   await fic('Read by none', FANDOM);
+  await addToLibrary((await fic('Mixed WIP', MIXED, false)).id, 'currently_reading');
+  await addToLibrary((await fic('Mixed complete', MIXED)).id, 'finished');
+  await addToLibrary((await fic('Only a WIP', WIPS, false)).id, 'currently_reading');
   await as(reader);
   const mine = await fic('Mine', OTHER);
   await addToLibrary(mine.id, 'currently_reading');
@@ -102,4 +107,15 @@ it('Lively in your fandoms: stories you do not read yet, most read first when no
   const stories = await lively([FANDOM]);
   expect(stories.map((s) => s.title)).toEqual(['Read by many']);
   expect(stories[0].tier).toBe('readers');
+});
+
+it('Complete only: only complete fics, and the never-empty fallback still widens under the filter', async () => {
+  await as(reader);
+  expect((await lively([MIXED])).map((s) => s.title).sort()).toEqual(['Mixed WIP', 'Mixed complete']);
+  const complete = await lively([MIXED], true);
+  expect(complete.map((s) => [s.title, s.status, s.tier])).toEqual([['Mixed complete', 'completed', 'readers']]);
+  // Nothing complete in this fandom: the filtered list widens past it to the starter fandoms, complete fics only.
+  const widened = await lively([WIPS], true);
+  expect(widened.map((s) => s.title)).not.toContain('Only a WIP');
+  expect(widened.every((s) => s.status === 'completed' && s.tier === 'starter')).toBe(true);
 });

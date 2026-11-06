@@ -7,6 +7,7 @@ import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
+import { useCompleteOnly } from '@/lib/completeOnly';
 import { lively, myFandoms, searchFandoms, type LivelyStory, type LivelyTier } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
@@ -125,7 +126,11 @@ export default function Discover() {
   const chips = (mine.data ?? []).slice(0, MAX_CHIPS).map((f) => f.fandom);
   const shownChips = selected && !chips.includes(selected) ? [selected, ...chips.slice(0, MAX_CHIPS - 1)] : chips;
   const scope = selected ? [selected] : chips;
-  const feed = useLookup(mine.data ? `${version}:${JSON.stringify(scope)}` : null, () => lively(scope));
+  const [completeOnly, setCompleteOnly] = useCompleteOnly();
+  const feed = useLookup(
+    mine.data && completeOnly !== null ? `${version}:${completeOnly}:${JSON.stringify(scope)}` : null,
+    () => lively(scope, completeOnly === true),
+  );
   const loadedTier = feed.data?.[0]?.tier;
   useEffect(() => {
     if (loadedTier && !firstTier.current) firstTier.current = loadedTier;
@@ -178,10 +183,18 @@ export default function Discover() {
 
             <View style={{ gap: space.s }}>
               <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected.toUpperCase() }) : t('discover.lively')}</T>
+              <View style={{ flexDirection: 'row' }}>
+                <Chip label={t('discover.completeOnly')} active={completeOnly === true} onPress={() => setCompleteOnly(!completeOnly)} />
+              </View>
               {feed.error !== undefined ? (
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
                 <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
+              ) : feed.data.length === 0 && completeOnly ? (
+                // Even the starter fandoms have no complete fic you don't read yet: the filter is what empties the list.
+                <Card>
+                  <T v="muted">{t('discover.completeOnlyEmpty')}</T>
+                </Card>
               ) : feed.data.length === 0 ? (
                 <Card style={{ gap: space.s }}>
                   <T v="muted">{t('discover.empty')}</T>
