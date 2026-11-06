@@ -5,7 +5,9 @@
 \o /dev/null
 
 select test.logout();
--- Only this file's stories: earlier tests leave fics of their own.
+-- Only this file's stories: earlier tests leave fics of their own. They are shown again at the end,
+-- so the tests after this file see the database as it was.
+create temp table complete_only_was_shown as select id from public.stories where kind = 'fanfic' and not is_hidden;
 update public.stories set is_hidden = true where kind = 'fanfic';
 insert into public.starter_fandoms (fandom, position) values ('Hannibal', 100) on conflict do nothing;
 
@@ -60,5 +62,13 @@ select test.logout();
 select test.ok(test.error_of($$set role anon; select * from public.lively_in_fandoms('{"Hannibal"}', true)$$) is not null,
   'signed-out visitors cannot use Discover');
 reset role;
+
+update public.stories set is_hidden = true where id::text like 'cc500000-%';
+update public.stories set is_hidden = false where id in (select id from complete_only_was_shown);
+delete from public.starter_fandoms where fandom = 'Hannibal';
+select test.ok((select array_agg(id order by id) from public.stories where kind = 'fanfic' and not is_hidden)
+    is not distinct from (select array_agg(id order by id) from complete_only_was_shown)
+  and not exists (select 1 from public.starter_fandoms where fandom = 'Hannibal'),
+  'the fics shown before this file are shown again, and only those');
 \o
 \echo 'DISCOVER COMPLETE ONLY PASSED'
