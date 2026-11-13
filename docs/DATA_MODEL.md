@@ -9,7 +9,7 @@ table. Anonymous users (`anon`) have no access at all.
 |---|---|---|
 | `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick | Logged-in users |
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
-| `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public` |
+| `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public`, which is never set today: entries are private by default (13 Nov 2026) |
 | `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
 | `comments` | Comments and replies (one level of `parent_id`); `author_id` is empty once the author deleted their account | Only readers who unlocked that discussion |
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |

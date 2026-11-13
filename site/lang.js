@@ -1,25 +1,37 @@
 // Shows one language: ?lang=bg|en, else the last choice, else the browser's language. Without this script both show.
-(function () {
-  var root = document.documentElement;
-  var pick = function (lang) {
-    root.lang = lang;
-    var buttons = document.querySelectorAll('[data-lang]');
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].setAttribute('aria-pressed', String(buttons[i].getAttribute('data-lang') === lang));
+(() => {
+  const root = document.documentElement;
+  const remember = (lang) => {
+    try {
+      localStorage.setItem('livami-lang', lang);
+    } catch {
+      // private mode or blocked storage: the choice just isn't remembered
     }
-    try { localStorage.setItem('livami-lang', lang); } catch (e) {}
   };
-  var asked = new URLSearchParams(location.search).get('lang');
-  var saved = null;
-  try { saved = localStorage.getItem('livami-lang'); } catch (e) {}
-  var browser = (navigator.language || '').toLowerCase().indexOf('bg') === 0 ? 'bg' : 'en';
-  var start = asked === 'bg' || asked === 'en' ? asked : saved === 'bg' || saved === 'en' ? saved : browser;
-  document.addEventListener('DOMContentLoaded', function () {
+  const recall = () => {
+    try {
+      return localStorage.getItem('livami-lang');
+    } catch {
+      return null;
+    }
+  };
+  const pick = (lang) => {
+    root.lang = lang;
+    for (const button of document.querySelectorAll('[data-lang]')) {
+      button.setAttribute('aria-pressed', String(button.getAttribute('data-lang') === lang));
+    }
+    remember(lang);
+  };
+  const valid = (lang) => lang === 'bg' || lang === 'en';
+  const asked = new URLSearchParams(location.search).get('lang');
+  const saved = recall();
+  const browser = (navigator.language || '').toLowerCase().startsWith('bg') ? 'bg' : 'en';
+  const start = valid(asked) ? asked : valid(saved) ? saved : browser;
+  root.lang = start;
+  document.addEventListener('DOMContentLoaded', () => {
     pick(start);
-    var buttons = document.querySelectorAll('[data-lang]');
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].addEventListener('click', function () { pick(this.getAttribute('data-lang')); });
+    for (const button of document.querySelectorAll('[data-lang]')) {
+      button.addEventListener('click', () => pick(button.getAttribute('data-lang')));
     }
   });
-  root.lang = start;
 })();
