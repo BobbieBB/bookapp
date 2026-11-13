@@ -5,6 +5,7 @@
     "scheme": "livami",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-router",
@@ -24,6 +25,10 @@
       }
     },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F6F8F7"
+      },
       "package": "app.livami",
       "blockedPermissions": [
         "android.permission.CAMERA",
