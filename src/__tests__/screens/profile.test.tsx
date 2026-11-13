@@ -1,8 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import { renderScreen } from '../../../test/router';
 import * as analytics from '../../lib/analytics';
+import { PRIVACY_URL, TERMS_URL } from '../../lib/legal';
 import { supabase } from '../../lib/supabase';
 
 // Profile > "Help us improve the app" (docs/DECISIONS.md, "Analytics: first-party, with an opt-out"):
@@ -53,4 +55,16 @@ it('while the choice cannot be read, the switch is disabled rather than shown on
   } finally {
     lookup.mockRestore();
   }
+});
+
+it('the terms and the privacy policy open from Profile, and a failure says so', async () => {
+  const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(true);
+  await renderScreen('bg', { profile: Profile }, '/profile');
+  fireEvent.press(await screen.findByRole('button', { name: 'Условия' }, { timeout: 8000 }));
+  expect(open).toHaveBeenLastCalledWith(TERMS_URL);
+  expect(await screen.findByText('Не успяхме да отворим страницата. Опитай пак.')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Политика за поверителност' }));
+  expect(open).toHaveBeenLastCalledWith(PRIVACY_URL);
+  await waitFor(() => expect(screen.queryByText('Не успяхме да отворим страницата. Опитай пак.')).toBeNull());
+  open.mockRestore();
 });

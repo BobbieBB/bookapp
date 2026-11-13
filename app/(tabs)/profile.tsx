@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Feather from '@expo/vector-icons/Feather';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { APPEARANCES, useAppearance } from '@/appearance';
 import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
 import { analyticsOptOut, setAnalyticsOptOut, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
+import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { disablePush, enablePush, pushIsOn, type PushStatus } from '@/lib/pushDevice';
 import { useLookup } from '@/lib/useLookup';
@@ -250,9 +251,28 @@ export default function Profile() {
           {profile?.is_admin && <Button variant="link" title={t('moderation.link')} onPress={() => router.push('/moderation')} />}
         </Card>
 
+        <LegalLinks />
+
         <Button variant="secondary" title={t('common.signOut')} onPress={signOut} />
         <Button variant="link" title={t('account.deleteLink')} onPress={() => router.push('/delete-account')} />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// The terms and privacy policy stay one tap away after sign-up (App Store, Google Play); they open in the browser.
+function LegalLinks() {
+  const t = useT();
+  const [failed, setFailed] = useState(false);
+  const open = (url: string) => {
+    setFailed(false);
+    Linking.openURL(url).catch(() => setFailed(true));
+  };
+  return (
+    <Card>
+      <Button variant="link" title={t('legal.terms')} onPress={() => open(TERMS_URL)} />
+      <Button variant="link" title={t('legal.privacy')} onPress={() => open(PRIVACY_URL)} />
+      {failed && <ErrorText>{t('legal.linkFailed')}</ErrorText>}
+    </Card>
   );
 }
