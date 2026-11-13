@@ -21,6 +21,7 @@ Both were derived from the code at `origin/main` (migrations up to `202611030000
 - Analytics on, with the opt-out in Profile.
 - Supabase and Resend in the EU (Ireland, `eu-west-1`); password-reset and moderation e-mail switched on through Resend; open/click tracking off.
 - Moderation aim: within 24 hours on a best-effort basis.
+- Promise kept in the terms: we never sell readers' content or use it to train AI models.
 
 Follow-up for the team: other readers can technically read the whole `profiles` row, including `terms_version`, `terms_accepted_at`, `age_confirmed` and `is_admin`, which no screen shows; hide these columns from other readers before launch.
 
