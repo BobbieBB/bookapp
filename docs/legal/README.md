@@ -11,7 +11,18 @@ Both were derived from the code at `origin/main` (migrations up to `202611030000
 
 ## Bulgarian versions
 
-Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documents is required** before launch, because the app has a Bulgarian UI. Decide which version prevails in a conflict.
+`privacy-policy.bg.md` and `terms.bg.md` are working Bulgarian drafts of the two texts (13 Nov 2026), written in plain language with the app's own wording for buttons and screens. Open items are marked `[ЗА ЮРИСТ: ...]` (for the lawyer), `[ЗА PO: ...]` or `[ЗА ЕКИПА: ...]`. The lawyer reviews both languages; suggest that Bulgarian prevails.
+
+## Decided by the PO (13 Nov 2026)
+
+- Operator: **Boryana Dimitrova**, natural person; contact **support@livami.app** (forwarded to her mailbox, tested).
+- Minimum age **16**, self-declared tick.
+- Libraries **private by default** (migration `20261113000000_private_library.sql`, run).
+- Analytics on, with the opt-out in Profile.
+- Supabase and Resend in the EU (Ireland, `eu-west-1`); password-reset and moderation e-mail switched on through Resend; open/click tracking off.
+- Moderation aim: within 24 hours on a best-effort basis.
+
+Follow-up for the team: other readers can technically read the whole `profiles` row, including `terms_version`, `terms_accepted_at`, `age_confirmed` and `is_admin`, which no screen shows; hide these columns from other readers before launch.
 
 ## Open decisions (grouped)
 

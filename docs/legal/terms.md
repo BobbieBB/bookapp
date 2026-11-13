@@ -2,19 +2,21 @@
 
 > **DRAFT FOR REVIEW. NOT LEGAL ADVICE, NOT YET IN FORCE.** Prepared for the product owner and a qualified lawyer. Every assumption and open question is marked inline as "[TO CONFIRM: ...]". Statements about the app were derived from the code and docs in this repository and must be re-checked against the release build.
 >
-> **Bulgarian version:** this is the English draft only. A lawyer-reviewed Bulgarian version is required before launch (the app has a Bulgarian UI). Do not machine-translate this text. Decide which language prevails if the two differ.
+> **Bulgarian version:** `terms.bg.md` is a working Bulgarian draft of this text for the lawyer. Both must be reviewed before launch. [TO CONFIRM: which language prevails if the two differ; we suggest Bulgarian.]
+>
+> **Decided by the PO on 13 Nov 2026:** operator Boryana Dimitrova (natural person); minimum age 16; contact support@livami.app; moderation "within 24 hours on a best-effort basis".
 
 **Last updated:** [TO CONFIRM: date of publication]
 
 ## 1. Who we are and what these terms cover
 
-Livami (the "app", "we") is a social reading app for books and fanfiction, run by [TO CONFIRM: legal name, address, company ID (EIK) of the operator]. You accept these terms explicitly: when you create your profile the app asks you to tick "I accept the Terms and the Privacy Policy" (with links to both) and you cannot continue without it. We record the version you accepted and the time. When we publish a new version, the app asks you to accept it again before it opens; if you do not agree, you can sign out or delete your account instead. The accepted version cannot be withdrawn, but you can delete your account at any time. How we handle personal data is in the Privacy Policy, which is part of these terms for that purpose only.
+Livami (the "app", "we") is a social reading app for books and fanfiction, run by **Boryana Dimitrova**, a natural person in Bulgaria. [TO CONFIRM: whether a postal address must be published.] You accept these terms explicitly: when you create your profile the app asks you to tick "I accept the Terms and the Privacy Policy" (with links to both) and you cannot continue without it. We record the version you accepted and the time. When we publish a new version, the app asks you to accept it again before it opens; if you do not agree, you can sign out or delete your account instead. The accepted version cannot be withdrawn, but you can delete your account at any time. How we handle personal data is in the Privacy Policy, which is part of these terms for that purpose only.
 
-Contact: **support@livami.app** [TO CONFIRM: mailbox exists].
+Contact: **support@livami.app**.
 
 ## 2. Who can use Livami
 
-You must be at least **[TO CONFIRM: 16 / 14 / 13; the app uses 16 as a development default]** years old (see the Privacy Policy, "Children") and able to enter a contract under the law where you live. When you create your profile you confirm this by ticking "I'm at least [age]". This is your own statement: we do not check your age or ask for a date of birth, and by ticking you state that it is true. If you are below the age of majority, you confirm you have your parent's or guardian's permission [TO CONFIRM: with counsel]. [TO CONFIRM: whether the self-declared tick is enough for the chosen age.] The app is aimed at users in the European Union [TO CONFIRM: other countries? Store availability settings].
+You must be at least **16** years old (see the Privacy Policy, "Children") and able to enter a contract under the law where you live. When you create your profile you confirm this by ticking "I'm at least 16". This is your own statement: we do not check your age or ask for a date of birth, and by ticking you state that it is true. If you are below the age of majority, you confirm you have your parent's or guardian's permission [TO CONFIRM: with counsel]. [TO CONFIRM: whether the self-declared tick is enough for the chosen age.] The app is aimed at users in the European Union [TO CONFIRM: other countries? Store availability settings].
 
 Some fanfiction that readers add is rated Mature or Explicit on AO3. Livami links to those works but does not host them (section 8) [TO CONFIRM: minimum age or age gate for such content].
 
@@ -33,7 +35,7 @@ Some fanfiction that readers add is rated Mature or Explicit on AO3. Livami link
 - **You keep ownership** of your content. Post only what you wrote yourself or have the right to share.
 - **Licence.** You give us a non-exclusive, worldwide, royalty-free licence to store, display, and technically process your content (for example, show your comment to readers who unlocked that chapter) so the app can work. The licence for comments and reviews lasts as long as the content stays in the app. If you delete your account and choose to keep your comments, they remain in the app without your name, and this licence continues for them only [TO CONFIRM: with counsel; this is the part most affected by GDPR erasure rights and the in-app "Also delete all my comments" option].
 - **Custom covers** are private: only you see them, and we do not show them to others. Use only images you have the right to use. Do not upload other people's art that you do not have permission to use.
-- We will not sell your content or use it to train AI models [TO CONFIRM: product owner to confirm this promise; it matches the project's stance, which keeps real fics out of AI tools].
+- We will not sell your content or use it to train AI models. [TO CONFIRM: PO to confirm this promise.]
 - You are responsible for your content. We do not check it before it is posted.
 
 ## 5. Community rules
@@ -56,7 +58,7 @@ Be kind. Do not:
 ## 6. Reporting, blocking and moderation
 
 - **Report** any comment, book review or reader that breaks these rules. You can block a reader: you no longer see each other's comments, reviews, reactions or notifications, and neither of you can reply to the other.
-- We look at reports and author removal requests as fast as we can and aim to act within **24 hours** [TO CONFIRM: the product owner is the only moderator today; the aim must be realistic, include weekends and holidays, or say "within 24 hours on a best-effort basis"]. Reports and removal requests reach the product owner by e-mail and through an admin-only Moderation screen, which also shows feedback and chapter-count requests ("Wrong chapter count?"). The e-mail never says who filed a report.
+- We look at reports and author removal requests as fast as we can and aim to act **within 24 hours, on a best-effort basis** (there is one moderator today, so it may take longer at weekends and holidays). Reports and removal requests reach the product owner by e-mail and through an admin-only Moderation screen, which also shows feedback and chapter-count requests ("Wrong chapter count?"). The e-mail never says who filed a report.
 - Moderation may hide a comment or a book review (on a report), hide a fic (only on an author removal request), dismiss a report (a report on a reader can only be dismissed), accept or dismiss a chapter-count request, and mark feedback done or dismiss it. Each report, request and feedback item has a status (open, actioned or dismissed). [TO CONFIRM: the migrations have an `is_suspended` flag on profiles, but the DECISIONS doc says v1 has no banning (block and hide comments instead). State here only what exists at launch.]
 - We tell the person affected and give a reason where the law requires it [TO CONFIRM: Digital Services Act duties for hosting services: notice-and-action mechanism, statement of reasons, point of contact, complaint handling, and what applies to a micro/small enterprise].
 - Reports may contain personal data; see the Privacy Policy.
@@ -120,5 +122,5 @@ If a part of these terms is invalid, the rest stays valid. Not enforcing a term 
 
 ## 17. Contact
 
-support@livami.app
-[TO CONFIRM: postal address, company ID and VAT number (if any) of the operator; the e-commerce law requires them to be easy to find.]
+Boryana Dimitrova, support@livami.app
+[TO CONFIRM: postal address, if the lawyer says the e-commerce law requires it for an individual.]
