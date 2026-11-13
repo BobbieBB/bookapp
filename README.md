@@ -55,7 +55,7 @@ Before launch:
   to the hosted database **before** shipping an app build that includes it: the app reads
   `profiles.terms_version` at sign-in, and without the column that read fails for every reader.
 - **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
-  listing in English and Bulgarian; `app.json` proposes the bundle id / package `app.livami` and the
+  listing in English and Bulgarian; `app.json` has the bundle id / package `app.livami` (confirmed by the PO, 5 Nov 2026) and the
   `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a
   person:
   - Apple Developer and Google Play Console accounts.
@@ -67,6 +67,9 @@ Before launch:
   - The app icon (1024 × 1024), the Android adaptive icon (foreground + background colour), the splash
     image and the Play feature graphic (1024 × 500). None are in the repo yet, so `app.json` has no paths.
   - The privacy policy URL and terms of use (the policy text is drafted in a separate PR).
+- **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
+  **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
+  but with the filter on, Discover's list fails to load until the migration is in.
 
 Planning lives on the Trello board *Book club app*.
 
