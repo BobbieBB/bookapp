@@ -13,6 +13,22 @@ Both were derived from the code at `origin/main` (migrations up to `202611030000
 
 Not translated on purpose. A **lawyer-reviewed Bulgarian version of both documents is required** before launch, because the app has a Bulgarian UI. Decide which version prevails in a conflict.
 
+## Decided by the PO (13 Nov 2026)
+
+- **Operator:** the PO as a natural person (name to fill in). A company can take over later with a new terms version.
+- **Minimum age:** 16, self-declared tick.
+- **Library:** private by default (`20261113000000_private_library.sql`); the policies no longer say libraries are public.
+- **Analytics:** on, with an opt-out (legitimate interests); the lawyer confirms.
+- **Contact:** support@livami.app (forwarding at Porkbun).
+- **E-mail:** Resend, EU (Ireland), sends both the password-reset code and the moderation e-mails, which are switched on.
+- **Website:** livami.app on GitHub Pages (`site/`); the terms and privacy pages say "being prepared" until the lawyer-reviewed texts are in.
+- **Promises kept in the terms:** no sale of content, no AI training on it, one account per person, 24-hour moderation aim "as far as possible".
+
+**Bulgarian versions** (plain language, with the decisions above): `privacy-policy.bg.md` and `terms.bg.md`. Open points
+there are marked **[ЗА ЮРИСТА: …]** for the lawyer and **[ПОПЪЛНИ: …]** for facts still to fill in. The English drafts
+still carry the older `[TO CONFIRM]` markers for items decided above; update them after the lawyer's review so the two
+languages say the same.
+
 ## Open decisions (grouped)
 
 **PO decides**
