@@ -35,7 +35,7 @@ Some fanfiction that readers add is rated Mature or Explicit on AO3. Livami link
 - **You keep ownership** of your content. Post only what you wrote yourself or have the right to share.
 - **Licence.** You give us a non-exclusive, worldwide, royalty-free licence to store, display, and technically process your content (for example, show your comment to readers who unlocked that chapter) so the app can work. The licence for comments and reviews lasts as long as the content stays in the app. If you delete your account and choose to keep your comments, they remain in the app without your name, and this licence continues for them only [TO CONFIRM: with counsel; this is the part most affected by GDPR erasure rights and the in-app "Also delete all my comments" option].
 - **Custom covers** are private: only you see them, and we do not show them to others. Use only images you have the right to use. Do not upload other people's art that you do not have permission to use.
-- We will not sell your content or use it to train AI models. [TO CONFIRM: PO to confirm this promise.]
+- We will not sell your content or use it to train AI models. (Confirmed by the PO, 13 Nov 2026.)
 - You are responsible for your content. We do not check it before it is posted.
 
 ## 5. Community rules
