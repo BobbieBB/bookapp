@@ -223,8 +223,11 @@ select test.ok(test.error_of($$select public.moderation_resolve('feedback', '5e0
 select public.moderation_resolve('chapter_count', '5f000000-0000-0000-0000-000000000001', 'accept');
 select test.ok((select total_sections from public.stories where id = '58000000-0000-0000-0000-000000000001') = 12
   and (select status from public.chapter_count_requests where id = '5f000000-0000-0000-0000-000000000001') = 'actioned', 'accept sets the count');
+-- Readers' libraries are private: check them as the database owner, then back to the moderator.
+select test.logout();
 select test.ok((select array_agg(progress_section order by user_id) from public.library_entries where story_id = '58000000-0000-0000-0000-000000000001' and user_id <> '00000000-0000-0000-0000-0000000008a4')
   = array[1, 12, 9], 'a raised count: finished readers follow it, others keep their place');
+select test.login('00000000-0000-0000-0000-0000000008ad');
 select test.ok((select status from public.chapter_count_requests where id = '5f000000-0000-0000-0000-000000000002') = 'open', 'a different proposal for the same book stays open');
 select public.moderation_resolve('chapter_count', '5f000000-0000-0000-0000-000000000002', 'dismiss');
 select test.ok((select status from public.chapter_count_requests where id = '5f000000-0000-0000-0000-000000000002') = 'dismissed'
@@ -237,11 +240,13 @@ insert into public.chapter_count_requests (id, story_id, proposed) values ('5f00
 select test.login('00000000-0000-0000-0000-0000000008ad');
 select public.moderation_resolve('chapter_count', '5f000000-0000-0000-0000-000000000003', 'accept');
 select test.ok((select total_sections from public.stories where id = '58000000-0000-0000-0000-000000000001') = 5, 'a lowered count is accepted');
+select test.logout();
 select test.ok((select array_agg(progress_section order by user_id) from public.library_entries where story_id = '58000000-0000-0000-0000-000000000001' and user_id <> '00000000-0000-0000-0000-0000000008a4')
   = array[1, 5, 5], 'readers beyond the new count are moved to it; the others keep their place');
 select test.ok((select status from public.library_entries where user_id = '00000000-0000-0000-0000-0000000008a2' and story_id = '58000000-0000-0000-0000-000000000001') = 'finished',
   'a finished reader stays finished');
 select test.ok(not exists (select 1 from public.library_entries le join public.stories s on s.id = le.story_id where le.progress_section > s.total_sections), 'nobody is beyond the end of a book');
+select test.login('00000000-0000-0000-0000-0000000008ad');
 select test.ok(test.error_of($$select public.moderation_resolve('chapter_count', '5f000000-0000-0000-0000-000000000003', 'accept')$$) = 'this item is already resolved', 'accept once');
 select test.ok((select count(*) from test.mq) = 1, 'only the untouched request is left in the queue');
 
