@@ -102,7 +102,12 @@ fic auto-fill from AO3 (only with OTW permission).
 - Replaces "New chapters today" (WIP-only). Discover is for stories you don't read yet; new chapters of stories you DO read go to Home and notifications.
 - Shows complete and WIP fics (DONE/WIP tag), ranked by discussion activity this week, in your fandoms.
 - Never empty: if this week is quiet, widen to 30 days, then to all-time most-read in your fandoms, then to the curated starter list.
-- Readers who don't follow WIPs: if your library is (almost) all complete fics, complete ones rank first. Later: a "Complete only" filter.
+- Readers who don't follow WIPs: if your library is (almost) all complete fics, complete ones rank first.
+- **"Complete only" filter (built, 6 Nov 2026):** a chip under the section heading („Само завършени“). On, the list shows only
+  complete fics and still never empties the same way (7 days → 30 days → most read → starter fandoms, all complete only); if even
+  the starter fandoms have none you don't read, a short message suggests turning the filter off. Off by default for everyone (also
+  readers whose library is all complete fics: they already see complete ones first); the choice is remembered on this device only,
+  like Appearance, never on the server.
 
 ## Add a book: "Can't find it? Add it by hand" (14 Oct 2026)
 - Hidden before the first search. After a search it always sits at the END of the results list (not sticky).
@@ -402,3 +407,19 @@ Choices made during development where the decisions above don't say. Each one is
   readers from before this step) sees "Our terms have changed" before the app opens, with Accept, Sign out
   and Delete my account.
 - **`MIN_AGE` = 16 is a dev default** pending the PO's call.
+
+## Library: private by default (PO, 13 Nov 2026)
+
+What a reader has in their library, and how far they are, is visible only to them. The database default was
+"public", which let any signed-in reader read every entry, though no screen showed it. Now new entries are
+private and existing ones were made private (`20261113000000_private_library.sql`). Counts across readers
+(Discover, readers per story) still work through security definer functions. If we ever add public reader
+profiles, sharing the library is an opt-in setting there. Decided together with the privacy policy: data
+protection by default (GDPR Art. 25), and dark romance readers may not want their shelf seen.
+
+## Legal: operator, age and analytics (PO, 13 Nov 2026)
+
+- The operator ("controller" in the privacy policy) is the PO as a natural person for now; a company can
+  replace her later, with a new terms version.
+- Minimum age **16**, a self-declared tick (`MIN_AGE` in `src/lib/legal.ts`).
+- Analytics stay **on with an opt-out** (legitimate interests); the lawyer confirms the basis.

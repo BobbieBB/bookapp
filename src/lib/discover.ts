@@ -30,8 +30,15 @@ export const suggestedFandoms = async () => (await rpc<{ fandom: string }[]>('su
 export const searchFandoms = async (query: string) =>
   (await rpc<FandomHit[]>('search_fandoms', { p_query: query })).map((h) => ({ ...h, stories: Number(h.stories) }));
 
-export const lively = async (fandoms: string[]) =>
-  (await rpc<LivelyStory[]>('lively_in_fandoms', { p_fandoms: fandoms })).map((s) => ({ ...s, activity: Number(s.activity) }));
+/**
+ * Complete only narrows every fallback tier in the database, so the list widens the same way with it on.
+ * It is sent only when on: with it off the call is the one a database without the filter also answers.
+ */
+export const lively = async (fandoms: string[], completeOnly = false) =>
+  (await rpc<LivelyStory[]>('lively_in_fandoms', { p_fandoms: fandoms, ...(completeOnly ? { p_complete_only: true } : {}) })).map((s) => ({
+    ...s,
+    activity: Number(s.activity),
+  }));
 
 /** Every fandom you picked (Profile shows them all; Discover's chips show at most 6). */
 export async function favouriteFandoms(): Promise<string[]> {

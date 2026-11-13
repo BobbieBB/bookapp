@@ -9,7 +9,7 @@ table. Anonymous users (`anon`) have no access at all.
 |---|---|---|
 | `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick | Logged-in users |
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
-| `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public` |
+| `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public`, which is never set today: entries are private by default (13 Nov 2026) |
 | `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
 | `comments` | Comments and replies (one level of `parent_id`); `author_id` is empty once the author deleted their account | Only readers who unlocked that discussion |
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
@@ -203,7 +203,7 @@ migrations or the service role can change `moderation_email_settings`.
 | `my_fandoms()` | Discover's YOUR FANDOMS: picked ones, then fandoms of fics in your library (max 6); the starter list if none |
 | `suggested_fandoms()` | Fandoms of fics in your library you haven't picked (Profile's "+" chips) |
 | `search_fandoms(text)` | All fandoms in the app matching the text, most discussed this week first |
-| `lively_in_fandoms(fandoms)` | Fics you don't read yet in those fandoms: discussion this week → 30 days → most read → starter fandoms |
+| `lively_in_fandoms(fandoms, complete_only = false)` | Fics you don't read yet in those fandoms: discussion this week → 30 days → most read → starter fandoms. `complete_only` keeps only complete fics in every tier, so the list widens the same way; it is empty only when no complete fic is left even in the starter fandoms |
 | `bump_published_sections(story, count)` | A new WIP chapter came out |
 | `complete_story(story, total?)` | A WIP fic was finished by its author |
 | `reopen_story(story)` | Undo a completion (within 7 days) |

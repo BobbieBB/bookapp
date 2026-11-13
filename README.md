@@ -49,11 +49,31 @@ Before launch:
   mailer only sends to the team's addresses. Then set the hosted e-mail rate limit (Auth → Rate limits); the
   `email_sent` value in `supabase/config.toml` is for the local stack only.
 - **Copy:** a native read of the Bulgarian copy.
+- **The website (livami.app):** `site/` is published by `.github/workflows/pages.yml` on every change to
+  `site/` on main (GitHub Pages: Settings → Pages → Source "GitHub Actions", custom domain `livami.app`,
+  Enforce HTTPS). DNS at Porkbun: four `A` records on the root to GitHub Pages and a `www` CNAME to
+  `bobbiebb.github.io`. The terms and privacy pages say "being prepared" until the final texts are in.
 - **Terms and privacy:** publish the texts at `TERMS_URL` and `PRIVACY_URL` (`src/lib/legal.ts`), set
   `MIN_AGE` (the PO's call; 16 is a dev default) and bump `TERMS_VERSION` whenever the text changes, so
   every reader accepts the new version. Apply the terms migration (`20261103000000_terms_acceptance.sql`)
   to the hosted database **before** shipping an app build that includes it: the app reads
   `profiles.terms_version` at sign-in, and without the column that read fails for every reader.
+- **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
+  listing in English and Bulgarian; `app.json` has the bundle id / package `app.livami` (confirmed by the PO, 5 Nov 2026) and the
+  `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a
+  person:
+  - Apple Developer and Google Play Console accounts.
+  - The EAS project (`eas init` adds its `projectId` to `app.json`; pushes need it) and
+    `npx expo install expo-dev-client` for the development build.
+  - `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` as EAS environment variables for each
+    environment (`eas env:create`); no values go in `eas.json` or Git.
+  - Confirming the bundle id `app.livami` (it can't change after the first upload).
+  - The app icon (1024 × 1024), the Android adaptive icon (foreground + background colour), the splash
+    image and the Play feature graphic (1024 × 500). None are in the repo yet, so `app.json` has no paths.
+  - The privacy policy URL and terms of use (the policy text is drafted in a separate PR).
+- **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
+  **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
+  but with the filter on, Discover's list fails to load until the migration is in.
 
 Planning lives on the Trello board *Book club app*.
 
