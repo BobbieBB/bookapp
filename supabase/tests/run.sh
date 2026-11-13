@@ -12,6 +12,7 @@ psql -v ON_ERROR_STOP=1 -d $DB -f tests/story_rules.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/book_chapters.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/discussions.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/discover.test.sql
+psql -v ON_ERROR_STOP=1 -d $DB -f tests/discover_complete_only.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/safety.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/home.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/covers.test.sql
