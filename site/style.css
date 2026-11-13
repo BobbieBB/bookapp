@@ -1,0 +1,138 @@
+/* livami.app: the app's colours and fonts (src/theme.ts, docs/DECISIONS.md). */
+:root {
+  --ground: #F6F8F7;
+  --surface: #FFFFFF;
+  --band: #BFEBD8;
+  --ink: #1E1328;
+  --muted: #4E4459;
+  --hairline: #E0D9E5;
+  --primary: #FF4F84;
+  --link: #B3123F;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #120C17;
+    --surface: #1F1726;
+    --band: #13302A;
+    --ink: #F7EEF3;
+    --muted: #B4A6BD;
+    --hairline: #3A2F44;
+    --primary: #FF6B97;
+    --link: #FF8FB0;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--ground);
+  color: var(--ink);
+  font: 17px/1.55 'Sofia Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+a { color: var(--link); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; border-radius: 6px; }
+
+/* One language at a time: the script sets <html lang>, and without it both show. */
+html[lang='en'] [lang='bg'], html[lang='bg'] [lang='en'] { display: none !important; }
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  font: 700 22px/1 'Unbounded', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+.brand svg { width: 36px; height: 36px; }
+.langs { display: flex; gap: 6px; }
+.langs button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--hairline);
+  background: var(--surface);
+  color: var(--ink);
+  font: 700 15px/1 'Sofia Sans', system-ui, sans-serif;
+  cursor: pointer;
+}
+.langs button[aria-pressed='true'] { border-color: var(--primary); }
+
+main {
+  flex: 1;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 8px 16px 48px;
+}
+.hero {
+  background: var(--band);
+  border-radius: 28px;
+  padding: 40px 28px;
+  display: grid;
+  gap: 18px;
+}
+.hero svg { width: 88px; height: 88px; }
+h1 {
+  margin: 0;
+  font: 700 clamp(30px, 7vw, 44px)/1.1 'Unbounded', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+h2 { margin: 32px 0 8px; font: 800 22px/1.25 'Sofia Sans', system-ui, sans-serif; }
+.lead { margin: 0; font-size: 20px; max-width: 34em; }
+.soon {
+  justify-self: start;
+  margin: 4px 0 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 700;
+}
+.points { display: grid; gap: 14px; margin: 32px 0 0; padding: 0; list-style: none; }
+.points li {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  padding: 18px 20px;
+}
+.points strong { display: block; font-size: 18px; }
+.muted { color: var(--muted); }
+.note {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+footer {
+  max-width: 688px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+  color: var(--muted);
+  font-size: 15px;
+}
+footer a { color: inherit; min-height: 44px; display: inline-flex; align-items: center; }
+
+main > h1 { margin: 24px 0 20px; font-size: clamp(26px, 6vw, 36px); }
