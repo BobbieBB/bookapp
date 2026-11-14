@@ -453,8 +453,16 @@ profile has loaded, Explicit stays hidden.
 
 **Where it is enforced.** The rooms are enforced on the server: `user_can_access_section`, the single spoiler
 wall, also requires the confirmation for an Explicit fic, so the comments read/insert policies, reactions, room
-counts, @mentions and push all follow it (admins still get in for moderation). The link and warnings are hidden
-**in the app only**: `stories.source_url` and `warnings` stay readable to signed-in readers through the table
-(and Discover's RPC returns whole story rows), because any reader can add any AO3 link themselves and the link
-only points to AO3, which shows its own adult-content warning before an Explicit work. Gating the columns on the
-server would mean splitting `stories` reads into an RPC everywhere; revisit if the lawyer asks for it.
+counts, @mentions and push all follow it (admins still get in for moderation). The link and warnings are **not**
+protected by the server: `stories.source_url` and `warnings` stay readable to any signed-in reader through the
+API (the `stories` table, and Discover's RPC, which returns whole story rows). The gate for them is an **in-app
+gate** plus AO3's own adult-content interstitial, which AO3 shows before any Explicit work. Any reader can add an
+AO3 link themselves, and the link only points to AO3. Gating the columns on the server would mean moving every
+`stories` read behind an RPC; revisit if the lawyer asks for it.
+
+Admins see Explicit rooms without confirming, in the app as on the server, so they can moderate them. If the
+profile cannot be loaded, the app shows its usual "couldn't load your profile / Try again" screen
+(`app/_layout.tsx`), so the gate never stays on silently. Restoring a backup, or loading data with
+`adult_confirmed = true`, needs the `profiles_guard_adult` trigger disabled deliberately for that load
+(`alter table public.profiles disable trigger profiles_guard_adult`, then enable it again): the trigger refuses
+the answer from anyone but the reader, the database owner included.
