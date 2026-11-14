@@ -423,3 +423,10 @@ protection by default (GDPR Art. 25), and dark romance readers may not want thei
   replace her later, with a new terms version.
 - Minimum age **16**, a self-declared tick (`MIN_AGE` in `src/lib/legal.ts`).
 - Analytics stay **on with an opt-out** (legitimate interests); the lawyer confirms the basis.
+
+## Readers' content stays out of AI tools (PO, 13 Nov 2026)
+
+The terms promise that Livami never sells readers' content or uses it to train AI models. The team keeps the
+same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
+chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
+without the readers' text or names.
