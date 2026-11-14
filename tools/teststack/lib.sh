@@ -90,11 +90,17 @@ evacuate_and() {
   printf '%s\n%s\n' "$EVACUATE_SQL" "$sql" | admin_sql || die "could not get the database to itself"
 }
 
-# After the database was swapped: PostgREST backs off up to 32 s between reconnects, and GoTrue's
-# pool keeps dead connections (sign-ups time out), so both restart; they are up in a second or two.
-# Realtime and Storage reconnect by themselves (and take minutes to restart on a busy machine).
+# After the database was swapped: PostgREST backs off up to 32 s between reconnects, GoTrue's pool
+# keeps dead connections (sign-ups time out) and Realtime loses its replication of the old
+# database, so these three restart (Storage reconnects by itself). Waits for Realtime's health.
 restart_rest() {
-  docker restart -t 1 "livami-test-$SLOT-rest-1" "livami-test-$SLOT-auth-1" >/dev/null
+  local i
+  docker restart -t 1 "livami-test-$SLOT-rest-1" "livami-test-$SLOT-auth-1" "livami-test-$SLOT-realtime-1" >/dev/null
+  for i in $(seq 1 600); do
+    [ "$(docker inspect -f '{{.State.Health.Status}}' "livami-test-$SLOT-realtime-1")" = healthy ] && return 0
+    sleep 0.5
+  done
+  die "slot $SLOT: Realtime did not come back healthy"
 }
 
 # Waits until the API answers again after the database was swapped: the services stay up and
