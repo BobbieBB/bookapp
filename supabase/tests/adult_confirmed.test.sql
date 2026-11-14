@@ -101,6 +101,42 @@ insert into public.comments (discussion_id, body)
 select test.ok((select count(*) = 2 from public.comments where body in ('mira on the mature fic', 'niko on the mature fic')),
   'an unconfirmed reader reads and posts in a Mature fic''s room');
 
+-- No @mention and no push from an Explicit room for Niko; the Mature room still notifies him.
+select test.logout();
+insert into public.push_tokens (token, user_id, language, platform)
+  values ('ExponentPushToken[adult-niko]', '00000000-0000-0000-0000-0000000a1802', 'en', 'ios');
+select test.login('00000000-0000-0000-0000-0000000a1801');
+insert into public.comments (discussion_id, body)
+  select id, '@adult_niko read this one' from public.discussions where story_id in
+    ('18000000-0000-0000-0000-000000000001', '18000000-0000-0000-0000-000000000002') and kind = 'chapter';
+select test.logout();
+select test.ok((select count(*) = 0 from public.notifications n join public.discussions d on d.id = n.discussion_id
+  where n.user_id = '00000000-0000-0000-0000-0000000a1802' and n.type = 'mention' and d.story_id = '18000000-0000-0000-0000-000000000001'),
+  'an unconfirmed reader gets no @mention from an Explicit fic''s room');
+select test.ok((select count(*) = 1 from public.notifications n join public.discussions d on d.id = n.discussion_id
+  where n.user_id = '00000000-0000-0000-0000-0000000a1802' and n.type = 'mention' and d.story_id = '18000000-0000-0000-0000-000000000002'),
+  'the same mention in a Mature fic''s room notifies them');
+-- A notification from before (or written by hand) is never pushed while they are unconfirmed.
+insert into public.notifications (user_id, type, actor_id, discussion_id)
+  select '00000000-0000-0000-0000-0000000a1802', 'mention', '00000000-0000-0000-0000-0000000a1801', id
+  from public.discussions where story_id = '18000000-0000-0000-0000-000000000001' and kind = 'chapter';
+select test.ok((select bool_and(jsonb_array_length(public.push_messages(n.id)) = 0) from public.notifications n
+  join public.discussions d on d.id = n.discussion_id
+  where n.user_id = '00000000-0000-0000-0000-0000000a1802' and d.story_id = '18000000-0000-0000-0000-000000000001'),
+  'an unconfirmed reader gets no push from an Explicit fic''s room');
+select test.ok((select bool_and(jsonb_array_length(public.push_messages(n.id)) = 1) from public.notifications n
+  join public.discussions d on d.id = n.discussion_id
+  where n.user_id = '00000000-0000-0000-0000-0000000a1802' and d.story_id = '18000000-0000-0000-0000-000000000002'),
+  'the Mature room''s mention is pushed');
+
+-- An admin who never confirmed still reads an Explicit fic's room, to moderate it.
+insert into auth.users (id) values ('00000000-0000-0000-0000-0000000a18ad');
+insert into public.profiles (id, username, is_admin) values ('00000000-0000-0000-0000-0000000a18ad', 'adult_admin', true);
+select test.login('00000000-0000-0000-0000-0000000a18ad');
+select test.ok((select count(*) > 0 from public.comments where body = 'mira on the explicit fic'),
+  'an admin reads an Explicit fic''s room without the confirmation');
+select test.login('00000000-0000-0000-0000-0000000a1802');
+
 -- Niko confirms: the Explicit room opens.
 update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1802';
 select test.ok((select count(*) = 1 from public.comments where body = 'mira on the explicit fic'), 'once confirmed, the comments are readable');

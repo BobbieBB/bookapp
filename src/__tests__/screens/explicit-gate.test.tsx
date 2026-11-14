@@ -4,6 +4,7 @@ import Profile from '../../../app/(tabs)/profile';
 import FinishedScreen from '../../../app/finished/[id]';
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import StoryScreen from '../../../app/story/[id]';
+import { setAdmin } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
 import type { Language } from '../../i18n';
 import { addToLibrary, createFic } from '../../lib/stories';
@@ -168,5 +169,19 @@ describe('the switch in Profile', () => {
     await openRoom(explicitId, '1');
     expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByText('Old enough to talk about it')).toBeNull();
+  });
+});
+
+describe('an admin who has not said they are 18 or over', () => {
+  it('can still read an Explicit fic\'s room, to moderate it (the server lets admins in)', async () => {
+    expect(await confirmed()).toBe(false);
+    setAdmin(me, true);
+    try {
+      await openRoom(explicitId, '1');
+      expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
+      expect(screen.queryByText(ROOM_GATE)).toBeNull();
+    } finally {
+      setAdmin(me, false);
+    }
   });
 });
