@@ -341,16 +341,35 @@ describe('terms that change on a date', () => {
     expect(await screen.findByText(notice, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
-  it('Accept now saves the current version early, and the notice goes', async () => {
+  it('Accept now opens the same ticks as the gate; nothing is saved until they are ticked and accepted', async () => {
     restore = before();
     const u = await signUp('earlybird', OLD_VERSION);
     await renderScreen('en', homeApp, '/');
     await fireEvent.press(await screen.findByRole('button', { name: 'Accept now' }, { timeout: 8000 }));
-    await waitFor(() => expect(screen.queryByText(notice)).toBeNull(), { timeout: 8000 });
+    expect(await screen.findByText('The new terms', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const accept = () => screen.getByRole('button', { name: 'Accept' });
+    expect(accept()).toBeDisabled();
+    expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'I accept the Terms. I have read the Privacy Policy.' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: new RegExp(`at least ${MIN_AGE}`) }));
+    await fireEvent.press(accept());
+    await waitFor(() => expect(screen.queryByText('The new terms')).toBeNull(), { timeout: 8000 });
+    expect(await atHome(u)).toBeOnTheScreen();
+    expect(screen.queryByText(notice)).toBeNull();
     const row = (await profileOf(u))!;
     expect(row.terms_version).toBe(TERMS_VERSION);
     expect(Math.abs(Date.parse(row.terms_accepted_at!) - Date.now())).toBeLessThan(60_000);
-    expect(screen.getByText(`Hi, ${u.username}`)).toBeOnTheScreen();
+  });
+
+  it('Not now goes back to Home without accepting', async () => {
+    restore = before();
+    const u = await signUp('notnow', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Accept now' }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }, { timeout: 8000 }));
+    await waitFor(() => expect(screen.queryByText('The new terms')).toBeNull(), { timeout: 8000 });
+    expect(await screen.findByText(notice)).toBeOnTheScreen();
+    expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
   });
 
   it('a reader on the current version sees no notice', async () => {
