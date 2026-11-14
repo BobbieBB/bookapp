@@ -218,17 +218,16 @@ describe('an admin on the Moderation screen', () => {
   it('sees what the server says after a reload, not what this card last did', async () => {
     const feedbackId = sql(
       `insert into public.feedback (user_id, kind, body) values ('${fine.id}', 'idea', 'Reload trigger ${run}') returning id;`,
-    ).trim();
+    ).split('\n')[0];
     await renderScreen('en', { moderation: Moderation }, '/moderation');
     const card = await screen.findByTestId(`queue-user_report-${flipReportId}`, {}, { timeout: 8000 });
     await fireEvent.press(within(card).getByRole('button', { name: /^Suspend the reader/ }));
     await fireEvent.changeText(within(card).getByLabelText('Reason (the reader sees this)'), 'Spam');
     await fireEvent.press(within(card).getByRole('button', { name: 'Suspend' }));
     expect(await within(card).findByText(`${flip.username} is suspended`, {}, { timeout: 8000 })).toBeOnTheScreen();
-    // Another admin lets them back in; this screen hears of it on its next reload.
-    await suspend(flip, null, false);
-    await as(admin);
-    const other = screen.getByTestId(`queue-feedback-${feedbackId}`);
+    // Another admin lets them back in (without signing this one out); this screen hears of it on its next reload.
+    sql(`update public.profiles set is_suspended = false where id = '${flip.id}';`);
+    const other = await screen.findByTestId(`queue-feedback-${feedbackId}`);
     await fireEvent.press(within(other).getByRole('button', { name: /^Dismiss/ }));
     expect(await within(card).findByRole('button', { name: /^Suspend the reader/ }, { timeout: 8000 })).toBeOnTheScreen();
     expect(within(card).queryByText(`${flip.username} is suspended`)).toBeNull();

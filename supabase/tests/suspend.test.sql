@@ -204,8 +204,9 @@ select test.ok(not exists (select 1 from public.my_notifications() where story_i
 select test.ok((select not suspended and reason is null from public.my_suspension()), 'my_suspension says it is over');
 select test.ok(test.code_of($$insert into public.comments (discussion_id, body) values ('e2000000-0000-0000-0000-000000000001', 'back')$$) is null,
   'and they can comment again');
-select test.ok(test.code_of($$update public.stories set title = 'Sam''s Fic, revised' where id = 'e1000000-0000-0000-0000-000000000003'$$) is null
-  and (select title from public.stories where id = 'e1000000-0000-0000-0000-000000000003') = 'Sam''s Fic, revised',
+select test.ok(test.code_of($$update public.stories set title = 'Sam''s Fic, revised' where id = 'e1000000-0000-0000-0000-000000000003'$$) is null,
+  '... and edit the story they added (runs)');
+select test.ok((select title from public.stories where id = 'e1000000-0000-0000-0000-000000000003') = 'Sam''s Fic, revised',
   '... and edit the story they added');
 select test.logout();
 select test.ok(public.push_messages((select id from public.notifications where user_id = '00000000-0000-0000-0000-0000000005e1' and type = 'account_restored')) = '[]'::jsonb,
