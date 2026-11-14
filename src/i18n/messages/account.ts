@@ -11,11 +11,13 @@ export const en = {
   'account.goes':
     'Your profile, library and reading progress, ratings, reactions, follows, blocks, notifications, your own covers, what we counted about how you use the app, and the phones that get your notifications.',
   'account.staysHeading': 'What stays',
-  'account.stays':
-    'Your comments and book reviews stay, so other readers’ discussions still make sense. Your name is taken off them: they show “Deleted reader”, with no picture and no link to you.',
-  'account.staysErased':
-    'Your comments keep their place, so replies to them still make sense, but their text is erased: they show “This comment was deleted”. Your book reviews are deleted.',
-  'account.erase': 'Also delete all my comments',
+  'account.stays': 'Choose what happens to your comments and book reviews.',
+  'account.keepComments': 'Keep my comments, shown as “Deleted reader”',
+  'account.keepCommentsHint':
+    'Your comments and reviews stay, so replies to them still make sense, with no name, picture or link to you.',
+  'account.eraseComments': 'Erase my comments and delete my reviews',
+  'account.eraseCommentsHint':
+    'Each comment keeps its place in the thread but its text is erased: it shows “This comment was deleted”.',
   'account.delete': 'Delete my account',
   'account.confirm': 'Are you sure? Your account will be deleted right away, and you will be signed out.',
   'account.confirmDelete': 'Yes, delete it forever',
@@ -32,11 +34,13 @@ export const bg: Translation<typeof en> = {
   'account.goes':
     'Профилът ти, библиотеката и напредъкът ти в четенето, оценките, реакциите, следените дискусии, блокиранията, известията, твоите собствени корици, това, което сме отчели за това как ползваш приложението, и телефоните, на които получаваш известия.',
   'account.staysHeading': 'Какво остава',
-  'account.stays':
-    'Коментарите и ревютата ти на книги остават, за да имат смисъл дискусиите на другите читатели. Името ти се маха от тях: вместо него пише „Изтрит читател“, без снимка и без линк към профила ти.',
-  'account.staysErased':
-    'Коментарите ти остават на мястото си, за да имат смисъл отговорите към тях, но текстът им се изтрива: на тяхно място пише „Този коментар е изтрит“. Ревютата ти на книги се изтриват.',
-  'account.erase': 'Изтрий и всичките ми коментари',
+  'account.stays': 'Избери какво да стане с коментарите и ревютата ти на книги.',
+  'account.keepComments': 'Запази коментарите ми, с „Изтрит читател“ вместо името ми',
+  'account.keepCommentsHint':
+    'Коментарите и ревютата ти остават, за да имат смисъл отговорите към тях, но без име, снимка и линк към профила ти.',
+  'account.eraseComments': 'Изтрий коментарите и ревютата ми',
+  'account.eraseCommentsHint':
+    'Всеки коментар остава на мястото си в дискусията, но текстът му се изтрива: на негово място пише „Този коментар е изтрит“.',
   'account.delete': 'Изтрий акаунта ми',
   'account.confirm': 'Наистина ли? Акаунтът ти ще бъде изтрит веднага и ще излезеш от приложението.',
   'account.confirmDelete': 'Да, изтрий го завинаги',

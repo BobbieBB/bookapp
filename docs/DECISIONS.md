@@ -327,6 +327,11 @@ Choices made during development where the decisions above don't say. Each one is
   mention notifications from them. Reports the reader filed, or about them as a reader, go with the account; reports about their
   comments stay with the comments. "This comment was deleted" is now also what a comment deleted by its
   author shows. Cover files that can't be removed at deletion are left for a later sweep.
+- **Changed 14 Nov 2026 (Terms review, GDPR art. 17 and the content licence): the reader must choose.** The opt-in
+  toggle is replaced by a required choice between two radio options, neither preselected: "Keep my comments, shown as
+  'Deleted reader'" (replies to them still make sense) or "Erase my comments and delete my reviews". "Delete my
+  account" stays disabled until one is chosen; the confirmation step is unchanged. The choice goes to
+  `delete_my_account(p_erase_comments)` as the toggle's value did, so the database is unchanged.
 
 ## Finishing a WIP fic (20 Oct 2026, PO, from the phone test)
 - **"Finished" on a WIP** means "I've read every chapter published so far": progress moves to the last published chapter,
