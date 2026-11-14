@@ -34,13 +34,85 @@ compose() {
 # Where leases are kept: one directory per slot, shared by every checkout on this machine.
 LEASE_DIR="${TEST_STACK_LEASE_DIR:-${TMPDIR:-/tmp}/livami-teststack}"
 POOL_SIZE="${TEST_STACK_POOL:-4}"
-# The legacy anon key (a JWT signed with the stack's test-only secret), for health checks.
-ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+# The one copy of the stack's API keys: the legacy anon and service_role JWTs signed with its fixed,
+# test-only JWT secret. They are the Supabase CLI's public local-development defaults (not secrets;
+# secret scanners may flag them all the same). env.sh hands them to the tests, and compose() to the
+# compose file. Hosted Supabase hands out sb_publishable_/sb_secret_ keys instead; no app code
+# depends on the format of the key.
+TESTSTACK_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+TESTSTACK_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+export TESTSTACK_ANON_KEY TESTSTACK_SERVICE_KEY
+
+# A lease is the directory $LEASE_DIR/slot-<n> (mkdir is atomic) holding an owner file with the PID
+# of its owner. Taking a stale lease back, and freeing one, happen under a second, separate guard
+# directory slot-<n>.reclaim, so the lease directory never changes hands while it is being judged.
+# Seconds after which a lease directory that still has no owner file counts as abandoned.
+ORPHAN_AGE="${TEST_STACK_ORPHAN_AGE:-10}"
+
+# Whether process $1 exists. kill -0 fails with EPERM for another user's process: that one lives.
+pid_alive() {
+  local err
+  err="$(kill -0 "$1" 2>&1)" && return 0
+  case "$err" in *"not permitted"*) return 0 ;; esac
+  return 1
+}
+
+# Seconds since $1 was last modified (GNU stat, else BSD stat).
+age_of() {
+  local mtime
+  mtime="$(stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null)" || return 1
+  echo $(($(date +%s) - mtime))
+}
+
+# Takes the guard of lease $1, trying $2 times 0.1 s apart. A guard left by a process killed inside
+# it (held for milliseconds otherwise) is removed once it is a minute old.
+take_guard() {
+  local guard="$1.reclaim" tries="${2:-1}" i age
+  for i in $(seq 1 "$tries"); do
+    mkdir "$guard" 2>/dev/null && return 0
+    age="$(age_of "$guard" || echo 0)"
+    [ "$age" -gt 60 ] && rmdir "$guard" 2>/dev/null && continue
+    [ "$i" -lt "$tries" ] && sleep 0.1
+  done
+  return 1
+}
+
+drop_guard() {
+  rmdir "$1.reclaim" 2>/dev/null || true
+}
+
+# Whether lease $1 is stale: its owner is dead, or it has had no owner for ORPHAN_AGE seconds (its
+# taker died between mkdir and writing the owner). Call it only while holding the guard.
+lease_stale() {
+  local holder age
+  [ -d "$1" ] || return 1
+  holder="$(cat "$1/owner" 2>/dev/null || true)"
+  if [ -n "$holder" ]; then
+    ! pid_alive "$holder"
+  else
+    age="$(age_of "$1")" || return 1
+    [ "$age" -ge "$ORPHAN_AGE" ]
+  fi
+}
 
 # Removes a lease directory: its owner file, then the (then empty) directory.
-drop_lease() {
+remove_lease() {
   rm -f "$1/owner"
   rmdir "$1" 2>/dev/null || true
+}
+
+# Takes stale lease $1 back (frees it), if no one else is doing so right now.
+reclaim_if_stale() {
+  take_guard "$1" 1 || return 0
+  lease_stale "$1" && remove_lease "$1"
+  drop_guard "$1"
+}
+
+# Frees lease $1 (release.sh), under its guard so it never races a reclaim.
+drop_lease() {
+  take_guard "$1" 100 || die "the guard $1.reclaim is held; try again"
+  remove_lease "$1"
+  drop_guard "$1"
 }
 
 # psql in the slot's database container (docker exec: much quicker than docker compose exec).
@@ -57,10 +129,13 @@ db_exists() {
   [ "$(echo "select 1 from pg_database where datname = '$1';" | admin_sql)" = "1" ]
 }
 
-# What the clean snapshot must be built from: our migrations and the init SQL. A branch with other
+# What the clean snapshot must be built from: our migrations, the seed and the init SQL. A branch with other
 # migrations gets its own clean snapshot rebuilt on its first reset.
 migrations_hash() {
-  cat "$TESTSTACK_DIR/db/schema.sql" "$REPO_DIR"/supabase/migrations/*.sql | shasum -a 256 | cut -c1-16
+  {
+    cat "$TESTSTACK_DIR/db/schema.sql" "$REPO_DIR"/supabase/migrations/*.sql
+    if [ -f "$REPO_DIR/supabase/seed.sql" ]; then echo "-- seed"; cat "$REPO_DIR/supabase/seed.sql"; fi
+  } | shasum -a 256 | cut -c1-16
 }
 
 clean_hash() {
@@ -111,8 +186,8 @@ await_api() {
     # Any answer from PostgREST itself (even "permission denied") means its schema cache is loaded;
     # 000 is no connection, 5xx is Kong or PostgREST still waiting for the database.
     rest=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:55${SLOT}21/rest/v1/profiles?limit=0" \
-      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" || true)
-    auth=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:55${SLOT}21/auth/v1/health" -H "apikey: $ANON_KEY" || true)
+      -H "apikey: $TESTSTACK_ANON_KEY" -H "Authorization: Bearer $TESTSTACK_ANON_KEY" || true)
+    auth=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:55${SLOT}21/auth/v1/health" -H "apikey: $TESTSTACK_ANON_KEY" || true)
     if [ "$auth" = "200" ] && [ "$rest" != "000" ] && [ "$rest" -lt 500 ]; then
       return 0
     fi
@@ -239,6 +314,13 @@ do \$\$ declare tables text; begin
   where schemaname in ($schemas) and schemaname || '.' || tablename not in ($keep);
   if tables is not null then execute 'truncate ' || tables || ' restart identity cascade'; end if;
 end \$\$;
+-- Queues and logs outside DATA_SCHEMAS that tests fill: pg_net's requests and responses, pg_cron's run
+-- history (delete, not truncate, so their background workers are never locked out).
+do \$\$ begin
+  if to_regclass('net.http_request_queue') is not null then delete from net.http_request_queue; end if;
+  if to_regclass('net._http_response') is not null then delete from net._http_response; end if;
+  if to_regclass('cron.job_run_details') is not null then delete from cron.job_run_details; end if;
+end \$\$;
 \\i $CLEAN_DATA
 SQL
 }
@@ -253,4 +335,21 @@ build_clean() {
   dump_clean_data
   snapshot "$CLEAN_DB"
   echo "comment on database $CLEAN_DB is '$hash';" | admin_sql
+}
+
+# Deletes the stored files (Storage's file backend, in the storage volume) whose objects no longer
+# exist: after a reset, those the tests uploaded. Each file is <bucket>/<object name>/<version>
+# under the tenant's directory; what is left of a directory once its files are gone goes too.
+clear_storage_files() {
+  local keep
+  keep="$(echo "select bucket_id || '/' || name from storage.objects;" | admin_sql postgres)" ||
+    die "could not list the stored objects"
+  docker exec -e KEEP="$keep" "livami-test-$SLOT-storage-1" sh -c '
+    cd /mnt/stub/stub 2>/dev/null || exit 0
+    find . -type f | while IFS= read -r file; do
+      key="${file#./}"
+      printf "%s\n" "$KEEP" | grep -qxF "${key%/*}" || rm -f "$file"
+    done
+    find . -mindepth 1 -depth -type d -exec rmdir {} + 2>/dev/null
+    exit 0' || die "could not clear the stored files"
 }

@@ -16,8 +16,9 @@ name: livami-test-${SLOT:?set SLOT to 0-9}
 x-jwt-secret: &jwt-secret super-secret-jwt-token-with-at-least-32-characters-long
 # The public half of GOTRUE_JWT_KEYS plus the HS256 secret (base64url of the secret above).
 x-jwks: &jwks '{"keys":[{"kty":"EC","kid":"6c1b6c3e-7d43-4f6b-9a63-1d2b4f0e5a10","use":"sig","key_ops":["verify"],"alg":"ES256","ext":true,"crv":"P-256","x":"u_Nfbk_wYeaZNMYdeUrjNOv_EefXqh4AmwwUvkqfslA","y":"m7BIT4X0a0qzcrxsQrJMzM8JoaBxDfmwByOw1pMn_pI"},{"kty":"oct","k":"c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw"}]}'
-x-anon-key: &anon-key eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-x-service-key: &service-key eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+# The API keys come from lib.sh (TESTSTACK_ANON_KEY / TESTSTACK_SERVICE_KEY), their one copy.
+x-anon-key: &anon-key ${TESTSTACK_ANON_KEY:?run docker compose through tools/teststack (compose.sh)}
+x-service-key: &service-key ${TESTSTACK_SERVICE_KEY:?run docker compose through tools/teststack (compose.sh)}
 x-api-url: &api-url http://127.0.0.1:55${SLOT}21
 
 services:
@@ -83,7 +84,12 @@ services:
       GOTRUE_SECURITY_CAPTCHA_ENABLED: "false"
       GOTRUE_PASSWORD_MIN_LENGTH: "6"
       GOTRUE_PASSWORD_REQUIRED_CHARACTERS: ""
-      GOTRUE_RATE_LIMIT_EMAIL_SENT: "360000"
+      # [auth.rate_limit] of supabase/config.toml, under GoTrue v2.197.0's names: email_sent (per
+      # hour) -> EMAIL_SENT, sms_sent -> SMS_SENT, anonymous_users -> ANONYMOUS_USERS, token_refresh
+      # -> TOKEN_REFRESH, sign_in_sign_ups -> OTP (sign-ups, password sign-ins, OTP, recovery, resend),
+      # token_verifications -> VERIFY, web3 -> WEB3; the others per 5 minutes and per IP. GoTrue keeps
+      # the counters in memory, so reset.sh restarts auth to start every run from zero.
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: "1000"
       GOTRUE_RATE_LIMIT_SMS_SENT: "30"
       GOTRUE_RATE_LIMIT_ANONYMOUS_USERS: "30"
       GOTRUE_RATE_LIMIT_TOKEN_REFRESH: "10000"

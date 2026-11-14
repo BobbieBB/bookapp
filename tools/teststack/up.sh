@@ -7,16 +7,20 @@ source "$(dirname "$0")/lib.sh"
 use_slot "${1:-}"
 started=$SECONDS
 
-compose up -d --wait >/dev/null 2>&1 || {
+# Compose's progress output goes to a log, shown when the stack does not come up.
+mkdir -p "$LEASE_DIR"
+log="$LEASE_DIR/up-$SLOT.log"
+compose up -d --wait >"$log" 2>&1 || {
+  tail -40 "$log" >&2
   compose ps >&2
-  die "slot $SLOT did not come up healthy (docker compose -p livami-test-$SLOT logs)"
+  die "slot $SLOT did not come up healthy (log: $log; tools/teststack/compose.sh $SLOT logs)"
 }
 if ! db_exists "$BASE_DB"; then
   snapshot "$BASE_DB"
   build_clean
   restart_rest
 elif [ "$(clean_hash)" != "$(migrations_hash)" ]; then
-  "$TESTSTACK_DIR/reset.sh" "$SLOT" 2>/dev/null
+  "$TESTSTACK_DIR/reset.sh" "$SLOT"
 fi
 # PostgREST has no healthcheck of its own (no shell in its image): wait for it through Kong.
 await_api

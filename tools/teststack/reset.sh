@@ -9,8 +9,11 @@ started=$SECONDS
 db_exists "$BASE_DB" || die "slot $SLOT has no base snapshot: run tools/teststack/up.sh $SLOT"
 
 if [ "$(clean_hash)" = "$(migrations_hash)" ] && has_clean_data; then
-  # The usual case: same migrations, so only the rows need to go back. No service notices.
+  # The usual case: same migrations, so only the rows (and stored files) need to go back. Auth
+  # restarts (about a second) because GoTrue keeps its rate-limit counters in memory.
   reset_data
+  clear_storage_files
+  docker restart -t 1 "livami-test-$SLOT-auth-1" >/dev/null
 else
   # Other migrations (another branch): back to the base database, migrate, new clean snapshot.
   # The services lose their database, so those that do not recover by themselves restart.
@@ -20,6 +23,7 @@ else
     [ $attempt -eq 3 ] && die "slot $SLOT: could not rebuild the clean database"
     echo "teststack: rebuild interrupted, retrying" >&2
   done
+  clear_storage_files
   restart_rest
 fi
 await_api

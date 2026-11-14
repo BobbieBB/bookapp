@@ -16,6 +16,7 @@
     "db:seed:dev": "docker exec -i supabase_db_bookapp psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/dev-seed.sql",
     "test": "jest",
     "test:stack": "tools/teststack/run-tests.sh",
+    "test:stack-scripts": "tools/teststack/test/lease.test.sh",
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
