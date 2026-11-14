@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddButton } from '@/components/AddButton';
 import { useMyCoverUrls } from '@/components/CustomCover';
 import { StoryRow } from '@/components/StoryRow';
+import { TermsChangeNotice } from '@/components/TermsChangeNotice';
 import { NotificationRow } from '@/components/NotificationRow';
 import { Button, Card, ErrorText, T } from '@/components/ui';
 import { useLanguage, useT, type Language } from '@/i18n';
@@ -60,6 +61,7 @@ export default function Home() {
           </View>
           <AddButton />
         </View>
+        <TermsChangeNotice />
 
         {loading ? (
           <ActivityIndicator color={c.signal} />

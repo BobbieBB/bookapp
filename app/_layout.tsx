@@ -12,7 +12,7 @@ import { FONT_FILES } from '@/fonts';
 import { LanguageProvider, useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { TERMS_VERSION } from '@/lib/legal';
+import { termsStatus } from '@/lib/legal';
 import { showForegroundPushesQuietly } from '@/lib/pushDevice';
 import { space, useTheme } from '@/theme';
 
@@ -61,8 +61,9 @@ export function RootStack() {
   if (signedIn && !profile && profileState === 'loading') return <Loading />;
   if (signedIn && !profile && profileState === 'error') return <ProfileError />;
   const hasProfile = signedIn && !!profile;
-  // Readers who accepted an older version of the terms, or none, accept the current one first.
-  const onboarded = hasProfile && profile.terms_version === TERMS_VERSION;
+  // Readers who accepted no terms, or an older version once it has taken effect, accept the current one
+  // first. Before it takes effect, Home tells them it is coming (src/components/TermsChangeNotice.tsx).
+  const onboarded = hasProfile && termsStatus(profile.terms_version) !== 'required';
 
   const pushed = {
     headerShown: true,
