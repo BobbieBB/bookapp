@@ -1,5 +1,6 @@
 // App tests run against the local Supabase stack (npm run db:start), never a hosted project.
-// .env.local holds its URL and publishable key; CI exports them from `supabase status`.
+// .env.local holds its URL and publishable key; CI and `npm run test:stack` export them for a
+// tools/teststack slot instead (tools/teststack/env.sh).
 const fs = require('node:fs');
 
 if (fs.existsSync('.env.local')) process.loadEnvFile('.env.local');

@@ -430,3 +430,22 @@ The terms promise that Livami never sells readers' content or uses it to train A
 same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
+
+## App tests run on our own test stack (14 Nov 2026)
+
+Every app test (Jest with the real database, auth, realtime and e-mail) used to run against one
+`supabase start` stack per machine. Parallel agents had to queue for it behind a lock (eight of them
+waited an hour), a test run could reset the database under another one, and CI flaked when pulling the
+CLI's images ("Rate exceeded").
+
+So tests run on `tools/teststack/`: our own Docker Compose file with the same pinned images as
+Supabase CLI 2.121.0, configured as the CLI configures them from `supabase/config.toml`, in up to ten
+independent copies (slots) on their own ports. `npm run test:stack` leases a free slot, refills its
+tables with the clean migrated data and runs Jest; CI runs the same stack on slot 0 instead of `supabase start`.
+Locally nothing in a test run depends on an outside service: the images come from Docker's cache. CI
+pulls them from public.ecr.aws on every run (retried with a backoff, as its anonymous pulls are
+rate limited).
+
+`supabase start` (`npm run db:start`) is still the stack for development (Studio, Edge Functions) and
+still works for `npm test`: the test helpers fall back to its ports and container names. When the CLI
+is upgraded, the image tags and service settings in `tools/teststack/` are updated to match it.

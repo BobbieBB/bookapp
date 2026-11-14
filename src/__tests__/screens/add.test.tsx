@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -9,6 +8,7 @@ import { Text } from 'react-native';
 import type { Language } from '../../i18n';
 import * as analytics from '../../lib/analytics';
 import { supabase } from '../../lib/supabase';
+import { sql } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
 import AddStory from '../../../app/add';
 import FinishedScreen from '../../../app/finished/[id]';
@@ -186,9 +186,7 @@ it('a fic added as Finished: Back from "You\u2019re caught up" lands on the stor
 it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"', async () => {
   const fandom = `Refused Fandom ${run}`;
   // The database refuses the library entry for this one story, as an honest failure would.
-  const psql = (sql: string) =>
-    execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
-  psql(`create function public.test_refuse_${run}() returns trigger language plpgsql as $$ begin
+  sql(`create function public.test_refuse_${run}() returns trigger language plpgsql as $$ begin
     if exists (select 1 from public.stories where id = new.story_id and title = 'Refused Fic ${run}') then
       raise exception 'library entry refused';
     end if;
@@ -210,7 +208,7 @@ it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"
     const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
     expect(data!.favourite_fandoms).not.toContain(fandom);
   } finally {
-    psql(`drop trigger test_refuse_${run} on public.library_entries; drop function public.test_refuse_${run}();`);
+    sql(`drop trigger test_refuse_${run} on public.library_entries; drop function public.test_refuse_${run}();`);
   }
 });
 
