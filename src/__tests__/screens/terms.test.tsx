@@ -1,6 +1,8 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
+import Home from '../../../app/(tabs)/index';
 import Profile from '../../../app/(tabs)/profile';
 import TabsLayout from '../../../app/(tabs)/_layout';
 import { RootStack } from '../../../app/_layout';
@@ -10,7 +12,7 @@ import Onboarding from '../../../app/onboarding';
 import SignIn from '../../../app/sign-in';
 import { failRequests } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
-import { MIN_AGE, PRIVACY_URL, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
+import { MIN_AGE, overrideTermsSchedule, PRIVACY_URL, termsNoticeKey, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
 import { supabase } from '../../lib/supabase';
 
 // Terms and age at sign-up (docs/DECISIONS.md, "Terms and age: ticked at sign-up", 2 Nov 2026): two
@@ -78,6 +80,8 @@ describe('onboarding', () => {
     expect(screen.getByText('Tick both boxes to continue.')).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: /accept/ })).not.toBeChecked();
 
+    // A privacy notice is read, not accepted (GDPR arts. 7(4), 13): only the Terms are agreed to.
+    expect(screen.getByRole('checkbox', { name: 'I accept the Terms. I have read the Privacy Policy.' })).toBeOnTheScreen();
     await tick(/accept/);
     expect(screen.getByRole('checkbox', { name: /accept/ })).toBeChecked();
     expect(start()).toBeDisabled();
@@ -225,6 +229,13 @@ describe('readers who accepted an older version, or none', () => {
     expect(screen.queryByText('Our terms have changed')).toBeNull();
   });
 
+  it('a reader on a newer version than this build goes straight to the app (it cannot go back)', async () => {
+    await signUp('ahead', '2099-01');
+    await renderScreen('en', app, '/profile');
+    expect(await inTheApp()).toBeOnTheScreen();
+    expect(screen.queryByText('Our terms have changed')).toBeNull();
+  });
+
   it('can sign out from the gate', async () => {
     await signUp('leaver', OLD_VERSION);
     await renderScreen('en', app, '/profile');
@@ -258,7 +269,7 @@ describe('readers who accepted an older version, or none', () => {
     await signUp('bgterms', OLD_VERSION);
     await renderScreen('bg', app, '/profile');
     expect(await screen.findByText('Условията ни се промениха', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByRole('checkbox', { name: /Приемам/ })).toBeOnTheScreen();
+    expect(screen.getByRole('checkbox', { name: 'Приемам Условията. Прочетох Политиката за поверителност.' })).toBeOnTheScreen();
     expect(screen.getByRole('checkbox', { name: new RegExp(`поне ${MIN_AGE}`) })).toBeOnTheScreen();
     expect(screen.getByText(`Livami е за читатели на ${MIN_AGE} и повече години.`)).toBeOnTheScreen();
     expect(screen.getByRole('link', { name: 'Отвори Условията' })).toBeOnTheScreen();
@@ -266,5 +277,199 @@ describe('readers who accepted an older version, or none', () => {
     expect(screen.getByText('Условия')).toBeOnTheScreen();
     expect(screen.getByText('Отметни двете полета, за да продължиш.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Приемам' })).toBeOnTheScreen();
+  });
+});
+
+// A change announced ahead of its effective date (docs/DECISIONS.md, "Terms changes take effect on a
+// date"): until then readers on an older version keep using the app and see a notice on Home; from that
+// day the gate above applies. The schedule is overridden instead of faking timers (renderScreen uses
+// real ones).
+describe('terms that change on a date', () => {
+  const homeApp = { ...app, '(tabs)/index': Home };
+  const before = () => overrideTermsSchedule({ today: '2026-11-30', effective: '2026-12-01' });
+  let restore: () => void = () => {};
+  const atHome = (u: User) => screen.findByText(`Hi, ${u.username}`, {}, { timeout: 8000 });
+  const notice = 'Our terms change on 1 December 2026';
+  // Every reader is new, so no dismissal is remembered for them until they dismiss.
+  afterEach(() => restore());
+
+  /**
+   * AsyncStorage's getItem, with its record of calls cleared. It is already a jest.fn (jest.setup.ts mocks
+   * the package), so it is used as is: jest.spyOn would hand back that same mock, and mockRestore would
+   * then strip its implementation, so every later read, the auth session's included, would return
+   * undefined and the next sign-up would write to profiles signed out.
+   */
+  function storageReads() {
+    const read = jest.mocked(AsyncStorage.getItem);
+    read.mockClear();
+    return read;
+  }
+
+  /**
+   * Waits until Home's notice has read the reader's remembered dismissal and React has applied it: the
+   * definite point after which a notice that should stay hidden would have shown.
+   */
+  async function noticeHasRead(u: User, read: jest.MockedFunction<typeof AsyncStorage.getItem>) {
+    await waitFor(() => expect(read).toHaveBeenCalledWith(termsNoticeKey(u.id)), { timeout: 8000 });
+    const call = read.mock.calls.findIndex(([key]) => key === termsNoticeKey(u.id));
+    await act(async () => {
+      await Promise.resolve(read.mock.results[call].value).catch(() => null);
+      await new Promise((r) => setImmediate(r));
+    });
+  }
+
+  it('before the date, an older version opens the app with a notice and no gate', async () => {
+    restore = before();
+    await signUp('early', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    expect(await screen.findByText(notice, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('Our terms have changed')).toBeNull();
+  });
+
+  it('the notice links to the Terms', async () => {
+    restore = before();
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    try {
+      await signUp('earlyreader', OLD_VERSION);
+      await renderScreen('en', homeApp, '/');
+      await fireEvent.press(await screen.findByRole('link', { name: 'Read the new Terms' }, { timeout: 8000 }));
+      expect(open).toHaveBeenCalledWith(TERMS_URL);
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it('dismissing the notice is remembered on this phone for this version', async () => {
+    restore = before();
+    const u = await signUp('dismisser', OLD_VERSION);
+    const first = await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Dismiss' }, { timeout: 8000 }));
+    await waitFor(() => expect(screen.queryByText(notice)).toBeNull());
+    expect(await AsyncStorage.getItem(termsNoticeKey(u.id))).toBe(TERMS_VERSION);
+    first.unmount();
+
+    const read = storageReads();
+    await renderScreen('en', homeApp, '/');
+    expect(await atHome(u)).toBeOnTheScreen();
+    await noticeHasRead(u, read);
+    expect(screen.queryByText(notice)).toBeNull();
+  });
+
+  it('a dismissal is per reader: another reader on the same phone still sees the notice', async () => {
+    restore = before();
+    await signUp('sharer', OLD_VERSION);
+    const first = await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Dismiss' }, { timeout: 8000 }));
+    await waitFor(() => expect(screen.queryByText(notice)).toBeNull());
+    first.unmount();
+
+    await signUp('cosharer', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    expect(await screen.findByText(notice, {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('a dismissal for an earlier version does not hide this one', async () => {
+    restore = before();
+    const u = await signUp('redismiss', OLD_VERSION);
+    await AsyncStorage.setItem(termsNoticeKey(u.id), OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    expect(await screen.findByText(notice, {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('Accept now opens the same ticks as the gate; nothing is saved until they are ticked and accepted', async () => {
+    restore = before();
+    const u = await signUp('earlybird', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Accept now' }, { timeout: 8000 }));
+    expect(await screen.findByText('The new terms', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const accept = () => screen.getByRole('button', { name: 'Accept' });
+    expect(accept()).toBeDisabled();
+    expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'I accept the Terms. I have read the Privacy Policy.' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: new RegExp(`at least ${MIN_AGE}`) }));
+    await fireEvent.press(accept());
+    await waitFor(() => expect(screen.queryByText('The new terms')).toBeNull(), { timeout: 8000 });
+    expect(await atHome(u)).toBeOnTheScreen();
+    expect(screen.queryByText(notice)).toBeNull();
+    const row = (await profileOf(u))!;
+    expect(row.terms_version).toBe(TERMS_VERSION);
+    expect(Math.abs(Date.parse(row.terms_accepted_at!) - Date.now())).toBeLessThan(60_000);
+  });
+
+  it('Not now goes back to Home without accepting', async () => {
+    restore = before();
+    const u = await signUp('notnow', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Accept now' }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }, { timeout: 8000 }));
+    await waitFor(() => expect(screen.queryByText('The new terms')).toBeNull(), { timeout: 8000 });
+    expect(await screen.findByText(notice)).toBeOnTheScreen();
+    expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
+  });
+
+  it('Not now on a screen opened directly (no history) goes to Home', async () => {
+    restore = before();
+    const u = await signUp('deeplink', OLD_VERSION);
+    await renderScreen('en', homeApp, '/accept-terms');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }, { timeout: 8000 }));
+    expect(await atHome(u)).toBeOnTheScreen();
+    expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
+  });
+
+  it('if the date passes while accepting early, the reader can sign out or delete instead', async () => {
+    restore = before();
+    await signUp('midnight', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Accept now' }, { timeout: 8000 }));
+    expect(await screen.findByRole('button', { name: 'Not now' }, { timeout: 8000 })).toBeOnTheScreen();
+    restore();
+    restore = overrideTermsSchedule({ today: '2026-12-01', effective: '2026-12-01' });
+    // Any render after midnight shows the gate's choices; ticking a box is one.
+    await fireEvent.press(screen.getByRole('checkbox', { name: /accept/ }));
+    expect(await screen.findByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Delete my account' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Not now' })).toBeNull();
+  });
+
+  it('a reader on the current version sees no notice', async () => {
+    restore = before();
+    const u = await signUp('uptodate', TERMS_VERSION);
+    const read = storageReads();
+    await renderScreen('en', homeApp, '/');
+    expect(await atHome(u)).toBeOnTheScreen();
+    await noticeHasRead(u, read);
+    expect(screen.queryByText(notice)).toBeNull();
+  });
+
+  it('a reader who never accepted any terms is still gated before the date', async () => {
+    restore = before();
+    await signUp('neveraccepted', null);
+    await renderScreen('en', homeApp, '/');
+    expect(await screen.findByText('Our terms have changed', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('on the date, the gate applies', async () => {
+    restore = overrideTermsSchedule({ today: '2026-12-01', effective: '2026-12-01' });
+    await signUp('ontheday', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    expect(await screen.findByText('Our terms have changed', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText(notice)).toBeNull();
+  });
+
+  it('after the date, the gate applies', async () => {
+    restore = overrideTermsSchedule({ today: '2027-01-15', effective: '2026-12-01' });
+    await signUp('afterwards', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    expect(await screen.findByText('Our terms have changed', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('in Bulgarian, with the date in Bulgarian', async () => {
+    restore = before();
+    await signUp('bgearly', OLD_VERSION);
+    await renderScreen('bg', homeApp, '/');
+    expect(await screen.findByText('Условията ни се променят на 1 декември 2026 г.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByRole('link', { name: 'Прочети новите Условия' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Приемам сега' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Скрий' })).toBeOnTheScreen();
   });
 });

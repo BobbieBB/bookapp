@@ -39,7 +39,7 @@ function Checkbox({ label, checked, onChange, disabled }: { label: string; check
   );
 }
 
-function WebLink({ title, label, url, onOpened }: { title: string; label: string; url: string; onOpened: (ok: boolean) => void }) {
+export function WebLink({ title, label, url, onOpened }: { title: string; label: string; url: string; onOpened: (ok: boolean) => void }) {
   const { c, fonts } = useTheme();
   return (
     <Pressable

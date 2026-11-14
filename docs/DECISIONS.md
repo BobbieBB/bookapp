@@ -398,15 +398,52 @@ Choices made during development where the decisions above don't say. Each one is
 ## Terms and age: ticked at sign-up (2 Nov 2026, user decision)
 - The full terms and privacy policy live on **web pages the app links to** (`TERMS_URL`, `PRIVACY_URL` in
   `src/lib/legal.ts`), so the text can change without an app release.
-- **One sign-up step, two ticks**, both needed before Start: "I accept the Terms and the Privacy Policy" and
-  "I'm at least {MIN_AGE}", with a note that Livami is for readers aged {MIN_AGE}+. Nothing is pre-ticked.
+- **One sign-up step, two ticks**, both needed before Start: "I accept the Terms. I have read the Privacy
+  Policy." and "I'm at least {MIN_AGE}", with a note that Livami is for readers aged {MIN_AGE}+. Nothing is pre-ticked.
 - **Only yes/no is stored, never a birth date:** the profile keeps the accepted `terms_version`, the server's
   time of acceptance and `age_confirmed` (docs/DATA_MODEL.md, "Terms and age"). Acceptance can't be withdrawn;
   leaving means deleting the account.
-- **When the text changes, bump `TERMS_VERSION`:** every reader whose accepted version differs (including
-  readers from before this step) sees "Our terms have changed" before the app opens, with Accept, Sign out
-  and Delete my account.
+- **When the text changes, bump `TERMS_VERSION`** and set `TERMS_EFFECTIVE` (see "Terms changes take effect
+  on a date" below). Readers with no accepted version (from before this step) see "Our terms have changed"
+  before the app opens, with Accept, Sign out and Delete my account.
 - **`MIN_AGE` = 16 is a dev default** pending the PO's call.
+
+## Terms changes take effect on a date; the privacy policy is read, not accepted (14 Nov 2026)
+- **The tick reads "I accept the Terms. I have read the Privacy Policy."** (BG "Приемам Условията. Прочетох
+  Политиката за поверителност."). A privacy notice is information, not something to agree to (GDPR arts. 7(4),
+  13); both links stay next to the tick. This is consent UI, not the terms text, so `TERMS_VERSION` was not
+  bumped and nobody is asked again for it.
+- **Each version has an effective day, `TERMS_EFFECTIVE`** (`src/lib/legal.ts`, YYYY-MM-DD on the phone's
+  calendar). Before it, readers on an older version keep using the app; Home shows "Our terms change on
+  {date}" (date in the reader's language) with a link to the Terms, **Accept now** and **Dismiss**. Dismissing
+  is remembered on the phone for that reader and that version only (`livami.terms.noticeDismissed.<user id>`
+  = the version), never on the server, so another reader signing in on the same phone still sees it. The date
+  is spelt from the app's own month names (EN/BG), not the phone's ICU data, which varies between Hermes builds.
+  From the effective day on, the "Our terms have changed" gate applies as before.
+- **Accept now opens the same accept-terms screen as the gate** (titled "The new terms", with the two ticks
+  and "Not now"; opened with no history, e.g. from a link, "Not now" goes to Home): accepting is the same
+  explicit act either way, never a single tap on a banner. If the date passes while the screen is open, it
+  offers Sign out and Delete my account instead of "Not now", as the gate does. It writes
+  the new version, which the database accepts because it sorts after the old one, then returns to Home.
+- Readers who never accepted any terms are always gated; new readers accept the current version at sign-up.
+- A reader whose accepted version is newer than the build's (accepted in a newer app) is let in: the
+  database would refuse going back, so asking again could only fail.
+- The gate is decided when the app's root re-renders, so a phone left open across the effective day is asked
+  on its next render (sign-in, profile refresh or restart), not at midnight.
+- **Versions are `YYYY-MM-DD`, optionally `-suffix`** (`TERMS_VERSION_PATTERN`, checked by a unit test). The
+  development placeholder `2026-11-draft` became `2026-11-03`; readers who accepted the draft stay current,
+  because `d` sorts after any digit (here and in the database's "C" order), so nobody is asked again and the
+  database sees no downgrade. In exchange, the next version must be dated `2026-12-01` or later.
+- **The date gate is client-side UX, not enforcement.** It runs on the phone's clock (a reader can set it
+  back), only in builds that have it, and the API does not check it: a direct API call, or an old build,
+  ignores it. **The proof is the acceptance record**, the accepted version plus the server's time of
+  acceptance on the profile; it shows who accepted which version and when, whatever a phone showed.
+- **Old builds and newer versions:** a build only knows its own `TERMS_VERSION`, and older builds (before the
+  date gate) let a reader in only when the profile's version equals it. A profile on a newer version (accepted
+  in a newer build) sends such a build to the gate, and accepting there writes the build's older version,
+  which the database refuses as a downgrade, so the reader loops on the gate. Before the first real version
+  bump past a published build, the app needs a minimum-supported-build check that asks those readers to
+  update (README, "Before launch").
 
 ## Library: private by default (PO, 13 Nov 2026)
 

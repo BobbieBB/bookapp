@@ -132,12 +132,16 @@ trigger `profiles_guard_terms` stamps `terms_accepted_at` with the server's time
 set or changes, on insert too, and ignores any time the app sends; otherwise the time never changes,
 not even for the database owner (and readers have no update grant on it). A version needs
 `age_confirmed`, and neither the version nor the age tick can be taken back; leaving means deleting
-the account. Versions are 1–40 characters and date-prefixed (`YYYY-MM-…`, e.g. `2026-11-draft`), so a
+the account. Versions are 1–40 characters and date-prefixed (`YYYY-MM-DD`, optionally `-suffix`, e.g. `2026-11-03`), so a
 newer one sorts later (byte order); a version that sorts before the accepted one is refused, so nobody
 can re-stamp the time with an old or invented version. Refusals use SQLSTATE `LV001`. The rules hold
 for every role, the owner and `service_role` included: a backfill must set `terms_version` and
 `age_confirmed` together, or it gets `LV001` too. Profiles from before this have no version, and the app
-asks those readers once, like everyone after a `TERMS_VERSION` bump.
+asks those readers once. After a `TERMS_VERSION` bump the app asks readers on an older version from
+`TERMS_EFFECTIVE` on and only shows a notice before that (docs/DECISIONS.md, "Terms changes take effect on
+a date"); accepting early is an ordinary forward move of the version. Dismissing that notice is kept on the
+phone, per reader (AsyncStorage `livami.terms.noticeDismissed.<user id>` = the dismissed version), not in the
+database.
 
 ## Push notifications
 

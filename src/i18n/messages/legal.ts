@@ -1,9 +1,11 @@
 import type { Translation } from '../types';
 
 // Accepting the terms and confirming your age, at sign-up and when the terms change (docs/DECISIONS.md,
-// "Terms and age: ticked at sign-up"). {age} is MIN_AGE (src/lib/legal.ts).
+// "Terms and age: ticked at sign-up"). {age} is MIN_AGE (src/lib/legal.ts). The Terms are accepted; the
+// Privacy Policy is only read, since a privacy notice is information, not an agreement (GDPR arts. 7(4), 13).
+// {date} is TERMS_EFFECTIVE in the reader's language ("Terms changes take effect on a date").
 export const en = {
-  'legal.acceptTerms': 'I accept the Terms and the Privacy Policy',
+  'legal.acceptTerms': 'I accept the Terms. I have read the Privacy Policy.',
   'legal.terms': 'Terms',
   'legal.privacy': 'Privacy Policy',
   'legal.openTerms': 'Open the Terms',
@@ -16,10 +18,32 @@ export const en = {
   'legal.gateIntro': 'Before you go on, please read the Terms and the Privacy Policy and tick both boxes.',
   'legal.accept': 'Accept',
   'legal.acceptFailed': 'We couldn’t save that. Please try again.',
+  'legal.changeTitle': 'Our terms change on {date}',
+  'legal.changeBody': 'Nothing changes for you until then. From that day, you’ll accept the new Terms before going on.',
+  'legal.readNewTerms': 'Read the new Terms',
+  'legal.acceptNow': 'Accept now',
+  'legal.dismiss': 'Dismiss',
+  'legal.earlyTitle': 'The new terms',
+  'legal.earlyIntro': 'They apply from {date}. To accept them now, read the Terms and the Privacy Policy and tick both boxes.',
+  'legal.notNow': 'Not now',
+  // A day, spelt out ("1 December 2026"); see formatDay in src/components/TermsChangeNotice.tsx.
+  'legal.day': '{day} {month} {year}',
+  'legal.month1': 'January',
+  'legal.month2': 'February',
+  'legal.month3': 'March',
+  'legal.month4': 'April',
+  'legal.month5': 'May',
+  'legal.month6': 'June',
+  'legal.month7': 'July',
+  'legal.month8': 'August',
+  'legal.month9': 'September',
+  'legal.month10': 'October',
+  'legal.month11': 'November',
+  'legal.month12': 'December',
 } as const;
 
 export const bg: Translation<typeof en> = {
-  'legal.acceptTerms': 'Приемам Условията и Политиката за поверителност',
+  'legal.acceptTerms': 'Приемам Условията. Прочетох Политиката за поверителност.',
   'legal.terms': 'Условия',
   'legal.privacy': 'Политика за поверителност',
   'legal.openTerms': 'Отвори Условията',
@@ -32,4 +56,25 @@ export const bg: Translation<typeof en> = {
   'legal.gateIntro': 'Преди да продължиш, прочети Условията и Политиката за поверителност и отметни двете полета.',
   'legal.accept': 'Приемам',
   'legal.acceptFailed': 'Не успяхме да запазим това. Опитай пак.',
+  'legal.changeTitle': 'Условията ни се променят на {date}',
+  'legal.changeBody': 'Дотогава за теб нищо не се променя. От този ден ще трябва да приемеш новите Условия, за да продължиш.',
+  'legal.readNewTerms': 'Прочети новите Условия',
+  'legal.acceptNow': 'Приемам сега',
+  'legal.dismiss': 'Скрий',
+  'legal.earlyTitle': 'Новите условия',
+  'legal.earlyIntro': 'Важат от {date}. За да ги приемеш сега, прочети Условията и Политиката за поверителност и отметни двете полета.',
+  'legal.notNow': 'Не сега',
+  'legal.day': '{day} {month} {year} г.',
+  'legal.month1': 'януари',
+  'legal.month2': 'февруари',
+  'legal.month3': 'март',
+  'legal.month4': 'април',
+  'legal.month5': 'май',
+  'legal.month6': 'юни',
+  'legal.month7': 'юли',
+  'legal.month8': 'август',
+  'legal.month9': 'септември',
+  'legal.month10': 'октомври',
+  'legal.month11': 'ноември',
+  'legal.month12': 'декември',
 };
