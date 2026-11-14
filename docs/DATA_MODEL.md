@@ -123,6 +123,27 @@ author can never be changed, except to empty by that `set null`. Queries compare
 Storage files can't be removed from SQL: the app removes the reader's `covers/<user id>/` files before
 calling the function, and goes on if that fails.
 
+## Accounts without a profile
+
+Signing up creates the `auth.users` row (with the e-mail address); the `profiles` row comes only when the
+reader accepts the terms. An account that never gets a profile is deleted once 30 days have passed since
+its sign-up and its last sign-in (docs/DECISIONS.md, "Retention: accounts that never finish signing up"):
+every day at 03:41 UTC `pg_cron` (job `sweep-profileless-accounts`) runs
+`sweep_profileless_accounts(older_than = '30 days')`, which deletes `auth.users` rows with no `profiles`
+row whose `greatest(created_at, coalesce(last_sign_in_at, created_at))` is older than that, and returns
+how many it deleted. So a confirmed reader who keeps signing in without accepting the terms is kept, while
+an unconfirmed account (never signed in) goes 30 days after sign-up; accounts created by an admin are
+swept the same way. The 30 days are the function's default and nowhere else. Only the database owner
+runs it (the cron job); `anon`, `authenticated` and `service_role` cannot. Accounts with neither date are
+kept. Accounts with a profile are
+never swept, however old or inactive (a PO decision). What such an account can have made goes with it
+through `on delete cascade`: analytics events and the analytics opt-out (both reference `auth.users`;
+everything else needs a profile, so there are no cover files in Storage). A reader accepting the terms
+at that very moment keeps the account: the function locks its candidates `for update skip locked` (a
+profile insert in progress holds a lock on the user row, so that account is skipped), then deletes
+with a fresh `not exists` check on `profiles`; a profile insert that starts after the lock waits and
+then fails on the missing user.
+
 ## Terms and age
 
 `profiles.terms_version` is the version of the terms and privacy policy the reader accepted (the app's
@@ -216,5 +237,7 @@ migrations or the service role can change `moderation_email_settings`.
 `supabase/tests/spoiler_rules.test.sql` checks the locks (chapters, 25-page ranges, WIP fics,
 The Epilogue, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
 anonymous access and author opt-out.
+`supabase/tests/account_cleanup.test.sql` checks the profileless-account sweep (age, profiles kept,
+last sign-in, cascade, who may run it, the cron job) and `account_cleanup_race.test.sh` a profile created during it.
 `supabase/tests/moderation.test.sql` checks the moderation queue, every resolve action and its effect, and each
 rule for chapter-count requests.
