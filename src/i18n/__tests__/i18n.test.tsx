@@ -63,9 +63,9 @@ describe('translate', () => {
   });
 
   it('never throws on a key this build does not know (e.g. a notification kind added later): shows the key', () => {
-    const unknown = 'notifications.account_suspended' as Parameters<typeof translate>[1];
+    const unknown = 'notifications.kind_added_later' as Parameters<typeof translate>[1];
     expect(() => translate('en', unknown)).not.toThrow();
-    expect(translate('bg', unknown, { count: 2 })).toBe('notifications.account_suspended');
+    expect(translate('bg', unknown, { count: 2 })).toBe('notifications.kind_added_later');
   });
 
   it('falls back to English when only Bulgarian lacks the key', () => {
