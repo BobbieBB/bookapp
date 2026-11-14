@@ -67,10 +67,13 @@ Before launch:
     `npx expo install expo-dev-client` for the development build.
   - `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` as EAS environment variables for each
     environment (`eas env:create`); no values go in `eas.json` or Git.
-  - Confirming the bundle id `app.livami` (it can't change after the first upload).
-  - The app icon (1024 × 1024), the Android adaptive icon (foreground + background colour), the splash
-    image and the Play feature graphic (1024 × 500). None are in the repo yet, so `app.json` has no paths.
-  - The privacy policy URL and terms of use (the policy text is drafted in a separate PR).
+  - The splash image and the Play feature graphic (1024 × 500). The app icon and the Android adaptive
+    icon are in `assets/` (#46).
+  - The final privacy policy and terms at livami.app/privacy and /terms (Bulgarian and English drafts in
+    `docs/legal`, waiting for the lawyer).
+- **Android test build for friends:** `eas build -p android --profile preview` makes an APK (no Play
+  account needed); the build page gives a link and a QR code to install it. Pushes need Firebase (FCM)
+  credentials, which are not set up yet, so the app says notifications don't work in that version.
 - **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
   **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
   but with the filter on, Discover's list fails to load until the migration is in.
