@@ -32,14 +32,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.121.0
       - run: npm ci
       - run: npm run lint
-      - name: Start local Supabase
+      # Our own test stack (tools/teststack), the one local runs use, on slot 0. The images come
+      # from public.ecr.aws, whose anonymous pulls are rate limited: retried with a backoff.
+      - name: Pull the test stack images
         run: |
-          supabase start -x studio,imgproxy,edge-runtime,logflare,vector
-          supabase status -o env | sed -n 's/^API_URL="\(.*\)"$/EXPO_PUBLIC_SUPABASE_URL=\1/p; s/^PUBLISHABLE_KEY="\(.*\)"$/EXPO_PUBLIC_SUPABASE_KEY=\1/p; s/^SECRET_KEY="\(.*\)"$/SUPABASE_SECRET_KEY=\1/p' >> "$GITHUB_ENV"
+          for attempt in 1 2 3 4 5; do
+            SLOT=0 docker compose -f tools/teststack/docker-compose.yml pull --quiet && exit 0
+            echo "pull failed (attempt $attempt), retrying"; sleep $((attempt * 15))
+          done
+          exit 1
+      - name: Start the test stack
+        run: |
+          tools/teststack/up.sh 0
+          tools/teststack/env.sh 0 | sed 's/^export //' >> "$GITHUB_ENV"
       - run: npm run typecheck
       - run: npm test
+      - name: Test stack logs
+        if: failure()
+        run: SLOT=0 docker compose -f tools/teststack/docker-compose.yml logs --tail 200

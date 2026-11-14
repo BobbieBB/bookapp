@@ -179,15 +179,19 @@ schema, applies every migration and runs `supabase/tests/spoiler_rules.test.sql`
 ## Running the app tests
 
 ```bash
-npm run db:start   # the tests need the local stack and .env.local (see above)
-npm test
+npm run test:stack                          # the whole suite on a test stack of its own
+npm run test:stack -- src/lib/__tests__/x   # any Jest arguments after --
 ```
+
+Or on the stack you develop against: `npm run db:start` (with `.env.local`, see above), then `npm test`.
 
 Jest with `jest-expo` and React Native Testing Library. Tests live next to the code in
 `__tests__/` folders and talk to the **local** Supabase stack with real accounts they sign up
 themselves. `jest.setup.ts` refuses to run against any URL that is not `127.0.0.1` / `localhost`, so
 the tests can never touch the live project. `test/network.ts` can hold one request back to force
 an order of replies (a slow, stale response); every reply still comes from the real server.
+`MAILPIT_URL` and `SUPABASE_DB_CONTAINER` point the mail and SQL helpers in `test/` at a test stack;
+without them they use `supabase start`'s Mailpit (:54324) and database container.
 Open Library is never called from tests: `EXPO_PUBLIC_OPEN_LIBRARY_URL` points the search at a
 small local stand-in server inside the test.
 The cover sweep tests act as the service role: they take the local stack's secret key from
@@ -195,6 +199,40 @@ The cover sweep tests act as the service role: they take the local stack's secre
 `sweep-covers` Edge Function's logic (`supabase/functions/sweep-covers/sweep.ts`) is tested by Jest
 too; the Deno entry point can be tried with
 `npx -y supabase@2.121.0 functions serve sweep-covers --env-file <file with COVER_SWEEP_SECRET=…>`.
+
+### Running tests locally
+
+`npm run test:stack` needs Docker and Docker Compose v2 (`docker compose`, or `brew install
+docker-compose` with Colima), nothing else: no Supabase CLI and no network. The stack in
+`tools/teststack/` is our own compose file with the same pinned images as Supabase CLI 2.121.0 (auth,
+PostgREST, Realtime, Storage, Mailpit, Kong and Postgres), configured as `supabase start` configures
+them from `supabase/config.toml`. Those images are already in Docker's cache once `npm run db:start`
+has run once, so starting a stack downloads nothing.
+
+- **Slots.** Up to 9 copies run side by side, each its own compose project `livami-test-<slot>` on
+  its own ports: API `127.0.0.1:55<slot>21`, Postgres `55<slot>22`, Mailpit `55<slot>24`.
+- **Leases.** `npm run test:stack` leases a free slot from 1 to 4 (`TEST_STACK_POOL` changes the
+  pool), starts it if it is down, resets it, runs Jest with its env and frees the slot, however the
+  run ends. A lease whose owner died is taken back. With `TEST_SLOT=<n>` it uses that slot without a
+  lease. Several worktrees or agents can therefore test at once, each on its own database.
+- **Reset.** Every run starts from a clean, migrated database (like `supabase db reset`): a copy of
+  a template database made after the migrations, a few seconds instead of a full reset. When a branch
+  has other migrations, its first reset rebuilds the template.
+- **By hand.** `tools/teststack/up.sh <slot>`, `reset.sh <slot>`, `down.sh <slot>` (deletes its
+  data), `eval "$(tools/teststack/env.sh <slot>)"` for the env (then `npx jest ...`),
+  `lease.sh` / `release.sh <slot>`.
+
+Troubleshooting:
+
+- *All slots are leased, waiting*: other runs hold them; `ls $TMPDIR/livami-teststack` shows the
+  leases and their owners' PIDs. A stuck one can be freed with `tools/teststack/release.sh <slot>`.
+- *A slot does not come up healthy*: `docker compose -p livami-test-<slot> logs <service>`; the
+  first start of a slot takes a minute or two (the services run their own migrations), later ones
+  seconds. `down.sh <slot>` and run again starts it from scratch.
+- *A port is taken*: another program uses `55<slot>21`/`22`/`24`; use other slots
+  (`TEST_SLOT=<n>`, or a smaller `TEST_STACK_POOL`).
+- *Recovery e-mail without a code after changing `supabase/templates/`*: should not happen; Kong mounts
+  the templates directory (not the file), so the stack always serves the current template.
 
 Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
 no warnings allowed); CI runs all three.

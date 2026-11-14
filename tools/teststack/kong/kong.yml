@@ -1,0 +1,176 @@
+# The API gateway of the test stack: the routes of the Supabase CLI 2.121.0's Kong (`supabase start`),
+# copied from its /home/kong/kong.yml with the container names swapped for compose service names.
+# The CLI also maps its sb_publishable_/sb_secret_ keys to JWTs in these routes; the test stack hands
+# out the legacy anon/service_role JWTs themselves (tools/teststack/env.sh), so that mapping is left out.
+# Edge functions, pg-meta, analytics, the pooler and Studio are not part of the test stack.
+_format_version: "1.1"
+services:
+  # Tenant project endpoints
+  - name: auth-v1-open
+    _comment: "GoTrue external /auth/v1/verify* -> internal root /verify*"
+    url: http://auth:9999/verify
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths:
+          - /auth/v1/verify
+    plugins:
+      - name: cors
+  - name: auth-v1-open-callback
+    _comment: "GoTrue external /auth/v1/callback* -> internal root /callback*"
+    url: http://auth:9999/callback
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths:
+          - /auth/v1/callback
+    plugins:
+      - name: cors
+  - name: auth-v1-open-authorize
+    _comment: "GoTrue external /auth/v1/authorize* -> internal root /authorize*"
+    url: http://auth:9999/authorize
+    routes:
+      - name: auth-v1-open-authorize
+        strip_path: true
+        paths:
+          - /auth/v1/authorize
+    plugins:
+      - name: cors
+  - name: auth-v1
+    _comment: "GoTrue external /auth/v1/* -> internal root /*"
+    url: http://auth:9999/
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+          replace:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+  - name: rest-v1
+    _comment: "PostgREST: /rest/v1/* -> http://rest:3000/*"
+    url: http://rest:3000/
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+          replace:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+  - name: rest-admin-v1
+    _comment: "PostgREST: /rest-admin/v1/* -> http://rest:3001/*"
+    url: http://rest:3001/
+    routes:
+      - name: rest-admin-v1-all
+        strip_path: true
+        paths:
+          - /rest-admin/v1/
+    plugins:
+      - name: cors
+  - name: graphql-v1
+    _comment: "PostgREST: /graphql/v1 -> http://rest:3000/rpc/graphql"
+    url: http://rest:3000/rpc/graphql
+    routes:
+      - name: graphql-v1-all
+        strip_path: true
+        paths:
+          - /graphql/v1
+    plugins:
+      - name: cors
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Content-Profile: graphql_public"
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+          replace:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+  - name: realtime-v1-ws
+    _comment: "Realtime: /realtime/v1/* -> ws://realtime:4000/socket/websocket"
+    url: http://realtime-dev:4000/socket
+    protocol: ws
+    routes:
+      - name: realtime-v1-ws
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+  - name: realtime-v1-rest
+    _comment: "Realtime: /realtime/v1/* -> http://realtime:4000/api/*"
+    url: http://realtime-dev:4000/api
+    protocol: http
+    routes:
+      - name: realtime-v1-rest
+        strip_path: true
+        paths:
+          - /realtime/v1/api
+    plugins:
+      - name: cors
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+          replace:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+  # S3-compatible storage endpoint (no Authorization header transformation)
+  - name: storage-v1-s3
+    _comment: "Storage S3: /storage/v1/s3/* -> http://storage-api:5000/s3/*"
+    url: http://storage:5000/s3
+    routes:
+      - name: storage-v1-s3-all
+        strip_path: true
+        paths:
+          - /storage/v1/s3/
+    plugins:
+      - name: cors
+      # Note: No request-transformer plugin for Authorization header
+      # S3 presigned URLs require the original AWS signature in the Authorization header
+      # Adding/replacing with Bearer token would break S3 signature validation
+  # Regular storage API endpoint (with Authorization header transformation)
+  - name: storage-v1
+    _comment: "Storage API: /storage/v1/* -> http://storage-api:5000/*"
+    url: http://storage:5000/
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1/
+    plugins:
+      - name: cors
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+          replace:
+            headers:
+              - "Authorization: $((headers.authorization ~= nil and headers.authorization:sub(1, 10) ~= 'Bearer sb_' and headers.authorization) or headers.apikey)"
+  - name: well-known-oauth
+    _comment: "GoTrue: /.well-known/oauth-authorization-server -> http://auth:9999/.well-known/oauth-authorization-server"
+    url: http://auth:9999/.well-known/oauth-authorization-server
+    routes:
+      - name: well-known-oauth
+        strip_path: true
+        paths:
+          - /.well-known/oauth-authorization-server
+    plugins:
+      - name: cors

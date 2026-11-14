@@ -1,10 +1,9 @@
-import { execFileSync } from 'node:child_process';
-
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
 import StoryScreen from '../../../app/story/[id]';
+import { sql } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
 import type { Language } from '../../i18n';
 import { addToLibrary, createBook, createFic, createManualBook } from '../../lib/stories';
@@ -203,8 +202,7 @@ describe('a Want to read book added without its chapter count', () => {
     await addToLibrary(id, 'want_to_read');
     await open('en', id);
     // The other reader got there first (set directly: signing a second reader in would swap this session).
-    execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
-      `update public.stories set total_sections = 7 where id = '${id}'`]);
+    sql(`update public.stories set total_sections = 7 where id = '${id}'`);
     await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
     await fireEvent.press(screen.getByText('Save'));
     await waitFor(() => expect(screen.queryByText('How many chapters does it have?')).toBeNull(), { timeout: 8000 });
@@ -228,10 +226,8 @@ describe('a Want to read book added without its chapter count', () => {
     await addToLibrary(id, 'want_to_read');
     await open('en', id);
     // The database takes a moment over this story's update, so the busy state can be seen.
-    const psql = (sql: string) =>
-      execFileSync('docker', ['exec', '-i', 'supabase_db_bookapp', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
     const slow = `test_slow_${run}`;
-    psql(`create function public.${slow}() returns trigger language plpgsql as $$ begin
+    sql(`create function public.${slow}() returns trigger language plpgsql as $$ begin
       if new.id = '${id}' then perform pg_sleep(1.5); end if; return new; end $$;
       create trigger ${slow} before update on public.stories for each row execute function public.${slow}();`);
     try {
@@ -241,7 +237,7 @@ describe('a Want to read book added without its chapter count', () => {
       await waitFor(() => expect(screen.queryByText('Save')).toBeNull());
       await saving;
     } finally {
-      psql(`drop trigger ${slow} on public.stories; drop function public.${slow}();`);
+      sql(`drop trigger ${slow} on public.stories; drop function public.${slow}();`);
     }
   });
 });
