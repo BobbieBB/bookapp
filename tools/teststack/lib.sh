@@ -160,6 +160,23 @@ select format('alter %s database postgres set %I = %L',
 SQL
 }
 
+# After restore: pg_net's background worker crashes (signal 11) when its database is replaced, and
+# Postgres then restarts every backend. Waits until its worker is back in the new database and the
+# server takes connections, so nothing that follows is cut off.
+await_settled() {
+  local i seen=0
+  for i in $(seq 1 120); do
+    if [ "$(echo "select count(*) from pg_stat_activity where datname = 'postgres' and backend_type like 'pg_net%';" | admin_sql 2>/dev/null)" = "1" ]; then
+      seen=$((seen + 1))
+      [ $seen -ge 3 ] && return 0
+    else
+      seen=0
+    fi
+    sleep 1
+  done
+  die "slot $SLOT: the database did not settle after the swap"
+}
+
 # Applies supabase/migrations in order, as the CLI's `db reset` does: as postgres, one transaction
 # per file, recorded in supabase_migrations.schema_migrations.
 migrate() {
@@ -189,12 +206,51 @@ migrate() {
   }
 }
 
-# Migrates the live database (in its base state) and snapshots it as the clean template.
+# The rows of the clean database, which a reset puts back: kept in the db volume, next to PGDATA.
+CLEAN_DATA=/var/lib/postgresql/data/livami_clean_data.sql
+# The schemas whose rows tests change. The services' own migration bookkeeping is left alone.
+DATA_SCHEMAS="public auth storage"
+KEEP_TABLES="auth.schema_migrations storage.migrations"
+
+dump_clean_data() {
+  local args="" s t
+  for s in $DATA_SCHEMAS; do args="$args -n $s"; done
+  for t in $KEEP_TABLES; do args="$args -T $t"; done
+  docker exec "livami-test-$SLOT-db-1" sh -c "pg_dump -U supabase_admin -d postgres --data-only $args -f $CLEAN_DATA.tmp 2>/tmp/pg_dump.err && mv $CLEAN_DATA.tmp $CLEAN_DATA" ||
+    { docker exec "livami-test-$SLOT-db-1" cat /tmp/pg_dump.err >&2; die "could not dump the clean data"; }
+}
+
+has_clean_data() {
+  docker exec "livami-test-$SLOT-db-1" test -s "$CLEAN_DATA"
+}
+
+# Puts the clean rows back in place, in one transaction, in the live database: every table of
+# DATA_SCHEMAS is emptied and refilled from the dump. The services keep their connections, so
+# nothing has to reconnect or restart. Schema changes a test left behind are not undone.
+reset_data() {
+  local schemas keep
+  schemas="'$(echo $DATA_SCHEMAS | sed "s/ /','/g")'"
+  keep="'$(echo $KEEP_TABLES | sed "s/ /','/g")'"
+  db_psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q -1 -f - >/dev/null <<SQL || die "could not reset the data"
+set lock_timeout = '20s';
+set session_replication_role = replica;
+do \$\$ declare tables text; begin
+  select string_agg(format('%I.%I', schemaname, tablename), ', ') into tables from pg_tables
+  where schemaname in ($schemas) and schemaname || '.' || tablename not in ($keep);
+  if tables is not null then execute 'truncate ' || tables || ' restart identity cascade'; end if;
+end \$\$;
+\\i $CLEAN_DATA
+SQL
+}
+
+# Migrates the live database (in its base state), keeps its rows for reset_data and snapshots it
+# as the clean template.
 build_clean() {
   local hash
   hash="$(migrations_hash)"
   migrate
   echo "notify pgrst, 'reload schema';" | db_psql -U postgres -d postgres -q
+  dump_clean_data
   snapshot "$CLEAN_DB"
   echo "comment on database $CLEAN_DB is '$hash';" | admin_sql
 }
