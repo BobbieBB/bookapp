@@ -88,8 +88,10 @@ select test.ok((select count(*) from public.my_notifications_v2() where type = '
 select test.ok(not exists (select 1 from public.my_notifications() where type::text not in ('reply', 'reaction', 'mention'))
   and not exists (select 1 from public.my_notifications(50, null) where type::text not in ('reply', 'reaction', 'mention')),
   'the old call shape (older app builds) returns none of the new kinds');
-select test.ok((select reason from public.my_notifications_v2() where type = 'account_suspended') = 'Repeated spoilers in chapter rooms',
-  '... carrying the reason');
+select test.ok((select suspension_reason from public.my_notifications_v2() where type = 'account_suspended') = 'Repeated spoilers in chapter rooms',
+  '... carrying the reason (suspension_reason: the admin''s words, not a report reason)');
+select test.ok((select reason is null and content_kind is null and outcome is null from public.my_notifications_v2() where type = 'account_suspended'),
+  '... and none of the moderation notice columns');
 select test.ok((select actor_username is null and story_id is null from public.my_notifications_v2() where type = 'account_suspended'),
   '... and naming no admin and no story');
 select test.ok((select suspended and reason = 'Repeated spoilers in chapter rooms' and since is not null from public.my_suspension()),
@@ -186,5 +188,20 @@ update public.reports set status = 'dismissed' where id in ('e5000000-0000-0000-
 select public.set_reader_suspended('00000000-0000-0000-0000-0000000005e2', false, null);
 
 select test.logout();
+
+-- The notification shape: an account notice has no room and points at its log entry ------------------
+select test.ok(test.error_of($$insert into public.notifications (user_id, type)
+  values ('00000000-0000-0000-0000-0000000005e1', 'account_suspended')$$) like '%notifications_moderation_shape%',
+  'an account notice must point at its suspensions entry');
+select test.ok(test.error_of($$insert into public.notifications (user_id, type, discussion_id, suspension_id)
+  values ('00000000-0000-0000-0000-0000000005e1', 'account_restored', 'e2000000-0000-0000-0000-000000000001',
+          (select id from public.suspensions where user_id = '00000000-0000-0000-0000-0000000005e1' limit 1))$$)
+  like '%notifications_moderation_shape%',
+  'an account notice has no room');
+select test.ok(test.error_of($$insert into public.notifications (user_id, type, actor_id, discussion_id, suspension_id)
+  values ('00000000-0000-0000-0000-0000000005e1', 'reply', '00000000-0000-0000-0000-0000000005e2', 'e2000000-0000-0000-0000-000000000001',
+          (select id from public.suspensions where user_id = '00000000-0000-0000-0000-0000000005e1' limit 1))$$)
+  like '%notifications_moderation_shape%',
+  'only an account notice points at a suspension');
 \o
 \echo 'SUSPEND PASSED'
