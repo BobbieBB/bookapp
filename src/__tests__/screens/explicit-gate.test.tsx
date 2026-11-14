@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import FinishedScreen from '../../../app/finished/[id]';
+import RoomScreen from '../../../app/room/[storyId]/[room]';
 import StoryScreen from '../../../app/story/[id]';
 import { renderScreen } from '../../../test/router';
 import type { Language } from '../../i18n';
@@ -14,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 const password = 'test-password-1234';
 const run = Date.now().toString(36);
 const GATE = 'Rated Explicit on AO3. Confirm you’re 18 or over in Profile to see the link.';
+const ROOM_GATE = 'Rated Explicit on AO3. Confirm you’re 18 or over in Profile to join this discussion.';
 let me = '';
 let explicitId = '';
 let matureId = '';
@@ -61,6 +63,11 @@ async function openFinished(id: string) {
   await screen.findByText('You finished it!', {}, { timeout: 8000 });
 }
 
+async function openRoom(id: string, room: string, language: Language = 'en') {
+  await renderScreen(language, { 'room/[storyId]/[room]': RoomScreen }, `/room/${id}/${room}`);
+  await screen.findByTestId('room-title', {}, { timeout: 20_000 });
+}
+
 async function setSwitch(on: boolean) {
   await renderScreen('en', { profile: Profile }, '/profile');
   const toggle = await screen.findByLabelText('I’m 18 or over', {}, { timeout: 8000 });
@@ -102,6 +109,18 @@ describe('a reader who has not said they are 18 or over', () => {
     expect(screen.queryByText(GATE)).toBeNull();
   });
 
+  it('an Explicit fic\'s rooms say why instead of showing the discussion; a Mature fic\'s rooms are open', async () => {
+    await openRoom(explicitId, '1');
+    expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    await openRoom(explicitId, 'epilogue');
+    expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    await openRoom(matureId, '1');
+    expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText(ROOM_GATE)).toBeNull();
+  });
+
   it('in Bulgarian', async () => {
     await openStory(explicitId, 'bg');
     expect(
@@ -110,6 +129,10 @@ describe('a reader who has not said they are 18 or over', () => {
     await renderScreen('bg', { profile: Profile }, '/profile');
     expect(await screen.findByLabelText('На 18 или повече съм', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText('Показва линковете към работи с рейтинг „Експлицитно“ в AO3.')).toBeOnTheScreen();
+    await openRoom(explicitId, '1', 'bg');
+    expect(
+      await screen.findByText('Рейтинг „Експлицитно“ в AO3. Потвърди в Профил, че си на 18 или повече, за да се включиш в обсъждането.', {}, { timeout: 8000 }),
+    ).toBeOnTheScreen();
   });
 });
 
@@ -124,11 +147,19 @@ describe('the switch in Profile', () => {
     expect(screen.queryByText(GATE)).toBeNull();
     await openFinished(explicitId);
     expect(screen.getByText('Open on AO3 ↗')).toBeOnTheScreen();
+    await openRoom(explicitId, '1');
+    await fireEvent.changeText(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 }), 'Old enough to talk about it');
+    await fireEvent.press(screen.getByText('Post'));
+    expect(await screen.findByText('Old enough to talk about it', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText(ROOM_GATE)).toBeNull();
 
     await setSwitch(false);
     await openStory(explicitId);
     await waitFor(() => expect(screen.getByText(GATE)).toBeOnTheScreen(), { timeout: 8000 });
     expect(screen.queryByText('All tags on AO3 ↗')).toBeNull();
     expect(screen.queryByText('Graphic violence')).toBeNull();
+    await openRoom(explicitId, '1');
+    expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('Old enough to talk about it')).toBeNull();
   });
 });

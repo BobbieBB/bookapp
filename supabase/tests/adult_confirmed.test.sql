@@ -58,5 +58,62 @@ update public.profiles set display_name = 'Mira' where id = '00000000-0000-0000-
 select test.ok((select display_name = 'Mira' and adult_confirmed from public.profiles where username = 'adult_mira'),
   'an unrelated edit by the database owner leaves the answer alone');
 
+
+-- Discussion rooms (legal review, 14 Nov 2026): an Explicit fic's rooms are only for readers who said
+-- they are 18 or over; Mature and the other ratings are unaffected. Mira is confirmed, Niko is not.
+insert into public.stories (id, kind, title, author_name, published_sections, status, source, source_url, content_rating, created_by) values
+  ('18000000-0000-0000-0000-000000000001', 'fanfic', 'An Explicit Fic', 'w', 3, 'completed', 'ao3',
+   'https://archiveofourown.org/works/1800001', 'Explicit', '00000000-0000-0000-0000-0000000a1801'),
+  ('18000000-0000-0000-0000-000000000002', 'fanfic', 'A Mature Fic', 'w', 3, 'completed', 'ao3',
+   'https://archiveofourown.org/works/1800002', 'Mature', '00000000-0000-0000-0000-0000000a1801');
+insert into public.library_entries (user_id, story_id, status) values
+  ('00000000-0000-0000-0000-0000000a1801', '18000000-0000-0000-0000-000000000001', 'finished'),
+  ('00000000-0000-0000-0000-0000000a1801', '18000000-0000-0000-0000-000000000002', 'finished'),
+  ('00000000-0000-0000-0000-0000000a1802', '18000000-0000-0000-0000-000000000001', 'finished'),
+  ('00000000-0000-0000-0000-0000000a1802', '18000000-0000-0000-0000-000000000002', 'finished');
+
+-- Mira opens and posts in both.
+select test.login('00000000-0000-0000-0000-0000000a1801');
+select public.open_discussion('18000000-0000-0000-0000-000000000001', 'chapter', 1);
+select public.open_discussion('18000000-0000-0000-0000-000000000001', 'epilogue');
+select public.open_discussion('18000000-0000-0000-0000-000000000002', 'chapter', 1);
+insert into public.comments (discussion_id, body)
+  select id, 'mira on the explicit fic' from public.discussions where story_id = '18000000-0000-0000-0000-000000000001' and kind = 'chapter';
+insert into public.comments (discussion_id, body)
+  select id, 'mira on the mature fic' from public.discussions where story_id = '18000000-0000-0000-0000-000000000002' and kind = 'chapter';
+select test.ok((select count(*) = 2 from public.comments where body like 'mira on the %'), 'a confirmed reader reads and posts in an Explicit fic''s room');
+
+-- Niko, unconfirmed, can neither open, read nor post in the Explicit fic's rooms.
+select test.login('00000000-0000-0000-0000-0000000a1802');
+select test.ok(test.failure_of($$select public.open_discussion('18000000-0000-0000-0000-000000000001', 'chapter', 1)$$) like '42501: locked%',
+  'an unconfirmed reader cannot open an Explicit fic''s chapter room');
+select test.ok(test.failure_of($$select public.open_discussion('18000000-0000-0000-0000-000000000001', 'epilogue')$$) like '42501: locked%',
+  'an unconfirmed reader cannot open an Explicit fic''s epilogue');
+select test.ok((select count(*) = 0 from public.comments where body = 'mira on the explicit fic'),
+  'an unconfirmed reader cannot read an Explicit fic''s comments');
+select test.ok(test.failure_of($$insert into public.comments (discussion_id, body)
+  select id, 'niko sneaks in' from public.discussions where story_id = '18000000-0000-0000-0000-000000000001' and kind = 'chapter'$$)
+  like '42501: new row violates row-level security policy%', 'an unconfirmed reader cannot post in an Explicit fic''s room');
+-- The Mature fic is unaffected.
+select public.open_discussion('18000000-0000-0000-0000-000000000002', 'chapter', 1);
+insert into public.comments (discussion_id, body)
+  select id, 'niko on the mature fic' from public.discussions where story_id = '18000000-0000-0000-0000-000000000002' and kind = 'chapter';
+select test.ok((select count(*) = 2 from public.comments where body in ('mira on the mature fic', 'niko on the mature fic')),
+  'an unconfirmed reader reads and posts in a Mature fic''s room');
+
+-- Niko confirms: the Explicit room opens.
+update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1802';
+select test.ok((select count(*) = 1 from public.comments where body = 'mira on the explicit fic'), 'once confirmed, the comments are readable');
+insert into public.comments (discussion_id, body)
+  select id, 'niko on the explicit fic' from public.discussions where story_id = '18000000-0000-0000-0000-000000000001' and kind = 'chapter';
+select test.ok((select count(*) = 1 from public.comments where body = 'niko on the explicit fic'), 'once confirmed, the reader can post');
+
+-- Mira takes it back: the room closes, her own comments included.
+select test.login('00000000-0000-0000-0000-0000000a1801');
+update public.profiles set adult_confirmed = false where id = '00000000-0000-0000-0000-0000000a1801';
+select test.ok((select count(*) = 0 from public.comments c join public.discussions d on d.id = c.discussion_id
+  where d.story_id = '18000000-0000-0000-0000-000000000001'), 'taking it back closes the room again');
+select test.logout();
+
 \o
 \echo 'ADULT CONFIRMATION RULES PASSED'
