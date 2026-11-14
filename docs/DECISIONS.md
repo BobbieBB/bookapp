@@ -418,7 +418,9 @@ Choices made during development where the decisions above don't say. Each one is
   {date}" (date in the reader's language) with a link to the Terms, **Accept now** and **Dismiss**. Dismissing
   is remembered on the phone for that version only (`livami.terms.noticeDismissed`), never on the server.
   From the effective day on, the "Our terms have changed" gate applies as before.
-- Accepting early writes the new version, which the database accepts because it sorts after the old one.
+- **Accept now opens the same accept-terms screen as the gate** (titled "The new terms", with the two ticks
+  and "Not now"): accepting is the same explicit act either way, never a single tap on a banner. It writes
+  the new version, which the database accepts because it sorts after the old one, then returns to Home.
 - Readers who never accepted any terms are always gated; new readers accept the current version at sign-up.
 - A reader whose accepted version is newer than the build's (accepted in a newer app) is let in: the
   database would refuse going back, so asking again could only fail.

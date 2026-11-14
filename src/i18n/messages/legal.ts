@@ -23,6 +23,9 @@ export const en = {
   'legal.readNewTerms': 'Read the new Terms',
   'legal.acceptNow': 'Accept now',
   'legal.dismiss': 'Dismiss',
+  'legal.earlyTitle': 'The new terms',
+  'legal.earlyIntro': 'They apply from {date}. To accept them now, read the Terms and the Privacy Policy and tick both boxes.',
+  'legal.notNow': 'Not now',
 } as const;
 
 export const bg: Translation<typeof en> = {
@@ -44,4 +47,7 @@ export const bg: Translation<typeof en> = {
   'legal.readNewTerms': 'Прочети новите Условия',
   'legal.acceptNow': 'Приемам сега',
   'legal.dismiss': 'Скрий',
+  'legal.earlyTitle': 'Новите условия',
+  'legal.earlyIntro': 'Важат от {date}. За да ги приемеш сега, прочети Условията и Политиката за поверителност и отметни двете полета.',
+  'legal.notNow': 'Не сега',
 };

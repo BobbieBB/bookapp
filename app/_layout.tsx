@@ -63,7 +63,8 @@ export function RootStack() {
   const hasProfile = signedIn && !!profile;
   // Readers who accepted no terms, or an older version once it has taken effect, accept the current one
   // first. Before it takes effect, Home tells them it is coming (src/components/TermsChangeNotice.tsx).
-  const onboarded = hasProfile && termsStatus(profile.terms_version) !== 'required';
+  const terms = hasProfile ? termsStatus(profile.terms_version) : null;
+  const onboarded = hasProfile && terms !== 'required';
 
   const pushed = {
     headerShown: true,
@@ -87,7 +88,8 @@ export function RootStack() {
         <Stack.Protected guard={signedIn && !hasProfile}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
-        <Stack.Protected guard={hasProfile && !onboarded}>
+        {/* Also open before a change takes effect, for readers who accept early from Home's notice. */}
+        <Stack.Protected guard={hasProfile && terms !== 'current'}>
           <Stack.Screen name="accept-terms" />
         </Stack.Protected>
         <Stack.Protected guard={onboarded}>
