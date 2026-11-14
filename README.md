@@ -215,9 +215,12 @@ has run once, so starting a stack downloads nothing.
   pool), starts it if it is down, resets it, runs Jest with its env and frees the slot, however the
   run ends. A lease whose owner died is taken back. With `TEST_SLOT=<n>` it uses that slot without a
   lease. Several worktrees or agents can therefore test at once, each on its own database.
-- **Reset.** Every run starts from a clean, migrated database (like `supabase db reset`): a copy of
-  a template database made after the migrations, a few seconds instead of a full reset. When a branch
-  has other migrations, its first reset rebuilds the template.
+- **Reset.** Every run starts from clean, migrated data (like `supabase db reset`): the tables of
+  `public`, `auth` and `storage` are emptied and refilled from a dump taken right after the migrations,
+  in one transaction, while the services stay connected. Schema changes a test leaves behind are not
+  undone (tests drop what they create). When a branch has other migrations, its first reset goes back
+  to the database as the services left it, migrates it and takes a new dump (slower: a few services
+  restart).
 - **By hand.** `tools/teststack/up.sh <slot>`, `reset.sh <slot>`, `down.sh <slot>` (deletes its
   data), `eval "$(tools/teststack/env.sh <slot>)"` for the env (then `npx jest ...`),
   `lease.sh` / `release.sh <slot>`.
