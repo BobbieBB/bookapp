@@ -34,6 +34,8 @@ compose() {
 # Where leases are kept: one directory per slot, shared by every checkout on this machine.
 LEASE_DIR="${TEST_STACK_LEASE_DIR:-${TMPDIR:-/tmp}/livami-teststack}"
 POOL_SIZE="${TEST_STACK_POOL:-4}"
+# The legacy anon key (a JWT signed with the stack's test-only secret), for health checks.
+ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
 # Removes a lease directory: its owner file, then the (then empty) directory.
 drop_lease() {
@@ -88,30 +90,46 @@ evacuate_and() {
   printf '%s\n%s\n' "$EVACUATE_SQL" "$sql" | admin_sql || die "could not get the database to itself"
 }
 
-stop_clients() {
-  compose stop -t 2 $DB_CLIENTS >/dev/null 2>&1
+# PostgREST backs off up to 32 s between reconnects after losing the database; a restart is quicker.
+restart_rest() {
+  docker restart -t 1 "livami-test-$SLOT-rest-1" >/dev/null
 }
 
-start_clients() {
-  compose up -d --wait $DB_CLIENTS kong >/dev/null 2>&1 || {
-    compose ps >&2
-    die "the services did not come back healthy (docker compose -p livami-test-$SLOT logs)"
-  }
+# Waits until the API answers again after the database was swapped: the services stay up and
+# reconnect by themselves (PostgREST reloads its schema cache when it does).
+await_api() {
+  local i rest auth
+  for i in $(seq 1 240); do
+    # Any answer from PostgREST itself (even "permission denied") means its schema cache is loaded;
+    # 000 is no connection, 5xx is Kong or PostgREST still waiting for the database.
+    rest=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:55${SLOT}21/rest/v1/profiles?limit=0" \
+      -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" || true)
+    auth=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:55${SLOT}21/auth/v1/health" -H "apikey: $ANON_KEY" || true)
+    if [ "$auth" = "200" ] && [ "$rest" != "000" ] && [ "$rest" -lt 500 ]; then
+      return 0
+    fi
+    sleep 0.25
+  done
+  die "slot $SLOT: the API did not answer (docker compose -p livami-test-$SLOT logs)"
 }
 
-# Copies the live database to a template named $1. The services must be stopped.
+# Copies the live database to a template named $1. The services stay up: new connections are
+# refused while it is copied, and they reconnect afterwards.
 snapshot() {
   local name="$1"
   if db_exists "$name"; then
     echo "alter database $name is_template false; drop database $name;" | admin_sql
   fi
-  evacuate_and "create database $name template postgres strategy file_copy;"
-  echo "alter database $name with allow_connections false is_template true;" | admin_sql
+  echo "alter database postgres allow_connections false;" | admin_sql
+  evacuate_and "create database $name template postgres strategy file_copy;" ||
+    { echo "alter database postgres allow_connections true;" | admin_sql; exit 1; }
+  echo "alter database postgres allow_connections true;
+        alter database $name with allow_connections false is_template true;" | admin_sql
 }
 
 # Replaces the live database by a copy of template $1, keeping its owner and per-database
 # settings (app.settings.jwt_secret, ...), which live outside the database itself. The services
-# must be stopped.
+# stay up: their connections are dropped and they reconnect to the new database.
 restore() {
   local name="$1"
   admin_sql <<SQL
@@ -120,6 +138,8 @@ create temp table keep_settings as
   select r.rolname, unnest(s.setconfig) as setting
   from pg_db_role_setting s left join pg_roles r on r.oid = s.setrole
   where s.setdatabase = (select oid from pg_database where datname = 'postgres');
+select pg_terminate_backend(active_pid) from pg_replication_slots where database = 'postgres' and active;
+select pg_sleep(0.2);
 select pg_drop_replication_slot(slot_name) from pg_replication_slots where database = 'postgres';
 drop database postgres with (force);
 select format('create database postgres template $name strategy file_copy owner %I', owner) from keep_owner
@@ -166,7 +186,7 @@ build_clean() {
   local hash
   hash="$(migrations_hash)"
   migrate
-  stop_clients
+  echo "notify pgrst, 'reload schema';" | db_psql -U postgres -d postgres -q
   snapshot "$CLEAN_DB"
   echo "comment on database $CLEAN_DB is '$hash';" | admin_sql
 }
