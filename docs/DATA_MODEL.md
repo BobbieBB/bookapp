@@ -150,7 +150,9 @@ asks those readers once, like everyone after a `TERMS_VERSION` bump.
   reader, and they are sent across blocks. `discussion_id` may be empty only for these two kinds.
 - They are always visible to their reader (no spoiler-wall check: no comment text, only a story and chapter they
   already knew) and never pushed: `notifications_send_push` and `send_held_pushes` only handle replies and mentions.
-- Hiding a fic on a removal request notifies nobody.
+- Hiding a fic on a removal request notifies nobody, and neither does hiding a comment its author had already deleted
+  (it is still hidden).
+- The app reads them through `my_notifications_v2`; `my_notifications` never returns them (older app builds).
 
 ## Push notifications
 
@@ -209,7 +211,8 @@ migrations or the service role can change `moderation_email_settings`.
 | `can_access_section(story, kind, section)` | Show locked / unlocked state in the UI |
 | `section_reader_counts(story)` | Anonymous "N readers are here" counts |
 | `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
-| `my_notifications(limit, types)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now — plus your moderation notices (always shown; `content_kind`, `reason`, `outcome`) |
+| `my_notifications(limit, types)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now. Only these three kinds, ever: it is what app builds from before 14 Nov 2026 call, and they can't render other kinds |
+| `my_notifications_v2(limit, types)` | What the app calls now: every kind, the social ones under the same rules, plus system notices (moderation notices, always shown) with `content_kind`, `reason`, `outcome` and `story_id` without a room. New notification kinds go here, with any new columns added to its result |
 | `mark_notifications_read()` | Mark all your notifications read |
 | `delete_my_account(erase_comments)` | Delete your own account for good (see Deleting an account) |
 | `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |

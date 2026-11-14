@@ -30,6 +30,45 @@ alter table public.notifications
   );
 
 -- ---------------------------------------------------------------------------
+-- A moderator may hide a comment its author already deleted (before, "deleted comments cannot be
+-- changed" made a report on one impossible to action, only to dismiss). Only is_hidden may change;
+-- otherwise as in 20261019000000_delete_account.sql.
+-- ---------------------------------------------------------------------------
+create or replace function public.comments_guard_update()
+returns trigger language plpgsql as $$
+begin
+  if old.author_id is not null and new.author_id is null
+     and not exists (select 1 from public.profiles where id = old.author_id) then
+    if (new.discussion_id, new.parent_id, new.body, new.created_at, new.edited_at, new.deleted_at, new.is_hidden)
+       is distinct from (old.discussion_id, old.parent_id, old.body, old.created_at, old.edited_at, old.deleted_at, old.is_hidden) then
+      raise exception 'only the author can be removed from a comment when their account is deleted';
+    end if;
+    return new;
+  end if;
+  if new.discussion_id <> old.discussion_id or new.author_id is distinct from old.author_id
+     or new.parent_id is distinct from old.parent_id or new.created_at <> old.created_at then
+    raise exception 'only the comment body can be changed';
+  end if;
+  if new.is_hidden <> old.is_hidden and not public.is_admin() then
+    raise exception 'only moderators can hide comments';
+  end if;
+  if old.deleted_at is not null then
+    if new.is_hidden and not old.is_hidden
+       and (new.body, new.edited_at, new.deleted_at) is not distinct from (old.body, old.edited_at, old.deleted_at) then
+      return new; -- a moderator hiding it (is_admin was checked above)
+    end if;
+    raise exception 'deleted comments cannot be changed';
+  end if;
+  if new.deleted_at is not null then
+    new.body := '[deleted]';
+    new.edited_at := old.edited_at;
+  elsif new.body <> old.body then
+    new.edited_at := now();
+  end if;
+  return new;
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- moderation_resolve: as in 20261102000000_moderation.sql, plus the notices for comment, review and
 -- reader reports. Each report closed by the decision tells its own reporter (several reports on one
 -- item: one notice each).
@@ -93,12 +132,13 @@ begin
     end if;
 
     if p_action = 'hide' then
-      -- The author is told once, when the item is actually hidden (not again if it already was).
+      -- The author is told once, when the item is actually hidden (not again if it already was), and not
+      -- about a comment they had deleted themselves (it is still hidden, in case it is ever restored).
       if p_kind = 'comment_report' then
-        with h as (update public.comments set is_hidden = true where id = rep.comment_id and not is_hidden returning author_id)
+        with h as (update public.comments set is_hidden = true where id = rep.comment_id and not is_hidden returning author_id, deleted_at)
         insert into public.notifications (user_id, type, discussion_id, story_id, content_kind, reason)
         select h.author_id, 'content_hidden', target_room, target_story, target_kind, rep.reason
-        from h where h.author_id is not null;
+        from h where h.author_id is not null and h.deleted_at is null;
       else
         with h as (update public.reviews set is_hidden = true where id = rep.review_id and not is_hidden returning user_id)
         insert into public.notifications (user_id, type, story_id, content_kind, reason)
@@ -182,13 +222,40 @@ revoke execute on function public.moderation_resolve(text, uuid, text) from publ
 grant execute on function public.moderation_resolve(text, uuid, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- my_notifications gains the notices. Replies, mentions and reactions keep their rule (only rooms you
--- can open now, nothing about a hidden or deleted comment, nothing from someone you blocked); a
--- moderation notice is always shown: it names no one and never carries comment text, only the story
--- and chapter, which its reader already knew (they wrote or reported the thing).
+-- Reading notifications. App builds from before this migration call my_notifications(p_types => null)
+-- and cannot render a kind they don't know, so my_notifications keeps its columns and returns only the
+-- kinds it always did (reply, mention, reaction), whatever kinds are added later.
+--
+-- my_notifications_v2(p_limit, p_types) is what the app calls from now on: every kind, plus the columns
+-- for system notices (content_kind, reason, outcome; story_id without a room). New notification kinds
+-- (e.g. account notices) go here, with their own columns added to its result. Social kinds keep their
+-- rule (only rooms you can open now, nothing about a hidden or deleted comment, nothing from someone you
+-- blocked); a system notice is always shown: it names no one and never carries comment text.
 -- ---------------------------------------------------------------------------
-drop function public.my_notifications(int, public.notification_type[]);
-create function public.my_notifications(p_limit int default 50, p_types public.notification_type[] default null)
+create or replace function public.my_notifications(p_limit int default 50, p_types public.notification_type[] default null)
+returns table (
+  id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
+  actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
+  room_kind public.discussion_kind, section_number int, comment_id uuid
+)
+language sql stable security definer set search_path = public as $$
+  select n.id, n.type, n.created_at, n.read_at, a.username, s.id, s.title, s.kind, d.kind, d.section_number, n.comment_id
+  from public.notifications n
+  join public.discussions d on d.id = n.discussion_id
+  join public.stories s on s.id = d.story_id
+  left join public.profiles a on a.id = n.actor_id
+  left join public.comments c on c.id = n.comment_id
+  where n.user_id = auth.uid()
+    and n.type::text in ('reply', 'mention', 'reaction')
+    and (p_types is null or n.type = any (p_types))
+    and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = n.actor_id)
+    and (n.comment_id is null or (c.deleted_at is null and not c.is_hidden))
+    and public.can_access_section(d.story_id, d.kind, d.section_number)
+  order by n.created_at desc
+  limit least(greatest(coalesce(p_limit, 50), 1), 200)
+$$;
+
+create function public.my_notifications_v2(p_limit int default 50, p_types public.notification_type[] default null)
 returns table (
   id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
   actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
@@ -218,8 +285,8 @@ language sql stable security definer set search_path = public as $$
   order by n.created_at desc
   limit least(greatest(coalesce(p_limit, 50), 1), 200)
 $$;
-revoke execute on function public.my_notifications(int, public.notification_type[]) from public, anon;
-grant execute on function public.my_notifications(int, public.notification_type[]) to authenticated;
+revoke execute on function public.my_notifications_v2(int, public.notification_type[]) from public, anon;
+grant execute on function public.my_notifications_v2(int, public.notification_type[]) to authenticated;
 
 -- The table follows the same rule.
 drop policy notifications_own_read on public.notifications;

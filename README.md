@@ -78,8 +78,8 @@ Before launch:
   **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
   but with the filter on, Discover's list fails to load until the migration is in.
 - **Moderation notices:** apply `20261114000300_moderation_notices.sql` to the hosted database **before** shipping an app
-  build that includes them: the app's notifications list reads the new `my_notifications` columns, and Home asks for
-  the new notification kinds, which fail until the migration is in.
+  build that includes them: the app reads notifications through the new `my_notifications_v2`,
+  which fails until the migration is in. Older builds keep calling `my_notifications`, which never returns the new kinds.
 
 Planning lives on the Trello board *Book club app*.
 

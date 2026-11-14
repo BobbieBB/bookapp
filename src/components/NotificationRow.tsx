@@ -21,12 +21,14 @@ function SocialNotification({ n }: { n: Notification }) {
   const what = t(`notifications.${n.type as 'reply' | 'mention' | 'reaction'}`, { name });
   const room = n.room_kind === 'epilogue' ? t('room.epilogue') : t('room.chapter', { n: n.section_number ?? 0 });
   const unread = n.read_at === null;
+  const path = roomPath(n);
 
   return (
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={unread ? `${what}. ${t('notifications.unread')}` : what}
-      onPress={() => router.push(roomPath(n) as never)}
+      disabled={path === null}
+      onPress={() => (path ? router.push(path as never) : undefined)}
       style={[card, { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m }]}
     >
       <View style={{ flex: 1, gap: space.xs }}>

@@ -27,7 +27,10 @@ export type Params = Record<string, string | number>;
 
 /** The text for `key` in `language`, with {placeholders} filled in; `count` picks the plural form. */
 export function translate(language: Language, key: MessageKey, params: Params = {}): string {
-  const message = dictionaries[language][key];
+  // A key this build doesn't know (e.g. a notification kind added on the server later) shows the key
+  // rather than crashing the screen; a key missing only in Bulgarian falls back to English.
+  const message: Message | undefined = dictionaries[language][key] ?? dictionaries.en[key];
+  if (message === undefined) return key;
   const text =
     typeof message === 'string'
       ? message

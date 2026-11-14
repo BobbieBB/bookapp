@@ -33,7 +33,9 @@ export const isModerationNotice = (n: Pick<Notification, 'type'>): boolean => (M
 export type ReadingHint = { story_id: string; section_number: number; new_comments: number };
 
 export async function myNotifications(limit = 50, types?: Notification['type'][]): Promise<Notification[]> {
-  const { data, error } = await supabase.rpc('my_notifications', { p_limit: limit, p_types: types ?? null });
+  // my_notifications_v2: every kind, with the moderation notice columns (my_notifications stays as it was
+  // for app builds that can't render them).
+  const { data, error } = await supabase.rpc('my_notifications_v2', { p_limit: limit, p_types: types ?? null });
   if (error) throw error;
   return data as Notification[];
 }
@@ -60,6 +62,9 @@ export async function continueReadingHints(): Promise<Map<string, ReadingHint>> 
   return new Map((data as ReadingHint[]).map((h) => [h.story_id, { ...h, new_comments: Number(h.new_comments) }]));
 }
 
-/** Where a notification leads: its room (the room screen re-checks the spoiler wall). */
-export const roomPath = (n: Pick<Notification, 'story_id' | 'room_kind' | 'section_number'>) =>
-  `/room/${n.story_id}/${n.room_kind === 'epilogue' ? 'epilogue' : n.section_number}`;
+/** Where a notification leads: its room (the room screen re-checks the spoiler wall), or nowhere when it has none. */
+export const roomPath = (n: Pick<Notification, 'story_id' | 'room_kind' | 'section_number'>): string | null => {
+  if (!n.story_id || !n.room_kind) return null;
+  if (n.room_kind === 'epilogue') return `/room/${n.story_id}/epilogue`;
+  return n.section_number === null ? null : `/room/${n.story_id}/${n.section_number}`;
+};
