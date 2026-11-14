@@ -436,7 +436,10 @@ without the readers' text or names.
 Signing up creates an account that holds the e-mail address; the profile only exists once the reader
 accepts the terms. An account that never gets a profile is **deleted 30 days after sign-up**, by a daily
 job (`sweep_profileless_accounts`, see DATA_MODEL.md, "Accounts without a profile"). This is the
-retention period the privacy policy states for these accounts. The 30 days are set in one place, the
+retention period the privacy policy states for these accounts. The 30 days run from the later of sign-up
+and the last sign-in, so a confirmed reader who signs in but has not accepted the terms yet is not
+deleted while they are active. An unconfirmed account still goes 30 days after sign-up: a late e-mail
+confirmation after that finds the account gone, and the reader signs up again. The 30 days are set in one place, the
 function's default.
 
 Inactive accounts **with** a profile are deliberately **not** deleted, however long they go unused: that

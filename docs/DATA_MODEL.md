@@ -126,12 +126,16 @@ calling the function, and goes on if that fails.
 ## Accounts without a profile
 
 Signing up creates the `auth.users` row (with the e-mail address); the `profiles` row comes only when the
-reader accepts the terms. An account that never gets a profile is deleted 30 days after sign-up
-(docs/DECISIONS.md, "Retention: accounts that never finish signing up"): every day at 03:41 UTC `pg_cron`
-(job `sweep-profileless-accounts`) runs `sweep_profileless_accounts(older_than = '30 days')`, which
-deletes `auth.users` rows older than that with no `profiles` row and returns how many it deleted. The
-30 days are the function's default and nowhere else. Only the database owner runs it (the cron job);
-`anon` and `authenticated` cannot. Accounts with no `created_at` are kept. Accounts with a profile are
+reader accepts the terms. An account that never gets a profile is deleted once 30 days have passed since
+its sign-up and its last sign-in (docs/DECISIONS.md, "Retention: accounts that never finish signing up"):
+every day at 03:41 UTC `pg_cron` (job `sweep-profileless-accounts`) runs
+`sweep_profileless_accounts(older_than = '30 days')`, which deletes `auth.users` rows with no `profiles`
+row whose `greatest(created_at, coalesce(last_sign_in_at, created_at))` is older than that, and returns
+how many it deleted. So a confirmed reader who keeps signing in without accepting the terms is kept, while
+an unconfirmed account (never signed in) goes 30 days after sign-up; accounts created by an admin are
+swept the same way. The 30 days are the function's default and nowhere else. Only the database owner
+runs it (the cron job); `anon`, `authenticated` and `service_role` cannot. Accounts with neither date are
+kept. Accounts with a profile are
 never swept, however old or inactive (a PO decision). What such an account can have made goes with it
 through `on delete cascade`: analytics events and the analytics opt-out (both reference `auth.users`;
 everything else needs a profile, so there are no cover files in Storage). A reader accepting the terms
@@ -234,6 +238,6 @@ migrations or the service role can change `moderation_email_settings`.
 The Epilogue, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
 anonymous access and author opt-out.
 `supabase/tests/account_cleanup.test.sql` checks the profileless-account sweep (age, profiles kept,
-cascade, who may run it, the cron job) and `account_cleanup_race.test.sh` a profile created during it.
+last sign-in, cascade, who may run it, the cron job) and `account_cleanup_race.test.sh` a profile created during it.
 `supabase/tests/moderation.test.sql` checks the moderation queue, every resolve action and its effect, and each
 rule for chapter-count requests.
