@@ -70,10 +70,17 @@ async function openRoom(id: string, room: string, language: Language = 'en') {
 
 async function setSwitch(on: boolean) {
   await renderScreen('en', { profile: Profile }, '/profile');
-  const toggle = await screen.findByLabelText('I’m 18 or over', {}, { timeout: 8000 });
+  await screen.findByLabelText('I’m 18 or over', {}, { timeout: 8000 });
   expect(screen.getByText('Shows links to works rated Explicit on AO3.')).toBeOnTheScreen();
-  await waitFor(() => expect(toggle.props.value).toBe(!on), { timeout: 8000 });
-  await fireEvent(toggle, 'valueChange', on);
+  // The switch stays disabled until the profile has loaded: wait for the saved answer.
+  await waitFor(
+    () => {
+      expect(screen.getByLabelText('I’m 18 or over')).toBeEnabled();
+      expect(screen.getByLabelText('I’m 18 or over').props.value).toBe(!on);
+    },
+    { timeout: 8000 },
+  );
+  await fireEvent(screen.getByLabelText('I’m 18 or over'), 'valueChange', on);
   await waitFor(async () => expect(await confirmed()).toBe(on), { timeout: 8000 });
   await waitFor(() => expect(screen.getByLabelText('I’m 18 or over').props.value).toBe(on), { timeout: 8000 });
 }
