@@ -74,7 +74,7 @@ grant execute on function public.my_notifications(int, public.notification_type[
 
 -- ---------------------------------------------------------------------------
 -- Suspending and lifting. Admins only (42501); a reason (trimmed, 1-500 characters) is required to
--- suspend (22023 when missing, 22001 when too long); never yourself (22023); an unknown reader is
+-- suspend (22023 when missing, 22001 when too long); never yourself or another admin (22023); an unknown reader is
 -- P0002; suspending a suspended reader or lifting a suspension nobody has is 55000.
 -- ---------------------------------------------------------------------------
 create or replace function public.set_reader_suspended(p_user uuid, p_suspended boolean, p_reason text default null)
@@ -84,6 +84,7 @@ as $$
 declare
   why constant text := nullif(btrim(p_reason), '');
   was boolean;
+  target_admin boolean;
   entry uuid;
 begin
   if not public.is_admin() then
@@ -102,9 +103,13 @@ begin
     raise exception 'the reason can be at most 500 characters' using errcode = '22001';
   end if;
 
-  select is_suspended into was from public.profiles where id = p_user for update;
+  select is_suspended, is_admin into was, target_admin from public.profiles where id = p_user for update;
   if not found then
     raise exception 'no such reader' using errcode = 'P0002';
+  end if;
+  -- Admins are removed by the operator, never suspended by each other.
+  if target_admin then
+    raise exception 'an admin cannot be suspended' using errcode = '22023';
   end if;
   if was = p_suspended then
     raise exception '%', case when p_suspended then 'this reader is already suspended' else 'this reader is not suspended' end

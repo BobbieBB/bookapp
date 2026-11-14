@@ -454,7 +454,7 @@ The terms reserve the right to suspend a reader who seriously or repeatedly brea
 
 - **Who and how:** only admins, from the Moderation screen: on a report about a reader, or on a comment or review
   report (then it is the author), *Suspend the reader* asks for a reason and *Lift the suspension* undoes it. The
-  reason is required, at most 500 characters, and **the reader sees it**. An admin cannot suspend themselves.
+  reason is required, at most 500 characters, and **the reader sees it**. An admin cannot suspend themselves or another admin (admins are removed by the operator).
   Suspending or lifting does not close the report: hide or dismiss it as before.
 - **Logged:** every suspension and lifting is a row in `suspensions` (who, by which admin, when, the reason). Admins
   read it; nobody edits it. It goes with the reader's account if they delete it.

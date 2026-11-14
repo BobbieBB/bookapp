@@ -18,11 +18,12 @@ grant execute on all functions in schema test to authenticated, anon;
 select test.logout();
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000005e1'), ('00000000-0000-0000-0000-0000000005e2'),
-  ('00000000-0000-0000-0000-0000000005ea');
+  ('00000000-0000-0000-0000-0000000005ea'), ('00000000-0000-0000-0000-0000000005eb');
 insert into public.profiles (id, username, is_admin) values
   ('00000000-0000-0000-0000-0000000005e1', 'sam', false),    -- the reader who gets suspended
   ('00000000-0000-0000-0000-0000000005e2', 'sid', false),    -- another reader, writes a comment and a review
-  ('00000000-0000-0000-0000-0000000005ea', 'sadmin', true);
+  ('00000000-0000-0000-0000-0000000005ea', 'sadmin', true),
+  ('00000000-0000-0000-0000-0000000005eb', 'sadmin2', true);  -- another admin
 insert into public.stories (id, kind, language, title, author_name, has_chapters, total_sections, status) values
   ('e1000000-0000-0000-0000-000000000001', 'book', 'en', 'Suspense Book', 'x', true, 10, 'completed'),
   ('e1000000-0000-0000-0000-000000000002', 'book', 'en', 'Other Suspense Book', 'x', true, 10, 'completed');
@@ -63,6 +64,9 @@ select test.ok(test.code_of(format('select public.set_reader_suspended(%L, true,
   'a reason of more than 500 characters is refused');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005ea', true, 'oops')$$) = '22023',
   'an admin cannot suspend themselves');
+select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005eb', true, 'power struggle')$$) = '22023',
+  'an admin cannot suspend another admin (the operator removes admins)');
+select test.ok(not (select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005eb'), '... and the other admin is not suspended');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005ff', true, 'nobody')$$) = 'P0002',
   'an unknown reader is refused');
 select test.ok(not (select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005e1'), 'none of these suspended anyone');
