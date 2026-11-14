@@ -31,6 +31,8 @@ export const en = {
   'profile.analytics': 'Help us improve the app',
   'profile.analyticsHint': 'We count which features get used. Never what you read or write.',
   'profile.analyticsError': 'Could not save this choice. Please try again.',
+  'profile.adult': 'I’m 18 or over',
+  'profile.adultHint': 'Shows links to works rated Explicit on AO3.',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -63,4 +65,6 @@ export const bg: Translation<typeof en> = {
   'profile.analytics': 'Помогни ни да подобрим приложението',
   'profile.analyticsHint': 'Броим кои функции се използват. Никога какво четеш или пишеш.',
   'profile.analyticsError': 'Не успяхме да запазим избора ти. Опитай пак.',
+  'profile.adult': 'На 18 или повече съм',
+  'profile.adultHint': 'Показва линковете към работи с рейтинг „Експлицитно“ в AO3.',
 };

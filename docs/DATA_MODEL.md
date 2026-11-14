@@ -139,6 +139,12 @@ for every role, the owner and `service_role` included: a backfill must set `term
 `age_confirmed` together, or it gets `LV001` too. Profiles from before this have no version, and the app
 asks those readers once, like everyone after a `TERMS_VERSION` bump.
 
+`profiles.adult_confirmed` (boolean, not null, default false) is the reader's yes to "I'm 18 or over"
+(docs/DECISIONS.md, "Explicit works: an 18+ yes/no"). Only the reader can change it, both ways: the
+update-own policy keeps other readers off the row, and the trigger `profiles_guard_adult` refuses any change
+(or an insert with `true`) without the reader's own session, the owner and `service_role` included (`LV001`).
+`user_can_access_section` requires it for the rooms of a story whose `content_rating` is `Explicit`.
+
 ## Push notifications
 
 When a reply or @mention notification is created, `notifications_send_push` builds one Expo push per
