@@ -4,6 +4,7 @@ import Profile from '../../../app/(tabs)/profile';
 import DeleteAccount from '../../../app/delete-account';
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import StoryScreen from '../../../app/story/[id]';
+import { failRequests } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import { serviceClient } from '../../../test/service';
 import { openRoom, postComment } from '../../lib/discussions';
@@ -69,10 +70,11 @@ it('Profile links to the delete screen, which says what goes and what stays', as
   expect(screen.getByText(/replies to them still make sense/)).toBeOnTheScreen();
   expect(screen.getByText(/“This comment was deleted”/)).toBeOnTheScreen();
 
-  // Until you choose, Delete does nothing.
+  // The options form one group, named by the prompt above them.
+  expect(screen.getByRole('radiogroup', { name: 'Choose what happens to your comments and book reviews.' })).toBeOnTheScreen();
+
+  // Until you choose, Delete is disabled.
   expect(deleteButton()).toBeDisabled();
-  await fireEvent.press(deleteButton());
-  expect(screen.queryByText(/Your account will be deleted right away/)).toBeNull();
 
   // Choosing one checks it alone, and enables Delete.
   await fireEvent.press(erase);
@@ -92,9 +94,33 @@ it('asks once more, and "Keep my account" keeps it', async () => {
   await fireEvent.press(await screen.findByRole('radio', { name: KEEP }, { timeout: 8000 }));
   await fireEvent.press(deleteButton());
   expect(screen.getByText(/Your account will be deleted right away/)).toBeOnTheScreen();
+  // The choice can't change under the confirmation.
+  expect(screen.getByRole('radio', { name: KEEP })).toBeDisabled();
+  expect(screen.getByRole('radio', { name: ERASE })).toBeDisabled();
   await fireEvent.press(screen.getByText('Keep my account'));
   expect(screen.queryByText(/Your account will be deleted right away/)).toBeNull();
+  expect(screen.getByRole('radio', { name: KEEP })).toBeEnabled();
+  expect(screen.getByRole('radio', { name: ERASE })).toBeEnabled();
   expect((await supabase.auth.getSession()).data.session?.user.id).toBe(u.id);
+});
+
+it('when deleting fails, the account and your choice stay, and the error shows', async () => {
+  const u = await signUp('failer');
+  await as(u);
+  await renderScreen('en', routes, '/delete-account');
+  await fireEvent.press(await screen.findByRole('radio', { name: ERASE }, { timeout: 8000 }));
+  await fireEvent.press(deleteButton());
+  const online = failRequests((url, method) => method === 'POST' && url.includes('/rest/v1/rpc/delete_my_account'));
+  try {
+    await fireEvent.press(screen.getByText('Yes, delete it forever'));
+    expect(await screen.findByText('We couldn’t delete your account. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+  } finally {
+    online();
+  }
+  expect(screen.getByRole('radio', { name: ERASE })).toBeChecked();
+  expect(screen.getByRole('radio', { name: KEEP })).not.toBeChecked();
+  expect((await supabase.auth.getSession()).data.session?.user.id).toBe(u.id);
+  expect(await signInFails(u)).toBe(false);
 });
 
 it('deleting keeps your comments and reviews, shown as "Deleted reader"', async () => {
