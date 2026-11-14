@@ -28,9 +28,16 @@ export type QueueItem = {
   proposed_count: number | null;
   /** Open reports on the same comment, review or reader (this one included). */
   reporter_count: number | null;
+  /** Who a comment, review or reader report is about (null for other kinds, or once they deleted their account). */
+  subject_id: string | null;
+  /** Whether that reader is suspended now (docs/DECISIONS.md, "Suspending a reader"). */
+  subject_suspended: boolean | null;
 };
 
-/** The actions each kind offers, the main one first. User reports are dismiss-only (no banning in v1). */
+/** The actions each kind offers, the main one first. Suspending the reader is separate (SUSPENDABLE). */
+/** Kinds about a reader, whom the moderator can also suspend or let back in. */
+export const SUSPENDABLE: ReadonlySet<QueueKind> = new Set(['comment_report', 'review_report', 'user_report']);
+
 export const ACTIONS: Record<QueueKind, readonly QueueAction[]> = {
   comment_report: ['hide', 'dismiss'],
   review_report: ['hide', 'dismiss'],

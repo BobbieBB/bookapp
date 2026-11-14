@@ -42,6 +42,11 @@ describe('dictionaries', () => {
 });
 
 describe('translate', () => {
+  it('a key this build does not know (a newer server kind) shows the key instead of crashing', () => {
+    expect(translate('en', 'notifications.some_future_kind' as never)).toBe('notifications.some_future_kind');
+    expect(translate('bg', 'notifications.some_future_kind' as never, { name: 'x' })).toBe('notifications.some_future_kind');
+  });
+
   it('fills in {placeholders}', () => {
     expect(translate('en', 'library.finishedChapterOf', { n: 3, total: 10 })).toBe('Finished chapter 3 of 10');
   });
@@ -55,6 +60,22 @@ describe('translate', () => {
 
   it('leaves an unknown placeholder visible rather than printing "undefined"', () => {
     expect(translate('en', 'library.finishedChapterOf', { n: 3 })).toBe('Finished chapter 3 of {total}');
+  });
+
+  it('never throws on a key this build does not know (e.g. a notification kind added later): shows the key', () => {
+    const unknown = 'notifications.kind_added_later' as Parameters<typeof translate>[1];
+    expect(() => translate('en', unknown)).not.toThrow();
+    expect(translate('bg', unknown, { count: 2 })).toBe('notifications.kind_added_later');
+  });
+
+  it('falls back to English when only Bulgarian lacks the key', () => {
+    const enOnly = 'test.enOnly' as Parameters<typeof translate>[1];
+    (en as unknown as Record<string, string>)[enOnly] = 'English only';
+    try {
+      expect(translate('bg', enOnly)).toBe('English only');
+    } finally {
+      delete (en as unknown as Record<string, string>)[enOnly];
+    }
   });
 });
 

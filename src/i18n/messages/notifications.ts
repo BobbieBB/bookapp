@@ -1,12 +1,20 @@
 import type { Messages, Translation } from '../types';
 
-// Replies, mentions and reactions to you, and the "new comments" hint on Continue Reading.
+// Replies, mentions and reactions to you, the "new comments" hint on Continue Reading, and moderation
+// notices (docs/DECISIONS.md, Moderation notices).
 export const en = {
   'notifications.title': 'Notifications',
   'notifications.back': 'Back',
   'notifications.reply': '{name} replied to you',
   'notifications.mention': '{name} mentioned you',
   'notifications.reaction': '{name} reacted to your comment',
+  'notifications.account_suspended': 'Your account is suspended',
+  'notifications.account_restored': 'Your account is active again',
+  'notifications.restoredBody': 'You can post, react and report again.',
+  'notifications.reason': 'Reason: {reason}',
+  'notifications.suspendedBody':
+    'You can still read, but you can’t post, react or report until this is lifted. Write to support@livami.app if you think this is a mistake.',
+  'notifications.suspendedInRoom': 'Your account is suspended, so you can’t post or react until this is lifted.',
   'notifications.where': '{story} · {room}',
   'notifications.unread': 'Unread',
   'notifications.empty': 'Nothing yet. Replies and mentions will show up here.',
@@ -19,6 +27,23 @@ export const en = {
     one: '{count} new comment in chapter {chapter}',
     other: '{count} new comments in chapter {chapter}',
   },
+  'notifications.commentHidden':
+    'Your comment in {story} was hidden: {reason}. If you think this is a mistake, write to support@livami.app and we’ll look again.',
+  'notifications.reviewHidden':
+    'Your review of {story} was hidden: {reason}. If you think this is a mistake, write to support@livami.app and we’ll look again.',
+  'notifications.hiddenReason.spam': 'spam',
+  'notifications.hiddenReason.harassment': 'harassment',
+  'notifications.hiddenReason.spoiler': 'an unmarked spoiler',
+  'notifications.hiddenReason.inappropriate': 'inappropriate content',
+  'notifications.hiddenReason.other': 'it broke our community rules',
+  'notifications.reportResolved': 'We reviewed your report about a {item} in {story}: {decision}.',
+  'notifications.reportResolvedNoStory': 'We reviewed your report about a {item}: {decision}.',
+  'notifications.reported.comment': 'comment',
+  'notifications.reported.review': 'review',
+  'notifications.reported.reader': 'reader',
+  'notifications.decisionHidden': 'we hid it',
+  'notifications.decisionKept': 'we didn’t remove it',
+  'notifications.moderationTitle': 'From the Livami team',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -27,6 +52,13 @@ export const bg: Translation<typeof en> = {
   'notifications.reply': '{name} ти отговори',
   'notifications.mention': '{name} те спомена',
   'notifications.reaction': '{name} реагира на коментара ти',
+  'notifications.account_suspended': 'Профилът ти е спрян',
+  'notifications.account_restored': 'Профилът ти отново е активен',
+  'notifications.restoredBody': 'Отново можеш да пишеш, да реагираш и да докладваш.',
+  'notifications.reason': 'Причина: {reason}',
+  'notifications.suspendedBody':
+    'Пак можеш да четеш, но не можеш да пишеш, да реагираш и да докладваш, докато спирането не бъде отменено. Ако смяташ, че е грешка, пиши ни на support@livami.app.',
+  'notifications.suspendedInRoom': 'Профилът ти е спрян, затова не можеш да пишеш и да реагираш, докато спирането не бъде отменено.',
   'notifications.where': '{story} · {room}',
   'notifications.unread': 'Непрочетено',
   'notifications.empty': 'Още нищо. Отговорите и споменаванията ще се показват тук.',
@@ -39,4 +71,21 @@ export const bg: Translation<typeof en> = {
     one: '{count} нов коментар в глава {chapter}',
     other: '{count} нови коментара в глава {chapter}',
   },
+  'notifications.commentHidden':
+    'Твоят коментар в {story} беше скрит: {reason}. Ако смяташ, че е грешка, пиши ни на support@livami.app и ще го прегледаме отново.',
+  'notifications.reviewHidden':
+    'Твоето мнение за {story} беше скрито: {reason}. Ако смяташ, че е грешка, пиши ни на support@livami.app и ще го прегледаме отново.',
+  'notifications.hiddenReason.spam': 'спам',
+  'notifications.hiddenReason.harassment': 'тормоз',
+  'notifications.hiddenReason.spoiler': 'неотбелязан спойлер',
+  'notifications.hiddenReason.inappropriate': 'неподходящо съдържание',
+  'notifications.hiddenReason.other': 'нарушава правилата на общността',
+  'notifications.reportResolved': 'Прегледахме доклада ти за {item} в {story}: {decision}.',
+  'notifications.reportResolvedNoStory': 'Прегледахме доклада ти за {item}: {decision}.',
+  'notifications.reported.comment': 'коментар',
+  'notifications.reported.review': 'мнение',
+  'notifications.reported.reader': 'читател',
+  'notifications.decisionHidden': 'скрихме го',
+  'notifications.decisionKept': 'не го премахнахме',
+  'notifications.moderationTitle': 'От екипа на Livami',
 };

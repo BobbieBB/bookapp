@@ -207,7 +207,9 @@ Choices made during development where the decisions above don't say. Each one is
 - **Reviews can be reported (2 Nov 2026):** every review on a book page, except your own, has the same Report action and reasons
   as a comment (Apple expects reporting on all user-generated content); a moderator hides or dismisses it from the queue.
 - **User reports are dismiss-only (2 Nov 2026):** there is no banning in v1, so a report on a reader can only be closed;
-  the moderator's tools against a person are the comments they hide and the readers who block them.
+  the moderator's tools against a person are the comments they hide and the readers who block them. *Superseded
+  14 Nov 2026: a moderator can now suspend the reader (see "Suspending a reader"); the report itself is still
+  closed by dismissing it.*
 - **A lowered chapter count (2 Nov 2026):** accepting a count below what readers already reached would leave them "beyond
   the end" (and make their next library update fail). The moderator accepts anyway, and readers past the new count are
   moved back to it; readers who finished the book follow the count up or down and stay finished. Nothing else is
@@ -355,6 +357,21 @@ Choices made during development where the decisions above don't say. Each one is
   and the `chapter_count_requests` table (see DATA_MODEL.md). Hiding a reported comment or review also closes every other
   open report on it. The e-mail part is built separately.
 
+## Moderation notices (14 Nov 2026; EU Digital Services Act arts. 16(5) and 17)
+- **Hiding a comment or review tells its author**, in the app (notification `content_hidden`): "Your comment in {story}
+  was hidden: {reason}. If you think this is a mistake, write to support@livami.app and we'll look again." The report
+  reason the moderator acted on is the statement of reasons; the chapter is shown for a comment. It never says who reported.
+- **Resolving a report tells the reporter** (notification `report_resolved`): "We reviewed your report about a
+  {comment / review / reader} in {story}: {we hid it / we didn't remove it}." Several reports on the same item: one notice
+  per report. A report about a reader has no story.
+- System notices, not social ones: sent even when the author and the reporter have blocked each other, and they never
+  name the other party. They never send a push (pushes stay for replies and mentions). Unread ones also show on Home
+  under "From the Livami team" until the notifications list is opened.
+- Written by `moderation_resolve` in the same transaction as the decision, so a notice cannot be lost.
+- **Not notified:** a fic hidden on an author's removal request (the author wrote in from outside the app and has no
+  account to notify; the reply goes to the contact they gave), and the readers who added that fic (they are not the
+  provider of the affected content).
+
 ## Chapter counts for books (20 Oct 2026, PO)
 - No public source gives chapter counts (Open Library and Google Books don't), and editions differ. So:
   1. **The community fills it once per edition** (already: the first reader enters it, everyone after gets it).
@@ -430,3 +447,37 @@ The terms promise that Livami never sells readers' content or uses it to train A
 same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
+
+## Suspending a reader (14 Nov 2026)
+
+The terms reserve the right to suspend a reader who seriously or repeatedly breaks the rules.
+
+- **Who and how:** only admins, from the Moderation screen: on a report about a reader, or on a comment or review
+  report (then it is the author), *Suspend the reader* asks for a reason and *Lift the suspension* undoes it. The
+  reason is required, at most 500 characters, and **the reader sees it**. An admin cannot suspend themselves or another admin (admins are removed by the operator).
+  Suspending or lifting does not close the report: hide or dismiss it as before.
+- **Logged:** every suspension and lifting is a row in `suspensions` (who, by which admin, when, the reason). Admins
+  read it; nobody edits it. It goes with the reader's account if they delete it.
+- **What a suspended reader can't do:** comment or edit a comment, react, write or edit a review, rate, report,
+  add a story or edit one they added, report a new chapter, finish or reopen a fic, set or ask for a chapter count,
+  set a custom cover, open a discussion room nobody has opened yet (a room that exists still opens, for reading), or
+  change their username, display name or picture.
+- **What they still can do:** read everything they could before, keep their library and progress, follow and mute
+  rooms, block readers, delete their own comments, reviews, ratings and account, and **send feedback**: feedback is
+  the channel to contest a suspension, so it stays open (as do author removal requests, which are about a fic,
+  not about the reader's behaviour).
+- **Telling the reader:** an in-app notification (`account_suspended` with the reason and "You can still read, but
+  you can't post, react or report until this is lifted. Write to support@livami.app if you think this is a
+  mistake."; `account_restored` when lifted), never a push. While suspended, Home shows a banner with the latest
+  reason, and a discussion room shows the same explanation in place of the comment box and when a reaction is
+  tapped. The admin is never named to the reader. Account notices are system notices, like the moderation notices:
+  `my_notifications_v2` returns them (with `suspension_reason`) and the app renders all four kinds in one row component.
+- **Deleting the account (GDPR erasure):** a suspended reader can still delete their account, and the suspension log
+  goes with it (`suspensions` cascades from the profile). Someone who signs up again with a new account starts clean:
+  re-registration is not tracked. If suspended readers start coming back this way, that is a PO decision.
+- **`my_notifications_v2` changed shape in place:** it gains the account kinds and the `suspension_reason` column
+  rather than a new function version. That is safe only because no app build with #55's `my_notifications_v2` has
+  shipped. If #55 ships on its own first, this needs a new function version (`my_notifications_v3`) instead.
+- **A comment posted as the suspension lands (accepted):** a comment, reaction or report whose write started just
+  before the suspension committed can still go through. This race is inherent and accepted: moderators hide it like
+  any other content, and every write after the suspension commits is refused.
