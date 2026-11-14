@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
@@ -49,9 +49,15 @@ it('the switch cannot be used while a save is on its way', async () => {
   await renderScreen('en', { profile: Profile }, '/profile');
   await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeEnabled(), { timeout: 8000 });
   const save = holdRequest(saveUrl);
-  await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', true);
-  expect(screen.getByLabelText('Help us improve the app')).toBeDisabled();
-  save.release();
+  try {
+    // Not awaited: the change handler only settles once the held save is answered.
+    act(() => {
+      screen.getByLabelText('Help us improve the app').props.onValueChange(true);
+    });
+    await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeDisabled(), { timeout: 3000 });
+  } finally {
+    save.release();
+  }
   await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeEnabled(), { timeout: 8000 });
   expect(screen.getByLabelText('Help us improve the app').props.value).toBe(true);
   await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', false);
