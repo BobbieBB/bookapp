@@ -104,7 +104,7 @@ revoke execute on function public.my_notifications_v2(int, public.notification_t
 grant execute on function public.my_notifications_v2(int, public.notification_type[]) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Suspending and lifting. Admins only (42501); a reason (trimmed, 1-500 characters) is required to
+-- Suspending and lifting. Admins only (42501); a reason (trimmed of spaces, tabs and line breaks, 1-500 characters) is required to
 -- suspend (22023 when missing, 22001 when too long); never yourself or another admin (22023); an unknown reader is
 -- P0002; suspending a suspended reader or lifting a suspension nobody has is 55000.
 -- ---------------------------------------------------------------------------
@@ -113,7 +113,8 @@ returns void
 language plpgsql security definer set search_path = public
 as $$
 declare
-  why constant text := nullif(btrim(p_reason), '');
+  -- Spaces, tabs and line breaks alone are no reason.
+  why constant text := nullif(btrim(p_reason, E' \t\r\n'), '');
   was boolean;
   target_admin boolean;
   entry uuid;
@@ -183,8 +184,16 @@ grant execute on function public.my_suspension() to authenticated;
 --     suspended reader may now delete (comments_guard_update turns the body into "[deleted]"), but still
 --     not edit;
 --   * your public name, display name and picture: a suspended reader cannot change them (an abusive
---     name is exactly the kind of thing a suspension stops). Everything else on the profile stays theirs.
+--     name is exactly the kind of thing a suspension stops). Everything else on the profile stays theirs;
+--   * a story you added: its creator could still edit it (stories_update_creator had no "active user" check);
+--   * a discussion room nobody has opened yet: open_discussion creates it. A suspended reader still enters a
+--     room that exists (that is reading), but does not create new ones.
 -- ---------------------------------------------------------------------------
+drop policy stories_update_creator on public.stories;
+create policy stories_update_creator on public.stories for update to authenticated
+  using (created_by = auth.uid() or public.is_admin())
+  with check (public.is_admin() or (created_by = auth.uid() and not is_hidden and public.is_active_user()));
+
 drop policy comments_update_own on public.comments;
 create policy comments_update_own on public.comments for update to authenticated
   using (author_id = auth.uid() or public.is_admin())
@@ -202,6 +211,47 @@ end $$;
 
 create trigger profiles_guard_suspended before update on public.profiles
   for each row execute function public.profiles_guard_suspended();
+
+-- As in 20261015000000_security_fixes.sql, plus: only an active reader (or an admin) creates a room.
+create or replace function public.open_discussion(p_story uuid, p_kind public.discussion_kind, p_section int default null)
+returns public.discussions
+language plpgsql security definer set search_path = public
+as $$
+declare
+  d public.discussions;
+  n int;
+begin
+  if not public.can_access_section(p_story, p_kind, p_section) then
+    raise exception 'locked: finish this chapter to join the discussion' using errcode = '42501';
+  end if;
+
+  if p_kind = 'chapter' then
+    select public.section_count(s) into n from public.stories s where s.id = p_story;
+    if p_section is null or p_section < 1 or p_section > coalesce(n, 5000) then
+      raise exception 'this story has no chapter %', p_section;
+    end if;
+  end if;
+
+  if p_kind = 'epilogue' then
+    select * into d from public.discussions where story_id = p_story and kind = 'epilogue';
+  else
+    select * into d from public.discussions where story_id = p_story and kind = 'chapter' and section_number = p_section;
+  end if;
+
+  if d.id is null then
+    if not (public.is_active_user() or public.is_admin()) then
+      raise exception 'a suspended reader cannot open a new discussion' using errcode = '42501';
+    end if;
+    insert into public.discussions (story_id, kind, section_number)
+    values (p_story, p_kind, case when p_kind = 'chapter' then p_section end)
+    on conflict do nothing
+    returning * into d;
+    if d.id is null then  -- created concurrently
+      return public.open_discussion(p_story, p_kind, p_section);
+    end if;
+  end if;
+  return d;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- The moderation queue says who a comment/review/reader report is about (subject_id) and whether they

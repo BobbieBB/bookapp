@@ -6,6 +6,7 @@ import { useLanguage, useT } from '@/i18n';
 import type { MessageKey } from '@/i18n/en';
 import { ACTIONS, SUSPENDABLE, errorCode, resolve, type QueueAction, type QueueItem, type QueueKind } from '@/lib/moderation';
 import { REASON_MAX, setReaderSuspended } from '@/lib/suspension';
+import { useAuth } from '@/lib/auth';
 import { relativeTime } from '@/lib/relativeTime';
 import { space } from '@/theme';
 
@@ -59,15 +60,16 @@ function excerptStart(text: string) {
  */
 function SuspendControls({ item, label, onChanged }: { item: QueueItem; label: (action: string) => string; onChanged: () => void }) {
   const t = useT();
-  // What this card just did, until the reloaded queue says the same (other cards about the reader follow the reload).
-  const [override, setOverride] = useState<boolean | null>(null);
-  const suspended = override ?? item.subject_suspended === true;
+  const { session } = useAuth();
+  // Always what the server last said: after a change the queue reloads, so another admin's change shows too.
+  const suspended = item.subject_suspended === true;
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const subjectId = item.subject_id;
-  if (!subjectId) return null;
+  // Never yourself (the server refuses it as well).
+  if (!subjectId || subjectId === session?.user.id) return null;
 
   async function change(next: boolean) {
     if (busy || !subjectId) return;
@@ -75,17 +77,18 @@ function SuspendControls({ item, label, onChanged }: { item: QueueItem; label: (
     setError('');
     try {
       await setReaderSuspended(subjectId, next, next ? reason.trim() : undefined);
-      setOverride(next);
       setAsking(false);
       setReason('');
       onChanged();
     } catch (e) {
       // 55000: someone else already suspended them or let them back in; the reload shows which.
-      if (errorCode(e) === '55000') {
-        setOverride(null);
+      const failure = errorCode(e);
+      if (failure === '55000') {
         setError(t('moderation.gone'));
         onChanged();
-      } else setError(t('moderation.failed'));
+      } else if (failure === '22023') setError(t('moderation.suspendRefused'));
+      else if (failure === '22001') setError(t('moderation.reasonTooLong'));
+      else setError(t('moderation.failed'));
     } finally {
       setBusy(false);
     }

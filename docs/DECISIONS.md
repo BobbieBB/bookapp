@@ -459,8 +459,9 @@ The terms reserve the right to suspend a reader who seriously or repeatedly brea
 - **Logged:** every suspension and lifting is a row in `suspensions` (who, by which admin, when, the reason). Admins
   read it; nobody edits it. It goes with the reader's account if they delete it.
 - **What a suspended reader can't do:** comment or edit a comment, react, write or edit a review, rate, report,
-  add a story, report a new chapter or finish a fic, ask for a chapter count, set a custom cover, or change their
-  username, display name or picture.
+  add a story or edit one they added, report a new chapter, finish or reopen a fic, set or ask for a chapter count,
+  set a custom cover, open a discussion room nobody has opened yet (a room that exists still opens, for reading), or
+  change their username, display name or picture.
 - **What they still can do:** read everything they could before, keep their library and progress, follow and mute
   rooms, block readers, delete their own comments, reviews, ratings and account, and **send feedback**: feedback is
   the channel to contest a suspension, so it stays open (as do author removal requests, which are about a fic,
@@ -471,3 +472,12 @@ The terms reserve the right to suspend a reader who seriously or repeatedly brea
   reason, and a discussion room shows the same explanation in place of the comment box and when a reaction is
   tapped. The admin is never named to the reader. Account notices are system notices, like the moderation notices:
   `my_notifications_v2` returns them (with `suspension_reason`) and the app renders all four kinds in one row component.
+- **Deleting the account (GDPR erasure):** a suspended reader can still delete their account, and the suspension log
+  goes with it (`suspensions` cascades from the profile). Someone who signs up again with a new account starts clean:
+  re-registration is not tracked. If suspended readers start coming back this way, that is a PO decision.
+- **`my_notifications_v2` changed shape in place:** it gains the account kinds and the `suspension_reason` column
+  rather than a new function version. That is safe only because no app build with #55's `my_notifications_v2` has
+  shipped. If #55 ships on its own first, this needs a new function version (`my_notifications_v3`) instead.
+- **A comment posted as the suspension lands (accepted):** a comment, reaction or report whose write started just
+  before the suspension committed can still go through. This race is inherent and accepted: moderators hide it like
+  any other content, and every write after the suspension commits is refused.
