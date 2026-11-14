@@ -247,6 +247,9 @@ Troubleshooting:
 - *A port is taken*: another program uses `55<slot>21`/`22`/`24` (or, these being ephemeral ports, an
   outgoing connection held it for a moment: run again); use other slots
   (`TEST_SLOT=<n>`, or a smaller `TEST_STACK_POOL`).
+- *Many `AuthRetryableFetchError` or timeout failures while two runs share the machine*: the Mac is
+  too busy for parallel runs (seen at a load average around 30). Run one at a time with
+  `TEST_STACK_POOL=1`; a single slot passed the full suite at that load.
 - *Recovery e-mail without a code after changing `supabase/templates/`*: should not happen; Kong mounts
   the templates directory (not the file), so the stack always serves the current template.
 
