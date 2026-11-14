@@ -32,11 +32,26 @@
       "package": "app.livami",
       "blockedPermissions": [
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f0c0466a-a21f-48ed-94e7-00cc5f466359"
+      }
+    },
+    "owner": "boryanas-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f0c0466a-a21f-48ed-94e7-00cc5f466359"
     }
   }
 }
