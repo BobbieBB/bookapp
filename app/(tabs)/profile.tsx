@@ -183,7 +183,13 @@ function HelpUsImprove() {
 
   return (
     <Card>
-      <Toggle label={t('profile.analytics')} value={known ?? false} onChange={change} disabled={known === undefined || saving} />
+      <Toggle
+        label={t('profile.analytics')}
+        value={known ?? false}
+        // The switch shows the save under way at once (disabled); it doesn't hand the save itself back.
+        onChange={(on) => void change(on)}
+        disabled={known === undefined || saving}
+      />
       <T v="muted">{t('profile.analyticsHint')}</T>
       <ErrorText>{failed || error !== undefined ? t('profile.analyticsError') : null}</ErrorText>
     </Card>
