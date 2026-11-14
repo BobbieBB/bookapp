@@ -7,7 +7,7 @@ import { isModerationNotice, roomPath, type Notification } from '@/lib/notificat
 import { relativeTime } from '@/lib/relativeTime';
 import { radius, space, useTheme } from '@/theme';
 
-/** One reply / mention / reaction: who, where, when. Never the comment text. */
+/** One reply / mention / reaction: who, where, when. Never the comment text. Account notices have no room. */
 export function NotificationRow({ n }: { n: Notification }) {
   return isModerationNotice(n) ? <ModerationNotice n={n} /> : <SocialNotification n={n} />;
 }

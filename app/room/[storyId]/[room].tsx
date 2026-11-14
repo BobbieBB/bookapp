@@ -23,6 +23,7 @@ import {
   type Thread,
 } from '@/lib/discussions';
 import { block, reportComment } from '@/lib/safety';
+import { mySuspension, useMySuspension } from '@/lib/suspension';
 import { track } from '@/lib/analytics';
 import { finishChapter, loadStoryPage, nextChapter } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
@@ -163,6 +164,18 @@ function Discussion({
   const [posted, setPosted] = useState(0); // comments posted here, for the push offer
   const [failed, setFailed] = useState(false);
   const [blockedNotice, setBlockedNotice] = useState(false);
+  // A suspended reader still reads; posting and reacting are refused by the database, so the room
+  // says why instead of a generic error (docs/DECISIONS.md, "Suspending a reader").
+  const suspension = useMySuspension(discussionId);
+  const [suspendedNotice, setSuspendedNotice] = useState(false);
+  const suspended = suspension?.suspended === true || suspendedNotice;
+
+  // A write failed: if it was because the reader is suspended (perhaps since they opened the room), say so.
+  const explainFailure = async () => {
+    const now = await mySuspension().catch(() => undefined);
+    if (now?.suspended) setSuspendedNotice(true);
+    else setFailed(true);
+  };
 
   // Once per room reached, even by readers who only read (the PO's "readers who reach a discussion").
   useEffect(() => {
@@ -197,7 +210,7 @@ function Discussion({
 
   const act = (work: () => Promise<unknown>) => {
     setFailed(false);
-    return work().then(reload, () => setFailed(true));
+    return work().then(reload, explainFailure);
   };
 
   const post = async () => {
@@ -212,7 +225,7 @@ function Discussion({
       setReplyTo(null);
       reload();
     } catch {
-      setFailed(true);
+      await explainFailure();
     } finally {
       setPosting(false);
     }
@@ -228,10 +241,16 @@ function Discussion({
         mine={author !== null && author.id === userId}
         onReply={top ? () => setReplyTo({ id: comment.id, username: author?.username ?? t('account.deletedReader') }) : undefined}
         onDelete={() => void act(() => deleteComment(comment.id))}
-        onReact={(emoji: Emoji, mine: boolean) => void act(async () => {
+        onReact={(emoji: Emoji, mine: boolean) => {
+          if (suspended && !mine) {
+            setSuspendedNotice(true); // say why at once, instead of a refusal from the database
+            return;
+          }
+          void act(async () => {
             await toggleReaction(comment.id, emoji, mine);
             if (!mine) void track('reaction_added');
-          })}
+          });
+        }}
         onReport={(reason, details) => reportComment(comment.id, reason, details)}
         onBlock={
           author
@@ -283,35 +302,44 @@ function Discussion({
         </Text>
       ) : null}
 
-      <View style={{ gap: space.s }}>
-        {replyTo ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <T v="muted">{t('room.replyingTo', { name: replyTo.username })}</T>
-            <Button variant="link" title={t('room.cancel')} onPress={() => setReplyTo(null)} />
-          </View>
-        ) : null}
-        <TextInput
-          accessibilityLabel={t('room.add')}
-          value={draft}
-          onChangeText={setDraft}
-          multiline
-          placeholder={t('room.add')}
-          placeholderTextColor={c.muted}
-          style={{
-            minHeight: 50,
-            borderRadius: radius.s,
-            borderWidth: 1.5,
-            borderColor: c.hairline,
-            backgroundColor: c.surface,
-            paddingHorizontal: space.m,
-            paddingVertical: space.m,
-            fontSize: 16,
-            fontFamily: fonts.body,
-            color: c.ink,
-          }}
-        />
-        <Button title={t('room.post')} onPress={() => void post()} disabled={!draft.trim()} loading={posting} />
-      </View>
+      {suspendedNotice ? (
+        <View accessibilityRole="alert">
+          <ErrorText>{t('notifications.suspendedInRoom')}</ErrorText>
+        </View>
+      ) : suspended ? (
+        <T v="muted">{t('notifications.suspendedInRoom')}</T>
+      ) : null}
+      {suspended ? null : (
+        <View style={{ gap: space.s }}>
+          {replyTo ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <T v="muted">{t('room.replyingTo', { name: replyTo.username })}</T>
+              <Button variant="link" title={t('room.cancel')} onPress={() => setReplyTo(null)} />
+            </View>
+          ) : null}
+          <TextInput
+            accessibilityLabel={t('room.add')}
+            value={draft}
+            onChangeText={setDraft}
+            multiline
+            placeholder={t('room.add')}
+            placeholderTextColor={c.muted}
+            style={{
+              minHeight: 50,
+              borderRadius: radius.s,
+              borderWidth: 1.5,
+              borderColor: c.hairline,
+              backgroundColor: c.surface,
+              paddingHorizontal: space.m,
+              paddingVertical: space.m,
+              fontSize: 16,
+              fontFamily: fonts.body,
+              color: c.ink,
+            }}
+          />
+          <Button title={t('room.post')} onPress={() => void post()} disabled={!draft.trim()} loading={posting} />
+        </View>
+      )}
       <PushOffer posted={posted} />
     </View>
   );

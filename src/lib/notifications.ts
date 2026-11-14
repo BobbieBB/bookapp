@@ -41,8 +41,8 @@ export async function myNotifications(limit = 50, types?: Notification['type'][]
 }
 
 /** Home's "REPLIES TO YOU": replies and mentions only (reactions live on the notifications screen). */
-export async function repliesToYou(limit = 3): Promise<Notification[]> {
-  return myNotifications(limit, ['reply', 'mention']);
+export async function repliesToYou(limit = 3): Promise<RoomNotification[]> {
+  return (await myNotifications(limit, ['reply', 'mention'])) as RoomNotification[];
 }
 
 /** Home's notices: moderation decisions about you or your reports, while still unread. */

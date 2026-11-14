@@ -16,6 +16,8 @@ table. Anonymous users (`anon`) have no access at all.
 | `discussion_follows` | Followed / muted discussions, last read time | You |
 | `blocks` | Users you blocked | You |
 | `notifications` | Replies, reactions and @mentions — **never the comment text** — and moderation notices (`content_hidden`, `report_resolved`: `content_kind`, `reason`, `outcome`, `story_id`; never an `actor_id`, see Moderation notices) | You |
+| `notifications` | Replies, reactions and @mentions — **never the comment text**; and notices about your account (`account_suspended`, `account_restored`), which have no room (`discussion_id` empty) and point at their `suspensions` row for the reason | You |
+| `suspensions` | Every suspension and lifting of a reader: `suspended` (true / false), the reason (required to suspend, 1–500 characters, shown to the reader), `by_admin`, time. Written only by `set_reader_suspended`; deleted with the reader's account | Admins |
 | `ratings` | 0.5–5 in half steps, **books only** (fanfiction is never rated) | Everyone |
 | `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3); `user_id` is empty once the author deleted their account | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
@@ -213,6 +215,7 @@ migrations or the service role can change `moderation_email_settings`.
 | `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
 | `my_notifications(limit, types)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now. Only these three kinds, ever: it is what app builds from before 14 Nov 2026 call, and they can't render other kinds |
 | `my_notifications_v2(limit, types)` | What the app calls now: every kind, the social ones under the same rules, plus system notices (moderation notices, always shown) with `content_kind`, `reason`, `outcome` and `story_id` without a room. New notification kinds go here, with any new columns added to its result |
+| `my_notifications(limit)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now; account notices with the reason and no story or room |
 | `mark_notifications_read()` | Mark all your notifications read |
 | `delete_my_account(erase_comments)` | Delete your own account for good (see Deleting an account) |
 | `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |
@@ -226,6 +229,10 @@ migrations or the service role can change `moderation_email_settings`.
 | `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
 | `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count); everyone else gets 42501 |
 | `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Comment and review hides notify the author (`content_hidden`) and every closed report notifies its reporter (`report_resolved`), in the same transaction. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
+| `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count, and for comment / review / reader reports the reader's id and whether they are suspended); everyone else gets 42501 |
+| `set_reader_suspended(user, suspended, reason)` | Admins only (42501): suspend a reader (reason required, 22023; at most 500 characters, 22001) or lift it; never yourself (22023); unknown reader P0002; already in that state 55000. Sets `profiles.is_suspended`, logs it in `suspensions` and notifies the reader in the app (no push) |
+| `my_suspension()` | Whether you are suspended now, and the latest reason and time (Home's banner) |
+| `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
 
 ## Tests
 

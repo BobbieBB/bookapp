@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Card, ErrorText, T } from '@/components/ui';
+import { Button, Card, ErrorText, Field, T } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
 import type { MessageKey } from '@/i18n/en';
-import { ACTIONS, errorCode, resolve, type QueueAction, type QueueItem, type QueueKind } from '@/lib/moderation';
+import { ACTIONS, SUSPENDABLE, errorCode, resolve, type QueueAction, type QueueItem, type QueueKind } from '@/lib/moderation';
+import { REASON_MAX, setReaderSuspended } from '@/lib/suspension';
 import { relativeTime } from '@/lib/relativeTime';
 import { space } from '@/theme';
 
@@ -50,6 +51,82 @@ function excerptStart(text: string) {
   const cut = text.slice(0, EXCERPT_IN_LABEL);
   const word = cut.lastIndexOf(' ');
   return `${(word > 0 ? cut.slice(0, word) : cut).trimEnd()}…`;
+}
+
+/**
+ * Suspend the reader a report is about (asks for the reason they will see), or let them back in
+ * (docs/DECISIONS.md, "Suspending a reader"). The report itself stays open until hidden or dismissed.
+ */
+function SuspendControls({ item, label, onChanged }: { item: QueueItem; label: (action: string) => string; onChanged: () => void }) {
+  const t = useT();
+  // What this card just did, until the reloaded queue says the same (other cards about the reader follow the reload).
+  const [override, setOverride] = useState<boolean | null>(null);
+  const suspended = override ?? item.subject_suspended === true;
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const subjectId = item.subject_id;
+  if (!subjectId) return null;
+
+  async function change(next: boolean) {
+    if (busy || !subjectId) return;
+    setBusy(true);
+    setError('');
+    try {
+      await setReaderSuspended(subjectId, next, next ? reason.trim() : undefined);
+      setOverride(next);
+      setAsking(false);
+      setReason('');
+      onChanged();
+    } catch (e) {
+      // 55000: someone else already suspended them or let them back in; the reload shows which.
+      if (errorCode(e) === '55000') {
+        setOverride(null);
+        setError(t('moderation.gone'));
+        onChanged();
+      } else setError(t('moderation.failed'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View style={{ gap: space.s }}>
+      {suspended ? (
+        <T v="label">{item.subject ? t('moderation.suspended', { name: item.subject }) : t('moderation.suspendedNobody')}</T>
+      ) : null}
+      <ErrorText>{error}</ErrorText>
+      {suspended ? (
+        <Button
+          variant="secondary"
+          title={t('moderation.unsuspend')}
+          accessibilityLabel={label(t('moderation.unsuspend'))}
+          disabled={busy}
+          onPress={() => void change(false)}
+        />
+      ) : asking ? (
+        <>
+          <Field
+            label={t('moderation.suspendReason')}
+            value={reason}
+            onChangeText={setReason}
+            maxLength={REASON_MAX}
+            multiline
+          />
+          <Button title={t('moderation.suspendConfirm')} disabled={busy || !reason.trim()} onPress={() => void change(true)} />
+          <Button variant="link" title={t('moderation.suspendCancel')} onPress={() => setAsking(false)} />
+        </>
+      ) : (
+        <Button
+          variant="secondary"
+          title={t('moderation.suspend')}
+          accessibilityLabel={label(t('moderation.suspend'))}
+          onPress={() => setAsking(true)}
+        />
+      )}
+    </View>
+  );
 }
 
 function QueueCard({ item, onDone, onResolved }: { item: QueueItem; onDone: () => void; onResolved: () => void }) {
@@ -118,6 +195,13 @@ function QueueCard({ item, onDone, onResolved }: { item: QueueItem; onDone: () =
             onPress={() => act(action)}
           />
         ))}
+        {SUSPENDABLE.has(item.kind) ? (
+          <SuspendControls
+            item={item}
+            label={(action) => t('moderation.actionLabel', { action, kind: t(KIND_LABEL[item.kind]), target })}
+            onChanged={onResolved}
+          />
+        ) : null}
       </View>
     </Card>
   );
