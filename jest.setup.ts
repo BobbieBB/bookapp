@@ -1,3 +1,6 @@
+import NotificationsEmitterModule from 'expo-notifications/build/NotificationsEmitterModule';
+import NotificationsHandlerModule from 'expo-notifications/build/NotificationsHandlerModule';
+
 import { networkFetch } from './test/network';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -29,3 +32,12 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+// jest-expo stands in every native module function with `async () => {}`, so the notifications
+// handler module's addListener returns a Promise. expo-notifications 58 subscribes a default
+// foreground handler on import and calls `.remove()` on it in setNotificationHandler, which then
+// throws. On a phone, addListener returns an EventSubscription; give the stand-in the same shape.
+jest.mocked(NotificationsHandlerModule.addListener).mockImplementation(() => ({ remove: () => {} }));
+// The same for the listener PushEffects adds for taps on a notification.
+jest.mocked(NotificationsEmitterModule.addListener).mockImplementation(() => ({ remove: () => {} }));
+
