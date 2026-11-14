@@ -110,7 +110,8 @@ other, and neither gets notifications from the other. A no longer sees B's react
 "Deleting an account: what happens to comments"). It deletes the `auth.users` row; every table that
 holds the reader's data references it, or `profiles`, with `on delete cascade`: profile, library and
 progress, custom covers, ratings, reactions, follows, blocks, notifications, reports they filed,
-analytics events and consent, push tokens. Six keys are `on delete set null` instead, and keep the row
+analytics events and consent (`analytics_consents`; the comment in `20261019000000_delete_account.sql` still
+says "opt-out" from before analytics became opt-in, and that table is gone), push tokens. Six keys are `on delete set null` instead, and keep the row
 without its owner: `comments.author_id` and `reviews.user_id` (shown as "Deleted reader"),
 `stories.created_by` (the story is shared with its other readers), `feedback.user_id`,
 `removal_requests.requester_id` and `notifications.actor_id` (other readers keep their reply and

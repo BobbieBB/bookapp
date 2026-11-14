@@ -44,10 +44,11 @@ const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.
 // device reaches this one at the next start; until then consent withdrawn elsewhere is still enforced by
 // the database (analytics_insert_own), so nothing is recorded against the reader's wish.
 let consent: { userId: string; value: boolean } | null = null;
-// Saves started and saves finished (either way). A read only fills the cache if no save was running when it
-// started and none started since, so an older answer from the database never overwrites a newer choice.
+// Saves run one at a time, in the order the reader made them, so the database and the cache always end on
+// their last choice. Reads wait for every save started before them; a read overtaken by a newer save
+// never fills the cache, and waits for that save instead.
+let saving: Promise<unknown> = Promise.resolve();
 let savesStarted = 0;
-let savesFinished = 0;
 
 async function signedInUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
@@ -58,34 +59,34 @@ async function signedInUserId(): Promise<string | null> {
 export async function analyticsConsent(signal?: AbortSignal): Promise<boolean> {
   const userId = await signedInUserId();
   if (!userId) return false;
-  if (consent?.userId === userId) return consent.value;
-  const started = savesStarted;
-  const quiet = savesFinished === savesStarted;
-  const query = supabase.from('analytics_consents').select('user_id').eq('user_id', userId);
-  const { data } = await (signal ? query.abortSignal(signal) : query).throwOnError();
-  const value = (data ?? []).length > 0;
-  if (quiet && savesStarted === started) {
-    consent = { userId, value };
-    return value;
+  for (;;) {
+    await saving;
+    if (consent?.userId === userId) return consent.value;
+    const started = savesStarted;
+    const query = supabase.from('analytics_consents').select('user_id').eq('user_id', userId);
+    const { data } = await (signal ? query.abortSignal(signal) : query).throwOnError();
+    const value = (data ?? []).length > 0;
+    if (savesStarted === started) {
+      consent = { userId, value };
+      return value;
+    }
   }
-  // A save overlapped this read: the save wins, so its value is answered when known.
-  return consent?.userId === userId ? consent.value : value;
 }
 
-export async function setAnalyticsConsent(value: boolean): Promise<void> {
-  const userId = await signedInUserId();
-  if (!userId) throw new Error('not signed in');
-  const save = ++savesStarted;
-  // Until the save is known to have worked, nothing is cached, so a failed save is read again next time.
+export function setAnalyticsConsent(value: boolean): Promise<void> {
+  savesStarted += 1;
+  // Nothing is cached until a save is known to have worked, so a failed save is read again next time.
   consent = null;
-  try {
+  const save = saving.then(async () => {
+    const userId = await signedInUserId();
+    if (!userId) throw new Error('not signed in');
+    consent = null;
     if (value) await supabase.from('analytics_consents').upsert({ user_id: userId }, { ignoreDuplicates: true }).throwOnError();
     else await supabase.from('analytics_consents').delete().eq('user_id', userId).throwOnError();
-    // A later save (a quick double tap) owns the cache.
-    if (save === savesStarted) consent = { userId, value };
-  } finally {
-    savesFinished += 1;
-  }
+    consent = { userId, value };
+  });
+  saving = save.catch(() => undefined);
+  return save;
 }
 
 /** Records an event, only if the reader said yes; before that (and signed out) nothing is sent. */

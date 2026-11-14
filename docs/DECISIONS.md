@@ -447,3 +447,7 @@ says yes**:
   nobody has said yes yet. The admin numbers therefore count only readers who said yes (week-1 return included).
 - If saving the consent at onboarding fails, the reader still gets in: no consent is stored, nothing is recorded,
   and they can switch it on in Profile.
+- Events recorded before this change (under the old opt-out) are **kept for now**, pending the PO's decision on
+  deleting them; the migration leaves `analytics_events` as it is.
+- From this change on, the admin numbers (sign-ups, week-1 return and the rest) count only readers who said yes,
+  so weeks before 14 Nov 2026 are not comparable with weeks after.

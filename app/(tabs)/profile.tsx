@@ -165,19 +165,25 @@ function HelpUsImprove() {
   // Until the choice has been read (or when it can't be), the switch shows off and can't be used.
   const known = data ?? previous;
 
+  // One save at a time: the switch waits for it. Afterwards the choice is read back, so a failed save
+  // shows the value actually stored.
+  const [saving, setSaving] = useState(false);
   async function change(on: boolean) {
     setFailed(false);
+    setSaving(true);
     try {
       await setAnalyticsConsent(on);
-      setVersion((v) => v + 1);
     } catch {
       setFailed(true);
+    } finally {
+      setSaving(false);
+      setVersion((v) => v + 1);
     }
   }
 
   return (
     <Card>
-      <Toggle label={t('profile.analytics')} value={known ?? false} onChange={change} disabled={known === undefined} />
+      <Toggle label={t('profile.analytics')} value={known ?? false} onChange={change} disabled={known === undefined || saving} />
       <T v="muted">{t('profile.analyticsHint')}</T>
       <ErrorText>{failed || error !== undefined ? t('profile.analyticsError') : null}</ErrorText>
     </Card>
