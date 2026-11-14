@@ -61,11 +61,12 @@ export default function DeleteAccount() {
   const [failed, setFailed] = useState(false);
 
   const remove = async () => {
+    // Delete is disabled until the reader chooses, so this only narrows the type.
+    if (erase === null) return;
     setDeleting(true);
     setFailed(false);
     try {
       // Signs out when done; the root layout then shows the sign-in screen.
-      if (erase === null) throw new Error('No choice made about comments.');
       await deleteMyAccount({ eraseComments: erase });
     } catch {
       setFailed(true);
@@ -88,20 +89,22 @@ export default function DeleteAccount() {
         <Card>
           <T v="h2">{t('account.staysHeading')}</T>
           <T>{t('account.stays')}</T>
-          <View accessibilityRole="radiogroup" style={{ gap: space.m }}>
+          <View accessibilityRole="radiogroup" accessibilityLabel={t('account.stays')} style={{ gap: space.m }}>
             <Choice
               label={t('account.keepComments')}
               hint={t('account.keepCommentsHint')}
               checked={erase === false}
               onPress={() => setErase(false)}
-              disabled={deleting}
+              // Locked under the confirmation, so the choice can't change after "Delete my account".
+              disabled={deleting || confirming}
             />
             <Choice
               label={t('account.eraseComments')}
               hint={t('account.eraseCommentsHint')}
               checked={erase === true}
               onPress={() => setErase(true)}
-              disabled={deleting}
+              // Locked under the confirmation, so the choice can't change after "Delete my account".
+              disabled={deleting || confirming}
             />
           </View>
         </Card>
