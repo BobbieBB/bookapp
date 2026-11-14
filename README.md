@@ -209,30 +209,43 @@ PostgREST, Realtime, Storage, Mailpit, Kong and Postgres), configured as `supaba
 them from `supabase/config.toml`. Those images are already in Docker's cache once `npm run db:start`
 has run once, so starting a stack downloads nothing.
 
-- **Slots.** Up to 9 copies run side by side, each its own compose project `livami-test-<slot>` on
-  its own ports: API `127.0.0.1:55<slot>21`, Postgres `55<slot>22`, Mailpit `55<slot>24`.
+- **Slots.** Up to 10 copies (slots 0 to 9) run side by side, each its own compose project
+  `livami-test-<slot>` on its own ports: API `127.0.0.1:55<slot>21`, Postgres `55<slot>22`, Mailpit
+  `55<slot>24`. Slots 1 to 9 are for leases, slot 0 for CI and manual use. These ports lie in the
+  operating system's ephemeral range (macOS 49152-65535, Linux 32768-60999), so now and then an
+  outgoing connection may hold one when a slot starts: see *A port is taken* below.
 - **Leases.** `npm run test:stack` leases a free slot from 1 to 4 (`TEST_STACK_POOL` changes the
   pool), starts it if it is down, resets it, runs Jest with its env and frees the slot, however the
-  run ends. A lease whose owner died is taken back. With `TEST_SLOT=<n>` it uses that slot without a
+  run ends (on Ctrl-C or TERM, Jest gets the signal and is waited for first). A lease whose owner
+  died, or that has had no owner for 10 seconds, is taken back. With `TEST_SLOT=<n>` it uses that slot without a
   lease. Several worktrees or agents can therefore test at once, each on its own database.
 - **Reset.** Every run starts from clean, migrated data (like `supabase db reset`): the tables of
   `public`, `auth` and `storage` are emptied and refilled from a dump taken right after the migrations,
-  in one transaction, while the services stay connected. Schema changes a test leaves behind are not
+  in one transaction, while the services stay connected; pg_net's request queue and responses and
+  pg_cron's run history are emptied, stored files whose objects are gone are deleted, and auth
+  restarts (about a second) to clear its in-memory rate limits. Schema changes a test leaves behind are not
   undone (tests drop what they create). When a branch has other migrations, its first reset goes back
   to the database as the services left it, migrates it and takes a new dump (slower: a few services
-  restart).
+  restart). The same happens when `supabase/seed.sql` changes.
+- **Keys.** The stack uses the legacy JWT anon and service_role keys, signed with a fixed test-only
+  secret; hosted Supabase hands out `sb_publishable_` / `sb_secret_` keys instead (no app code depends
+  on the format). Their one copy is `tools/teststack/lib.sh`. They are the Supabase CLI's public
+  local-development defaults, not secrets: if a secret scanner flags them, mark them as such.
 - **By hand.** `tools/teststack/up.sh <slot>`, `reset.sh <slot>`, `down.sh <slot>` (deletes its
   data), `eval "$(tools/teststack/env.sh <slot>)"` for the env (then `npx jest ...`),
-  `lease.sh` / `release.sh <slot>`.
+  `lease.sh` / `release.sh <slot>`, `compose.sh <slot> <docker compose args>` (e.g. `logs auth`).
+  `npm run test:stack-scripts` tests the leases (no Docker needed).
 
 Troubleshooting:
 
 - *All slots are leased, waiting*: other runs hold them; `ls $TMPDIR/livami-teststack` shows the
   leases and their owners' PIDs. A stuck one can be freed with `tools/teststack/release.sh <slot>`.
-- *A slot does not come up healthy*: `docker compose -p livami-test-<slot> logs <service>`; the
+- *A slot does not come up healthy*: `up.sh` shows the end of compose's log
+  (`$TMPDIR/livami-teststack/up-<slot>.log`); `tools/teststack/compose.sh <slot> logs <service>`; the
   first start of a slot takes a minute or two (the services run their own migrations), later ones
   seconds. `down.sh <slot>` and run again starts it from scratch.
-- *A port is taken*: another program uses `55<slot>21`/`22`/`24`; use other slots
+- *A port is taken*: another program uses `55<slot>21`/`22`/`24` (or, these being ephemeral ports, an
+  outgoing connection held it for a moment: run again); use other slots
   (`TEST_SLOT=<n>`, or a smaller `TEST_STACK_POOL`).
 - *Recovery e-mail without a code after changing `supabase/templates/`*: should not happen; Kong mounts
   the templates directory (not the file), so the stack always serves the current template.

@@ -439,10 +439,12 @@ waited an hour), a test run could reset the database under another one, and CI f
 CLI's images ("Rate exceeded").
 
 So tests run on `tools/teststack/`: our own Docker Compose file with the same pinned images as
-Supabase CLI 2.121.0, configured as the CLI configures them from `supabase/config.toml`, in up to nine
+Supabase CLI 2.121.0, configured as the CLI configures them from `supabase/config.toml`, in up to ten
 independent copies (slots) on their own ports. `npm run test:stack` leases a free slot, refills its
 tables with the clean migrated data and runs Jest; CI runs the same stack on slot 0 instead of `supabase start`.
-Nothing in a test run depends on an outside service: locally the images come from Docker's cache.
+Locally nothing in a test run depends on an outside service: the images come from Docker's cache. CI
+pulls them from public.ecr.aws on every run (retried with a backoff, as its anonymous pulls are
+rate limited).
 
 `supabase start` (`npm run db:start`) is still the stack for development (Studio, Edge Functions) and
 still works for `npm test`: the test helpers fall back to its ports and container names. When the CLI
