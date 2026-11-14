@@ -90,9 +90,11 @@ evacuate_and() {
   printf '%s\n%s\n' "$EVACUATE_SQL" "$sql" | admin_sql || die "could not get the database to itself"
 }
 
-# PostgREST backs off up to 32 s between reconnects after losing the database; a restart is quicker.
+# After the database was swapped: PostgREST backs off up to 32 s between reconnects, and GoTrue's
+# pool keeps dead connections (sign-ups time out), so both restart; they are up in a second or two.
+# Realtime and Storage reconnect by themselves (and take minutes to restart on a busy machine).
 restart_rest() {
-  docker restart -t 1 "livami-test-$SLOT-rest-1" >/dev/null
+  docker restart -t 1 "livami-test-$SLOT-rest-1" "livami-test-$SLOT-auth-1" >/dev/null
 }
 
 # Waits until the API answers again after the database was swapped: the services stay up and

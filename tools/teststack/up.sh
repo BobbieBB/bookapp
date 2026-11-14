@@ -14,6 +14,7 @@ compose up -d --wait >/dev/null 2>&1 || {
 if ! db_exists "$BASE_DB"; then
   snapshot "$BASE_DB"
   build_clean
+  restart_rest
 elif [ "$(clean_hash)" != "$(migrations_hash)" ]; then
   "$TESTSTACK_DIR/reset.sh" "$SLOT" 2>/dev/null
 fi
