@@ -65,11 +65,11 @@ describe('translate', () => {
 
   it('falls back to English when only Bulgarian lacks the key', () => {
     const enOnly = 'test.enOnly' as Parameters<typeof translate>[1];
-    (en as Record<string, string>)[enOnly] = 'English only';
+    (en as unknown as Record<string, string>)[enOnly] = 'English only';
     try {
       expect(translate('bg', enOnly)).toBe('English only');
     } finally {
-      delete (en as Record<string, string>)[enOnly];
+      delete (en as unknown as Record<string, string>)[enOnly];
     }
   });
 });
