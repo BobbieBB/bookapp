@@ -58,7 +58,7 @@ it('while the choice cannot be read, the switch is disabled rather than shown on
 });
 
 it('the terms and the privacy policy open from Profile, and a failure says so', async () => {
-  const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(true);
+  const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(undefined);
   await renderScreen('bg', { profile: Profile }, '/profile');
   fireEvent.press(await screen.findByRole('button', { name: 'Условия' }, { timeout: 8000 }));
   expect(open).toHaveBeenLastCalledWith(TERMS_URL);

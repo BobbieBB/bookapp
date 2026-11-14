@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { Linking } from 'react-native';
+import { Linking, Text } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import TabsLayout from '../../../app/(tabs)/_layout';
@@ -49,6 +49,7 @@ const profileOf = async (u: User) =>
   ).data;
 
 // The whole app's routing, so the gate decides which screen shows; Profile stands in for the app.
+// Home is at `/`, where Expo Router 58 sends a reader whose screen the gate has just closed.
 const app = {
   _layout: RootStack,
   'sign-in': SignIn,
@@ -56,9 +57,11 @@ const app = {
   'accept-terms': AcceptTerms,
   'delete-account': DeleteAccount,
   '(tabs)/_layout': TabsLayout,
+  '(tabs)/index': () => <Text>home screen</Text>,
   '(tabs)/profile': Profile,
 };
 const inTheApp = () => screen.findByLabelText('Help us improve the app', {}, { timeout: 8000 });
+const atHome = () => screen.findByText('home screen', {}, { timeout: 8000 });
 
 afterAll(async () => {
   await supabase.removeAllChannels();
@@ -125,7 +128,7 @@ describe('onboarding', () => {
   });
 
   it('the Terms and Privacy Policy links open the web pages', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     try {
       await signUp('linker');
       await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
@@ -139,7 +142,7 @@ describe('onboarding', () => {
   });
 
   it('a link that cannot open says so, until a later one opens', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(undefined);
     try {
       await signUp('nobrowser');
       await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
@@ -156,7 +159,7 @@ describe('onboarding', () => {
 describe('readers who accepted an older version, or none', () => {
   const accept = () => screen.getByRole('button', { name: 'Accept' });
 
-  it('an old version is asked again; accepting opens the app', async () => {
+  it('an old version is asked again; accepting opens the app at Home', async () => {
     const u = await signUp('oldterms', OLD_VERSION);
     await renderScreen('en', app, '/profile');
     expect(await screen.findByText('Our terms have changed', {}, { timeout: 8000 })).toBeOnTheScreen();
@@ -165,7 +168,7 @@ describe('readers who accepted an older version, or none', () => {
     await fireEvent.press(screen.getByRole('checkbox', { name: /accept/ }));
     await fireEvent.press(screen.getByRole('checkbox', { name: new RegExp(`at least ${MIN_AGE}`) }));
     await fireEvent.press(accept());
-    expect(await inTheApp()).toBeOnTheScreen();
+    expect(await atHome()).toBeOnTheScreen();
     const row = (await profileOf(u))!;
     expect(row.terms_version).toBe(TERMS_VERSION);
     expect(Math.abs(Date.parse(row.terms_accepted_at!) - Date.now())).toBeLessThan(60_000);
@@ -208,7 +211,7 @@ describe('readers who accepted an older version, or none', () => {
     }
     expect((await profileOf(u))!.terms_version).toBe(TERMS_VERSION);
     await fireEvent.press(accept());
-    expect(await inTheApp()).toBeOnTheScreen();
+    expect(await atHome()).toBeOnTheScreen();
   });
 
   it('a reader from before the terms is asked too', async () => {
