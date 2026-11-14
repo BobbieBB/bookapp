@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import Home from '../../../app/(tabs)/index';
@@ -12,7 +12,7 @@ import Onboarding from '../../../app/onboarding';
 import SignIn from '../../../app/sign-in';
 import { failRequests } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
-import { MIN_AGE, overrideTermsSchedule, PRIVACY_URL, TERMS_NOTICE_STORAGE_KEY, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
+import { MIN_AGE, overrideTermsSchedule, PRIVACY_URL, termsNoticeKey, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
 import { supabase } from '../../lib/supabase';
 
 // Terms and age at sign-up (docs/DECISIONS.md, "Terms and age: ticked at sign-up", 2 Nov 2026): two
@@ -290,11 +290,21 @@ describe('terms that change on a date', () => {
   let restore: () => void = () => {};
   const atHome = (u: User) => screen.findByText(`Hi, ${u.username}`, {}, { timeout: 8000 });
   const notice = 'Our terms change on 1 December 2026';
-
-  beforeEach(async () => {
-    await AsyncStorage.removeItem(TERMS_NOTICE_STORAGE_KEY);
-  });
+  // Every reader is new, so no dismissal is remembered for them until they dismiss.
   afterEach(() => restore());
+
+  /**
+   * Waits until Home's notice has read the reader's remembered dismissal and React has applied it: the
+   * definite point after which a notice that should stay hidden would have shown.
+   */
+  async function noticeHasRead(u: User, read: jest.SpyInstance) {
+    await waitFor(() => expect(read).toHaveBeenCalledWith(termsNoticeKey(u.id)), { timeout: 8000 });
+    const call = read.mock.calls.findIndex(([key]) => key === termsNoticeKey(u.id));
+    await act(async () => {
+      await Promise.resolve(read.mock.results[call].value).catch(() => null);
+      await new Promise((r) => setImmediate(r));
+    });
+  }
 
   it('before the date, an older version opens the app with a notice and no gate', async () => {
     restore = before();
@@ -323,20 +333,37 @@ describe('terms that change on a date', () => {
     const first = await renderScreen('en', homeApp, '/');
     await fireEvent.press(await screen.findByRole('button', { name: 'Dismiss' }, { timeout: 8000 }));
     await waitFor(() => expect(screen.queryByText(notice)).toBeNull());
-    expect(await AsyncStorage.getItem(TERMS_NOTICE_STORAGE_KEY)).toBe(TERMS_VERSION);
+    expect(await AsyncStorage.getItem(termsNoticeKey(u.id))).toBe(TERMS_VERSION);
     first.unmount();
 
+    const read = jest.spyOn(AsyncStorage, 'getItem');
+    try {
+      await renderScreen('en', homeApp, '/');
+      expect(await atHome(u)).toBeOnTheScreen();
+      await noticeHasRead(u, read);
+      expect(screen.queryByText(notice)).toBeNull();
+    } finally {
+      read.mockRestore();
+    }
+  });
+
+  it('a dismissal is per reader: another reader on the same phone still sees the notice', async () => {
+    restore = before();
+    await signUp('sharer', OLD_VERSION);
+    const first = await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Dismiss' }, { timeout: 8000 }));
+    await waitFor(() => expect(screen.queryByText(notice)).toBeNull());
+    first.unmount();
+
+    await signUp('cosharer', OLD_VERSION);
     await renderScreen('en', homeApp, '/');
-    expect(await atHome(u)).toBeOnTheScreen();
-    // The remembered answer is read asynchronously: give it time to (wrongly) show.
-    await new Promise((r) => setTimeout(r, 500));
-    expect(screen.queryByText(notice)).toBeNull();
+    expect(await screen.findByText(notice, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('a dismissal for an earlier version does not hide this one', async () => {
     restore = before();
-    await AsyncStorage.setItem(TERMS_NOTICE_STORAGE_KEY, OLD_VERSION);
-    await signUp('redismiss', OLD_VERSION);
+    const u = await signUp('redismiss', OLD_VERSION);
+    await AsyncStorage.setItem(termsNoticeKey(u.id), OLD_VERSION);
     await renderScreen('en', homeApp, '/');
     expect(await screen.findByText(notice, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
@@ -372,13 +399,42 @@ describe('terms that change on a date', () => {
     expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
   });
 
+  it('Not now on a screen opened directly (no history) goes to Home', async () => {
+    restore = before();
+    const u = await signUp('deeplink', OLD_VERSION);
+    await renderScreen('en', homeApp, '/accept-terms');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }, { timeout: 8000 }));
+    expect(await atHome(u)).toBeOnTheScreen();
+    expect((await profileOf(u))!.terms_version).toBe(OLD_VERSION);
+  });
+
+  it('if the date passes while accepting early, the reader can sign out or delete instead', async () => {
+    restore = before();
+    await signUp('midnight', OLD_VERSION);
+    await renderScreen('en', homeApp, '/');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Accept now' }, { timeout: 8000 }));
+    expect(await screen.findByRole('button', { name: 'Not now' }, { timeout: 8000 })).toBeOnTheScreen();
+    restore();
+    restore = overrideTermsSchedule({ today: '2026-12-01', effective: '2026-12-01' });
+    // Any render after midnight shows the gate's choices; ticking a box is one.
+    await fireEvent.press(screen.getByRole('checkbox', { name: /accept/ }));
+    expect(await screen.findByRole('button', { name: 'Sign out' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Delete my account' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Not now' })).toBeNull();
+  });
+
   it('a reader on the current version sees no notice', async () => {
     restore = before();
     const u = await signUp('uptodate', TERMS_VERSION);
-    await renderScreen('en', homeApp, '/');
-    expect(await atHome(u)).toBeOnTheScreen();
-    await new Promise((r) => setTimeout(r, 500));
-    expect(screen.queryByText(notice)).toBeNull();
+    const read = jest.spyOn(AsyncStorage, 'getItem');
+    try {
+      await renderScreen('en', homeApp, '/');
+      expect(await atHome(u)).toBeOnTheScreen();
+      await noticeHasRead(u, read);
+      expect(screen.queryByText(notice)).toBeNull();
+    } finally {
+      read.mockRestore();
+    }
   });
 
   it('a reader who never accepted any terms is still gated before the date', async () => {
