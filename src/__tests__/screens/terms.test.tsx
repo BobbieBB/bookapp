@@ -38,10 +38,11 @@ async function signUp(name: string, version?: string | null): Promise<User> {
   return { email, id: data.user.id, username };
 }
 
+// The reader's own terms columns, read as that reader (other readers cannot read them).
 const profileOf = async (u: User) =>
   (
     await supabase
-      .from('profiles')
+      .rpc('my_profile')
       .select('terms_version, terms_accepted_at, age_confirmed')
       .eq('id', u.id)
       .maybeSingle()
@@ -198,7 +199,7 @@ describe('readers who accepted an older version, or none', () => {
     const u = await signUp('flaky', OLD_VERSION);
     await renderScreen('en', app, '/profile');
     await tickBoth();
-    const online = failRequests((url, method) => method === 'GET' && url.includes('/rest/v1/profiles') && url.includes('reads_books'));
+    const online = failRequests((url, method) => url.includes('/rest/v1/rpc/my_profile'));
     try {
       await fireEvent.press(accept());
       expect(await screen.findByText('We couldn’t save that. Please try again.')).toBeOnTheScreen();

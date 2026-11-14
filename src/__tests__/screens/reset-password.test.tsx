@@ -80,7 +80,7 @@ async function setPasswordHeld(code: string) {
   let reached!: () => void;
   const sent = new Promise<void>((resolve) => (reached = resolve));
   const update = holdRequest((url) => url.endsWith('/auth/v1/user') && (reached(), true));
-  const profile = holdRequest((url) => url.includes('/rest/v1/profiles'));
+  const profile = holdRequest((url) => url.includes('/rest/v1/rpc/my_profile'));
   profile.release(); // not held, only watched
   await fireEvent.changeText(screen.getByLabelText('Code from the email'), code);
   await fireEvent.changeText(screen.getByLabelText('New password'), newPassword);

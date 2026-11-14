@@ -1,7 +1,7 @@
 -- Accepting the terms and confirming your age (docs/DECISIONS.md, "Terms and age: ticked at sign-up"):
 -- the server stamps when the terms were accepted, the reader can neither backdate nor withdraw it,
 -- and the terms are never accepted without the age tick. Runs after spoiler_rules.test.sql (needs its
--- test schema).
+-- test schema). Readers read their own terms columns through my_profile() (20261114000000_profile_privacy.sql).
 \set ON_ERROR_STOP 1
 \set QUIET 1
 \o /dev/null
@@ -25,7 +25,7 @@ insert into auth.users (id) values
 select test.login('00000000-0000-0000-0000-0000000ee001');
 insert into public.profiles (id, username, terms_version, age_confirmed, terms_accepted_at)
   values ('00000000-0000-0000-0000-0000000ee001', 'terms_hana', '2026-01', true, '2000-01-01');
-select test.ok((select terms_accepted_at > now() - interval '1 minute' from public.profiles where username = 'terms_hana'),
+select test.ok((select terms_accepted_at > now() - interval '1 minute' from public.my_profile()),
   'the server stamps the acceptance on insert, ignoring the time the app sent');
 
 -- Ivo signed up before the terms existed.
@@ -33,12 +33,12 @@ select test.login('00000000-0000-0000-0000-0000000ee002');
 insert into public.profiles (id, username, terms_accepted_at)
   values ('00000000-0000-0000-0000-0000000ee002', 'terms_ivo', '2000-01-01');
 select test.ok((select terms_version is null and terms_accepted_at is null and not age_confirmed
-  from public.profiles where username = 'terms_ivo'), 'without terms there is no acceptance time and no age tick');
+  from public.my_profile()), 'without terms there is no acceptance time and no age tick');
 
 -- Accepting later stamps the time on update.
 update public.profiles set terms_version = '2026-01', age_confirmed = true where id = '00000000-0000-0000-0000-0000000ee002';
 select test.ok((select terms_version = '2026-01' and age_confirmed and terms_accepted_at > now() - interval '1 minute'
-  from public.profiles where username = 'terms_ivo'), 'accepting on update stamps the time');
+  from public.my_profile()), 'accepting on update stamps the time');
 select test.logout();
 create temp table ivo_before as select terms_accepted_at from public.profiles where username = 'terms_ivo';
 
@@ -98,7 +98,7 @@ select test.ok(test.failure_of($$update public.profiles set terms_version = null
   = 'LV001: accepting the terms cannot be withdrawn: delete the account instead', 'the terms cannot be un-accepted');
 select test.ok(test.failure_of($$update public.profiles set age_confirmed = false where id = '00000000-0000-0000-0000-0000000ee002'$$)
   = 'LV001: the age confirmation cannot be withdrawn', 'the age tick cannot be taken back');
-select test.ok((select terms_version = '2026-02' and age_confirmed from public.profiles where username = 'terms_ivo'),
+select test.ok((select terms_version = '2026-02' and age_confirmed from public.my_profile()),
   'both are still there');
 
 -- The terms are never accepted without the age tick, on insert or update.
@@ -114,7 +114,7 @@ select test.ok(test.failure_of($$update public.profiles set terms_version = '202
 
 -- The age tick alone is allowed: it says nothing about the terms.
 update public.profiles set age_confirmed = true where id = '00000000-0000-0000-0000-0000000ee004';
-select test.ok((select age_confirmed and terms_accepted_at is null from public.profiles where username = 'terms_kalin'),
+select test.ok((select age_confirmed and terms_accepted_at is null from public.my_profile()),
   'the age tick alone records no acceptance');
 
 -- A backfill must set both together: even the database owner gets LV001 for a version alone.

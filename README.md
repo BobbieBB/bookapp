@@ -74,6 +74,11 @@ Before launch:
 - **Android test build for friends:** `eas build -p android --profile preview` makes an APK (no Play
   account needed); the build page gives a link and a QR code to install it. Pushes need Firebase (FCM)
   credentials, which are not set up yet, so the app says notifications don't work in that version.
+- **Profile privacy:** apply `20261114000000_profile_privacy.sql` to the hosted database **together with**
+  shipping an app build that includes it. The new build loads the signed-in profile through `my_profile()`,
+  which older databases do not have; older builds read `is_admin` and `terms_version` from the table, which
+  the migration no longer grants, so their sign-in fails once it is in. Before launch, with no readers on
+  older builds, apply it first and ship the build right after.
 - **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
   **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
   but with the filter on, Discover's list fails to load until the migration is in.

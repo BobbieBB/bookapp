@@ -81,7 +81,7 @@ test('a reader without a profile is ready with no profile (goes to onboarding)',
 test('a slow profile reply for the previous reader never replaces the current one', async () => {
   await render(<AuthProvider><Probe /></AuthProvider>);
   await waitFor(() => expect(authState().loading).toBe(false));
-  const aliceProfile = holdRequest((url) => url.includes('/rest/v1/profiles') && url.includes(alice.id));
+  const aliceProfile = holdRequest((url) => url.includes('/rest/v1/rpc/my_profile') && url.includes(alice.id));
   await act(async () => {
     await supabase.auth.signInWithPassword({ email: alice.email, password });
     await supabase.auth.signInWithPassword({ email: bob.email, password });
@@ -101,7 +101,7 @@ test('switching reader never shows the previous reader\'s profile', async () => 
   await waitFor(() => expect(authState().loading).toBe(false));
   await act(() => supabase.auth.signInWithPassword({ email: alice.email, password }).then(() => undefined));
   await waitFor(() => expect(authState().username).toBe(alice.username));
-  const bobProfile = holdRequest((url) => url.includes('/rest/v1/profiles') && url.includes(bob.id));
+  const bobProfile = holdRequest((url) => url.includes('/rest/v1/rpc/my_profile') && url.includes(bob.id));
   await act(() => supabase.auth.signInWithPassword({ email: bob.email, password }).then(() => undefined));
   await waitFor(() => expect(authState()).toMatchObject({ user: bob.email, username: null, profileState: 'loading' }));
   await act(async () => {
