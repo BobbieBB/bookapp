@@ -4,7 +4,7 @@
 
 ## Files
 
-- `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics opt-out, security).
+- `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics consent, security).
 - `terms.md`: Terms of Use (eligibility, accounts, content licence, community rules, DSA content moderation, fanfiction stance, our IP, suspension, liability, governing law).
 
 Both were derived from the code at `origin/main` (migrations up to `20261113000000`, `src/lib/analytics.ts`, `legal.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`, `app/onboarding.tsx`, `app/accept-terms.tsx`, `app/reset-password.tsx`, the moderation and moderation-e-mail migrations) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Markers "ships with <branch>" (BG: "идва с <branch>") flag app changes the text already describes; drop each when its PR merges. The earlier `[after PR #N merge]` markers (#20 orphan-cover sweep, #23 Moderation screen and chapter-count requests, #24 moderation e-mail via Resend) are gone: all three PRs are merged and the text now states what the code does. The Calm theme/appearance choice is not in the policy on purpose: it is stored only on the phone (`AsyncStorage`, key `livami.appearance`, `src/appearance.tsx`), not on the server.
@@ -49,7 +49,7 @@ Follow-up for the team: the profile columns (`terms_version`, `terms_accepted_at
 4. Notice period for terms changes (30 days proposed), the time limit to ask us to look at a moderation decision again (6 months proposed), notice before stopping the service.
 5. Whether we agree to take part in ADR before the КЗП conciliation committees (text says yes).
 6. Promises in the terms: one account per person, 24-hour moderation target.
-7. Whether to offer an in-app data export (none today) and deletion of past analytics on opt-out.
+7. Whether to offer an in-app data export (none today) and deletion of past analytics when consent is withdrawn.
 8. Test that custom covers lose EXIF: the app resizes to 1200 px and re-encodes as JPEG 0.8 (`CustomCover.tsx`), which very likely drops it.
 
 **Lawyer decides**
@@ -97,3 +97,19 @@ Both stores need a **public URL** for the privacy policy, reachable without logi
 - The app links to them at profile creation and on the "Our terms have changed" screen (`TermsConsent`, using `TERMS_URL` / `PRIVACY_URL`); a link in Profile > About was not found [TO CONFIRM: add one].
 - Keep the URLs stable; update the text in place and keep dated older versions.
 - Fill in Apple's privacy "nutrition label" and Google's Data safety form from section 3 of the privacy policy, and the age-rating questionnaires from the minimum-age decision.
+
+## Code references moved out of the reader-facing text
+
+The policy and terms no longer name files, columns or functions. For the lawyer and the team, the facts behind the wording are:
+
+- Sources used for the drafts: migrations up to `20261113000000`, `src/lib/*`, `app/onboarding.tsx`, `app/accept-terms.tsx`, `app/reset-password.tsx`, `docs/DECISIONS.md`, `docs/DATA_MODEL.md`.
+- Terms acceptance is stored as `profiles.terms_version`, `terms_accepted_at` (set by the server) and `age_confirmed`; migration `supabase/migrations/20261103000000_terms_acceptance.sql`.
+- The profile has a display-name field in the database, but the app leaves it empty (`app/onboarding.tsx:39-41`); the Name is the only name shown.
+- `set_book_chapter_count` is the database function through which the first reader sets a book's chapter count.
+- `feedback.device` exists in the schema; the app does not fill it in.
+- Until `fix/profile-privacy` merges, an owner can still set a library entry to `public` through the API.
+- Blocking is one-way for content: `comments_read`, `reviews_read` and `reactions_read` filter only on `blocker_id = auth.uid()`; replies and notifications use `is_blocked_between`.
+- Supabase and Resend run in `eu-west-1` (Ireland). Pushes go through Expo's push service (`exp.host`).
+- Analytics consent: a record of the time of consent is kept (GDPR Art. 7(1)) and deleted on withdrawal or account deletion.
+- Onboarding offers only sign-out for an account with no profile; deletion by support or the 30-day clean-up (`feat/account-cleanup`) covers it.
+- Moderation today is one person; the drafts must not say so.
