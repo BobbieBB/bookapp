@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileState('loading');
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, display_name, reads_books, reads_fanfic, is_admin, terms_version')
+      .select('id, username, display_name, reads_books, reads_fanfic, is_admin, terms_version, adult_confirmed')
       .eq('id', userId)
       .maybeSingle();
     // A newer request is in charge of the state now; this one still reports how it went.

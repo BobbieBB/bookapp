@@ -430,3 +430,39 @@ The terms promise that Livami never sells readers' content or uses it to train A
 same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
+
+## Explicit works: an 18+ yes/no (14 Nov 2026)
+
+The minimum age is 16 (`MIN_AGE`), but readers add AO3 works rated Explicit. Profile has a switch, "I'm 18 or
+over" (`profiles.adult_confirmed`, off by default, a yes/no only, never a birth date). The reader can turn it
+on and off again; nobody else can change it.
+
+While it is off, wherever a fic rated **Explicit** appears:
+- its AO3 link is hidden (the story page's "All tags on AO3", the "Open on AO3" button on "You finished it!"),
+  and so are its archive warnings; a short line says why: "Rated Explicit on AO3. Confirm you're 18 or over in
+  Profile to see the link."
+- its discussion rooms (chapters and The Epilogue) show "… to join this discussion" instead of the comments,
+  and posting is refused (legal review, 14 Nov 2026: the 16+ age assumes readers aren't discussing Explicit
+  works).
+
+The rating label itself ("Explicit") stays visible, so readers know why. Mature and the other ratings are
+unaffected. A reader may still add an Explicit fic by pasting its link (they already have it); the link and
+warnings then stay hidden for them like for anyone else until they confirm. Lists and Discover show no AO3
+links or warnings, so nothing changes there. The check is `hidesExplicit` in `src/lib/links.ts`; until the
+profile has loaded, Explicit stays hidden.
+
+**Where it is enforced.** The rooms are enforced on the server: `user_can_access_section`, the single spoiler
+wall, also requires the confirmation for an Explicit fic, so the comments read/insert policies, reactions, room
+counts, @mentions and push all follow it (admins still get in for moderation). The link and warnings are **not**
+protected by the server: `stories.source_url` and `warnings` stay readable to any signed-in reader through the
+API (the `stories` table, and Discover's RPC, which returns whole story rows). The gate for them is an **in-app
+gate** plus AO3's own adult-content interstitial, which AO3 shows before any Explicit work. Any reader can add an
+AO3 link themselves, and the link only points to AO3. Gating the columns on the server would mean moving every
+`stories` read behind an RPC; revisit if the lawyer asks for it.
+
+Admins see Explicit rooms without confirming, in the app as on the server, so they can moderate them. If the
+profile cannot be loaded, the app shows its usual "couldn't load your profile / Try again" screen
+(`app/_layout.tsx`), so the gate never stays on silently. Restoring a backup, or loading data with
+`adult_confirmed = true`, needs the `profiles_guard_adult` trigger disabled deliberately for that load
+(`alter table public.profiles disable trigger profiles_guard_adult`, then enable it again): the trigger refuses
+the answer from anyone but the reader, the database owner included.

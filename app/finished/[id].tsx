@@ -5,7 +5,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'r
 import { Button, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { isAo3Link } from '@/lib/links';
+import { hidesExplicit, isAo3Link } from '@/lib/links';
 import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/reviews';
 import { canComplete, loadStoryPage, markComplete, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
@@ -59,8 +59,10 @@ function Finished({
 }) {
   const { fonts, c } = useTheme();
   const t = useT();
+  const { profile } = useAuth();
   const [error, setError] = useState('');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
+  const explicitHidden = hidesExplicit(story.content_rating, profile?.adult_confirmed);
   // A WIP fic marked Finished: you're caught up, but The Epilogue (spoilers for the whole story)
   // only opens once it is complete, so don't offer a door that is locked.
   const wip = story.kind === 'fanfic' && story.status === 'ongoing';
@@ -108,7 +110,8 @@ function Finished({
       {story.kind === 'fanfic' ? (
         <View style={{ gap: space.s }}>
           <T v="body">{t('finishing.ficHint')}</T>
-          {link ? (
+          {explicitHidden ? <T v="muted">{t('story.explicitGate')}</T> : null}
+          {link && !explicitHidden ? (
             <Button
               variant="secondary"
               title={t('finishing.openAo3')}

@@ -25,6 +25,8 @@ MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
 Before launch:
 - **Hosted database:** apply the migrations to the hosted Supabase in order (everything up to
   the newest file in `supabase/migrations`).
+- **18+ switch (deploy order):** apply migration `20261114000200_adult_confirmed.sql` before shipping a
+  build with the "I'm 18 or over" switch: the app reads `profiles.adult_confirmed` when it loads the profile.
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.

@@ -8,6 +8,7 @@ import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
+import { hidesExplicit } from '@/lib/links';
 import {
   deleteComment,
   loadComments,
@@ -41,7 +42,7 @@ export default function RoomScreen() {
   const { c } = useTheme();
   const t = useT();
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const userId = session?.user.id;
   const params = useLocalSearchParams<{ storyId: string; room: string }>();
   const target = parseRoom(params.room);
@@ -69,6 +70,9 @@ export default function RoomScreen() {
 
   const next = page?.entry ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
+  // An Explicit fic's rooms: the server refuses them too (user_can_access_section); this says why.
+  // Admins get in on the server (can_access_section), so they can read what they moderate.
+  const explicitHidden = !profile?.is_admin && hidesExplicit(page?.story.content_rating, profile?.adult_confirmed);
   const finishAndTrack = async (chapter: NonNullable<typeof next>, uid: string) => {
     await finishChapter(params.storyId, uid, chapter);
     if (page) void track('chapter_finished', { kind: page.story.kind });
@@ -94,7 +98,9 @@ export default function RoomScreen() {
               onChanged={refresh}
             />
           ) : null}
-          {room.error ? (
+          {explicitHidden ? (
+            <T>{t('room.explicitGate')}</T>
+          ) : room.error ? (
             locked ? (
               <T>{target.kind === 'epilogue' ? t('room.lockedEpilogue') : t('room.lockedChapter', { n: target.n })}</T>
             ) : (
