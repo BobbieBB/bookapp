@@ -39,9 +39,9 @@ select test.ok(exists (select 1 from auth.users where id = '00000000-0000-0000-0
 select test.ok(exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000ac004'),
   'an account with no sign-up date is kept');
 select test.ok(public.sweep_profileless_accounts() = 0, 'running it again sweeps nothing');
-select test.ok(public.sweep_profileless_accounts('28 days') = 1
-  and not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000ac002'),
-  'the age is a parameter');
+select test.ok(public.sweep_profileless_accounts('28 days') = 1, 'the age is a parameter');
+select test.ok(not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000ac002'),
+  'and a shorter one reaches younger accounts');
 
 -- 3. The daily job: plain Postgres has no pg_cron, so stand one in and apply the migration again ----
 create schema cron;
