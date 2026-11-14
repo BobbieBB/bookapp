@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import DeleteAccount from '../../../app/delete-account';
@@ -70,8 +70,11 @@ it('Profile links to the delete screen, which says what goes and what stays', as
   expect(screen.getByText(/replies to them still make sense/)).toBeOnTheScreen();
   expect(screen.getByText(/“This comment was deleted”/)).toBeOnTheScreen();
 
-  // The options form one group, named by the prompt above them.
-  expect(screen.getByRole('radiogroup', { name: 'Choose what happens to your comments and book reviews.' })).toBeOnTheScreen();
+  // The options form one group, named by the prompt above them. (The group is not itself `accessible`,
+  // which would merge its radios into one element on iOS, so role queries don't see it.)
+  const group = screen.getByLabelText('Choose what happens to your comments and book reviews.');
+  expect(group.props.accessibilityRole).toBe('radiogroup');
+  expect(within(group).getAllByRole('radio')).toHaveLength(2);
 
   // Until you choose, Delete is disabled.
   expect(deleteButton()).toBeDisabled();
