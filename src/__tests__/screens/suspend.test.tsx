@@ -7,7 +7,7 @@ import RoomScreen from '../../../app/room/[storyId]/[room]';
 import { setAdmin, sql } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
 import { openRoom, postComment } from '../../lib/discussions';
-import { reportComment } from '../../lib/safety';
+import { reportComment, reportUser } from '../../lib/safety';
 import { addToLibrary, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
@@ -48,16 +48,27 @@ let admin: User;
 let banned: User;
 let fine: User;
 let troll: User;
+let admin2: User;
+let flip: User;
 let storyId: string;
 let commentId: string;
 let reportId: string;
+let selfReportId: string;
+let adminReportId: string;
+let flipReportId: string;
+
+const openReport = (userId: string) =>
+  sql(`select id from public.reports where reported_user_id = '${userId}' and status = 'open' limit 1;`).trim();
 
 beforeAll(async () => {
   admin = await signUp('susadmin');
   banned = await signUp('susbanned');
   fine = await signUp('susfine');
   troll = await signUp('sustroll');
+  admin2 = await signUp('susadmin2');
+  flip = await signUp('susflip');
   setAdmin(admin.id, true);
+  setAdmin(admin2.id, true);
 
   await as(fine);
   storyId = (await createManualBook({ title: 'Suspense Novel', author: 'x', chapters: 3, language: 'en' })).id;
@@ -71,6 +82,12 @@ beforeAll(async () => {
   await as(fine);
   await reportComment(trollComment, 'spoiler', 'Ruins chapter 3');
   reportId = sql(`select id from public.reports where comment_id = '${trollComment}' and status = 'open' limit 1;`).trim();
+  await reportUser(admin.id, 'harassment', 'About the admin who reads this');
+  await reportUser(admin2.id, 'harassment', 'About another admin');
+  await reportUser(flip.id, 'spam', 'Suspended here, lifted elsewhere');
+  selfReportId = openReport(admin.id);
+  adminReportId = openReport(admin2.id);
+  flipReportId = openReport(flip.id);
 
   await as(banned);
   await addToLibrary(storyId, 'finished');
@@ -160,5 +177,60 @@ describe('an admin on the Moderation screen', () => {
     await fireEvent.press(await within(card).findByRole('button', { name: /^Lift the suspension/ }));
     expect(await within(card).findByRole('button', { name: /^Suspend the reader/ })).toBeOnTheScreen();
     expect(suspended(troll)).toBe(false);
+  });
+
+  it('does not offer to suspend themselves', async () => {
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const card = await screen.findByTestId(`queue-user_report-${selfReportId}`, {}, { timeout: 8000 });
+    expect(within(card).getByRole('button', { name: /^Dismiss/ })).toBeOnTheScreen();
+    expect(within(card).queryByRole('button', { name: /^Suspend the reader/ })).toBeNull();
+  });
+
+  it('is told that an admin cannot be suspended', async () => {
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const card = await screen.findByTestId(`queue-user_report-${adminReportId}`, {}, { timeout: 8000 });
+    await fireEvent.press(within(card).getByRole('button', { name: /^Suspend the reader/ }));
+    await fireEvent.changeText(within(card).getByLabelText('Reason (the reader sees this)'), 'Power struggle');
+    await fireEvent.press(within(card).getByRole('button', { name: 'Suspend' }));
+    expect(await within(card).findByText('Admins can’t be suspended, and you can’t suspend yourself.')).toBeOnTheScreen();
+    expect(suspended(admin2)).toBe(false);
+  });
+
+  it('in Bulgarian', async () => {
+    await renderScreen('bg', { moderation: Moderation }, '/moderation');
+    const card = await screen.findByTestId(`queue-user_report-${adminReportId}`, {}, { timeout: 8000 });
+    await fireEvent.press(within(card).getByRole('button', { name: /^Спри читателя/ }));
+    await fireEvent.changeText(within(card).getByLabelText('Причина (читателят я вижда)'), 'Power struggle');
+    await fireEvent.press(within(card).getByRole('button', { name: 'Спри' }));
+    expect(await within(card).findByText('Администратор не може да бъде спрян, а себе си не можеш да спреш.')).toBeOnTheScreen();
+  });
+
+  it('is told when the reason is too long', async () => {
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const card = await screen.findByTestId(`queue-user_report-${flipReportId}`, {}, { timeout: 8000 });
+    await fireEvent.press(within(card).getByRole('button', { name: /^Suspend the reader/ }));
+    await fireEvent.changeText(within(card).getByLabelText('Reason (the reader sees this)'), 'x'.repeat(501));
+    await fireEvent.press(within(card).getByRole('button', { name: 'Suspend' }));
+    expect(await within(card).findByText('The reason is too long: 500 characters at most.')).toBeOnTheScreen();
+    expect(suspended(flip)).toBe(false);
+  });
+
+  it('sees what the server says after a reload, not what this card last did', async () => {
+    const feedbackId = sql(
+      `insert into public.feedback (user_id, kind, body) values ('${fine.id}', 'idea', 'Reload trigger ${run}') returning id;`,
+    ).trim();
+    await renderScreen('en', { moderation: Moderation }, '/moderation');
+    const card = await screen.findByTestId(`queue-user_report-${flipReportId}`, {}, { timeout: 8000 });
+    await fireEvent.press(within(card).getByRole('button', { name: /^Suspend the reader/ }));
+    await fireEvent.changeText(within(card).getByLabelText('Reason (the reader sees this)'), 'Spam');
+    await fireEvent.press(within(card).getByRole('button', { name: 'Suspend' }));
+    expect(await within(card).findByText(`${flip.username} is suspended`, {}, { timeout: 8000 })).toBeOnTheScreen();
+    // Another admin lets them back in; this screen hears of it on its next reload.
+    await suspend(flip, null, false);
+    await as(admin);
+    const other = screen.getByTestId(`queue-feedback-${feedbackId}`);
+    await fireEvent.press(within(other).getByRole('button', { name: /^Dismiss/ }));
+    expect(await within(card).findByRole('button', { name: /^Suspend the reader/ }, { timeout: 8000 })).toBeOnTheScreen();
+    expect(within(card).queryByText(`${flip.username} is suspended`)).toBeNull();
   });
 });
