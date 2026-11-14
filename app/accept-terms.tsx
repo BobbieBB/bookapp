@@ -36,7 +36,7 @@ export default function AcceptTerms() {
       .from('profiles')
       .update({ terms_version: TERMS_VERSION, age_confirmed: true })
       .eq('id', session!.user.id)
-      .select('terms_version');
+      .select('id');
     const saved = !error && data.length === 1 && (await refreshProfile());
     setFailed(!saved);
     setBusy(false);

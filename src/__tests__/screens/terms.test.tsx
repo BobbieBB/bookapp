@@ -8,6 +8,7 @@ import AcceptTerms from '../../../app/accept-terms';
 import DeleteAccount from '../../../app/delete-account';
 import Onboarding from '../../../app/onboarding';
 import SignIn from '../../../app/sign-in';
+import { sql } from '../../../test/database';
 import { failRequests } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import { MIN_AGE, PRIVACY_URL, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
@@ -38,15 +39,13 @@ async function signUp(name: string, version?: string | null): Promise<User> {
   return { email, id: data.user.id, username };
 }
 
-const profileOf = async (u: User) =>
-  (
-    await supabase
-      .from('profiles')
-      .select('terms_version, terms_accepted_at, age_confirmed')
-      .eq('id', u.id)
-      .maybeSingle()
-      .throwOnError()
-  ).data;
+// Read as the database owner: other readers, and the API, can't read these columns (they are private).
+const profileOf = async (u: User) => {
+  const out = sql(
+    `select row_to_json(p) from (select terms_version, terms_accepted_at, age_confirmed from public.profiles where id = '${u.id}') p;`,
+  ).trim();
+  return out ? (JSON.parse(out) as { terms_version: string | null; terms_accepted_at: string | null; age_confirmed: boolean }) : null;
+};
 
 // The whole app's routing, so the gate decides which screen shows; Profile stands in for the app.
 const app = {

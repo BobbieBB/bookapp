@@ -23,7 +23,7 @@ Both were derived from the code at `origin/main` (migrations up to `202611030000
 - Moderation aim: within 24 hours on a best-effort basis.
 - Promise kept in the terms: we never sell readers' content or use it to train AI models.
 
-Follow-up for the team: other readers can technically read the whole `profiles` row, including `terms_version`, `terms_accepted_at`, `age_confirmed` and `is_admin`, which no screen shows; hide these columns from other readers before launch.
+Done (14 Nov 2026): `terms_version`, `terms_accepted_at`, `age_confirmed`, `is_admin` and `is_suspended` are hidden from other readers (`20261114000000_profile_private_columns.sql`).
 
 ## Open decisions (grouped)
 

@@ -51,11 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     }
     setProfileState('loading');
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, reads_books, reads_fanfic, is_admin, terms_version')
-      .eq('id', userId)
-      .maybeSingle();
+    // The public part, and the reader's own private fields, which other readers can't read
+    // (migration 20261114000000_profile_private_columns.sql).
+    const [pub, priv] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, username, display_name, reads_books, reads_fanfic')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase.rpc('my_profile_private').maybeSingle(),
+    ]);
+    const error = pub.error ?? priv.error;
     // A newer request is in charge of the state now; this one still reports how it went.
     if (id !== requestId.current) return !error;
     if (error) {
@@ -63,7 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileState('error');
       return false;
     }
-    setProfile((data as Profile | null) ?? null);
+    const own = priv.data as { is_admin: boolean; terms_version: string | null } | null;
+    setProfile(pub.data ? ({ ...pub.data, is_admin: own?.is_admin ?? false, terms_version: own?.terms_version ?? null } as Profile) : null);
     setProfileState('ready');
     return true;
   }, []);

@@ -430,3 +430,11 @@ The terms promise that Livami never sells readers' content or uses it to train A
 same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
+
+## Profile: private columns (13–14 Nov 2026)
+
+Other readers see only the public part of a profile: name, what someone reads (books and/or fanfiction),
+favourite genres and fandoms, join date. When someone accepted the terms, their age tick, and whether they are
+an admin or suspended are hidden from everyone in the API by column grants
+(`20261114000000_profile_private_columns.sql`); a reader reads their own through `my_profile_private()`.
+Found while finishing the privacy policy: no screen showed these fields, but any signed-in reader could read them.
