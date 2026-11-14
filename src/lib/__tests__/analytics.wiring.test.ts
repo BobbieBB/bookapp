@@ -6,7 +6,8 @@ const source = (file: string) => readFileSync(join(root, file), 'utf8');
 
 const wiring: [string, string, string][] = [
   ['app_open', 'app/_layout.tsx', "track('app_open'"],
-  ['sign_up', 'app/sign-in.tsx', "track('sign_up'"],
+  // sign_up is sent from onboarding: before the profile and the reader's consent exist, nothing may be sent.
+  ['sign_up', 'app/onboarding.tsx', "track('sign_up'"],
   ['onboarding_done', 'app/onboarding.tsx', "track('onboarding_done'"],
   ['story_added', 'app/add.tsx', "track('story_added'"],
   ['chapter_finished', 'app/story/[id].tsx', "track('chapter_finished'"],
@@ -22,6 +23,10 @@ const wiring: [string, string, string][] = [
 ];
 
 describe('analytics wiring', () => {
+  it('sign-up itself sends nothing', () => {
+    expect(source('app/sign-in.tsx')).not.toContain('track(');
+  });
+
   test.each(wiring)('%s is tracked in %s', (_event, file, call) => {
     expect(source(file)).toContain(call);
   });

@@ -28,7 +28,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `moderation_email_log` | Every moderation e-mail handed to pg_net and Resend's answer (status code), and the report a report's e-mail is about; kept 30 days | Nobody (read through `moderation_email_health`) |
 | `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
-| `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
+| `analytics_consents` | Readers who said yes to "Help us improve the app" (at onboarding or in Profile); events are recorded only while there is a row (replaced `analytics_opt_outs`, dropped 14 Nov 2026) | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
 
@@ -110,7 +110,8 @@ other, and neither gets notifications from the other. A no longer sees B's react
 "Deleting an account: what happens to comments"). It deletes the `auth.users` row; every table that
 holds the reader's data references it, or `profiles`, with `on delete cascade`: profile, library and
 progress, custom covers, ratings, reactions, follows, blocks, notifications, reports they filed,
-analytics events and opt-out, push tokens. Six keys are `on delete set null` instead, and keep the row
+analytics events and consent (`analytics_consents`; the comment in `20261019000000_delete_account.sql` still
+says "opt-out" from before analytics became opt-in, and that table is gone), push tokens. Six keys are `on delete set null` instead, and keep the row
 without its owner: `comments.author_id` and `reviews.user_id` (shown as "Deleted reader"),
 `stories.created_by` (the story is shared with its other readers), `feedback.user_id`,
 `removal_requests.requester_id` and `notifications.actor_id` (other readers keep their reply and

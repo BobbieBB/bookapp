@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Chip, ErrorText, T, Toggle } from '@/components/ui';
 import { APPEARANCES, useAppearance } from '@/appearance';
 import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
-import { analyticsOptOut, setAnalyticsOptOut, track } from '@/lib/analytics';
+import { analyticsConsent, setAnalyticsConsent, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
@@ -155,29 +155,41 @@ function PhoneNotifications() {
   );
 }
 
-// "Help us improve the app": on by default; off means track() records nothing (docs/DECISIONS.md).
+// "Help us improve the app": off until the reader says yes; off means track() sends nothing
+// (docs/DECISIONS.md, "Analytics: opt-in").
 function HelpUsImprove() {
   const t = useT();
   const [version, setVersion] = useState(0);
   const [failed, setFailed] = useState(false);
-  const { data, error, previous } = useLookup(`analytics-opt-out-${version}`, analyticsOptOut);
-  // Until the choice has been read (or when it can't be), the switch shows on but can't be used.
+  const { data, error, previous } = useLookup(`analytics-consent-${version}`, analyticsConsent);
+  // Until the choice has been read (or when it can't be), the switch shows off and can't be used.
   const known = data ?? previous;
-  const optedOut = known ?? false;
 
+  // One save at a time: the switch waits for it. Afterwards the choice is read back, so a failed save
+  // shows the value actually stored.
+  const [saving, setSaving] = useState(false);
   async function change(on: boolean) {
     setFailed(false);
+    setSaving(true);
     try {
-      await setAnalyticsOptOut(!on);
-      setVersion((v) => v + 1);
+      await setAnalyticsConsent(on);
     } catch {
       setFailed(true);
+    } finally {
+      setSaving(false);
+      setVersion((v) => v + 1);
     }
   }
 
   return (
     <Card>
-      <Toggle label={t('profile.analytics')} value={!optedOut} onChange={change} disabled={known === undefined} />
+      <Toggle
+        label={t('profile.analytics')}
+        value={known ?? false}
+        // The switch shows the save under way at once (disabled); it doesn't hand the save itself back.
+        onChange={(on) => void change(on)}
+        disabled={known === undefined || saving}
+      />
       <T v="muted">{t('profile.analyticsHint')}</T>
       <ErrorText>{failed || error !== undefined ? t('profile.analyticsError') : null}</ErrorText>
     </Card>

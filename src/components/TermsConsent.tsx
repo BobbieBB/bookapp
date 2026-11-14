@@ -7,7 +7,7 @@ import { useT } from '@/i18n';
 import { MIN_AGE, PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { radius, space, useTheme } from '@/theme';
 
-function Checkbox({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function Checkbox({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { c, fonts } = useTheme();
   return (
     <Pressable
