@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
+import { failRequests, holdRequest } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import * as analytics from '../../lib/analytics';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/legal';
@@ -40,6 +41,36 @@ it('the switch is off by default; turning it on stores consent, turning it off d
   await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', false);
   await waitFor(async () => expect(await consented()).toBe(false), { timeout: 8000 });
   await waitFor(() => expect(screen.getByLabelText('Help us improve the app').props.value).toBe(false), { timeout: 8000 });
+});
+
+const saveUrl = (url: string) => url.includes('/rest/v1/analytics_consents') && !url.includes('select=');
+
+it('the switch cannot be used while a save is on its way', async () => {
+  await renderScreen('en', { profile: Profile }, '/profile');
+  await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeEnabled(), { timeout: 8000 });
+  const save = holdRequest(saveUrl);
+  await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', true);
+  expect(screen.getByLabelText('Help us improve the app')).toBeDisabled();
+  save.release();
+  await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeEnabled(), { timeout: 8000 });
+  expect(screen.getByLabelText('Help us improve the app').props.value).toBe(true);
+  await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', false);
+  await waitFor(async () => expect(await consented()).toBe(false), { timeout: 8000 });
+});
+
+it('a failed save says so and shows the real value', async () => {
+  await renderScreen('en', { profile: Profile }, '/profile');
+  await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeEnabled(), { timeout: 8000 });
+  const online = failRequests((url, method) => saveUrl(url) && method !== 'GET');
+  try {
+    await fireEvent(screen.getByLabelText('Help us improve the app'), 'valueChange', true);
+    expect(await screen.findByText('Could not save this choice. Please try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+  } finally {
+    online();
+  }
+  await waitFor(() => expect(screen.getByLabelText('Help us improve the app')).toBeEnabled(), { timeout: 8000 });
+  expect(screen.getByLabelText('Help us improve the app').props.value).toBe(false);
+  expect(await consented()).toBe(false);
 });
 
 it('in Bulgarian', async () => {

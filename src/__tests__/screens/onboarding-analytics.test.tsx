@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import Onboarding from '../../../app/onboarding';
 import { renderScreen } from '../../../test/router';
 import { serviceClient } from '../../../test/service';
+import * as analytics from '../../lib/analytics';
 import { MIN_AGE } from '../../lib/legal';
 import { supabase } from '../../lib/supabase';
 
@@ -46,10 +47,16 @@ it('the analytics box is unticked by default and not needed to start; nothing is
   expect(box).not.toBeChecked();
   const start = screen.getByRole('button', { name: 'Start reading' });
   expect(start).toBeEnabled();
-  await fireEvent.press(start);
-  await waitFor(async () => expect(await profileExists(u.id)).toBe(true), { timeout: 8000 });
-  // Give any stray event time to arrive before checking that none did.
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // Watch (not replace) track: once both onboarding events have been tried and settled, nothing more is coming.
+  const track = jest.spyOn(analytics, 'track');
+  try {
+    await fireEvent.press(start);
+    await waitFor(() => expect(track).toHaveBeenCalledTimes(2), { timeout: 8000 });
+    expect(await Promise.all(track.mock.results.map((r) => r.value))).toEqual([false, false]);
+  } finally {
+    track.mockRestore();
+  }
+  expect(await profileExists(u.id)).toBe(true);
   expect(await consented(u.id)).toBe(false);
   expect(await events(u.id)).toEqual([]);
 });

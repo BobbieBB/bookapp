@@ -1,4 +1,4 @@
-import { holdResponse, recordRequests } from '../../../test/network';
+import { failRequests, holdRequest, holdResponse, recordRequests } from '../../../test/network';
 import { analyticsConsent, cleanProps, setAnalyticsConsent, track } from '../analytics';
 import { supabase } from '../supabase';
 
@@ -44,6 +44,52 @@ describe('consent is cached, and a save always wins over an older read', () => {
     read.release();
     expect(await before).toBe(true);
     expect(await analyticsConsent()).toBe(true);
+  });
+});
+
+describe('saves run one at a time, and reads wait for them', () => {
+  afterAll(async () => {
+    await supabase.auth.signOut();
+  });
+  const saveUrl = (url: string) => url.includes('/rest/v1/analytics_consents') && !url.includes('select=');
+  const inDatabase = async () =>
+    (await supabase.from('analytics_consents').select('user_id').throwOnError()).data!.length === 1;
+
+  it('a read that starts while a save is in flight answers with the saved value', async () => {
+    await newReader('pending');
+    expect(await analyticsConsent()).toBe(false); // cached "no"
+    const save = holdRequest(saveUrl); // the save has not reached the database yet
+    const saving = setAnalyticsConsent(true);
+    const during = analyticsConsent();
+    save.release();
+    await saving;
+    expect(await during).toBe(true);
+  });
+
+  it('two quick toggles end with the database and the cache on the last choice', async () => {
+    await newReader('toggler');
+    // The first save is slow to leave the phone; the second must still land after it.
+    const first = holdRequest(saveUrl);
+    const on = setAnalyticsConsent(true);
+    const off = setAnalyticsConsent(false);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    first.release();
+    await Promise.all([on, off]);
+    expect(await inDatabase()).toBe(false);
+    expect(await analyticsConsent()).toBe(false);
+  });
+
+  it('a failed save leaves no wrong answer cached', async () => {
+    await newReader('failsave');
+    expect(await analyticsConsent()).toBe(false);
+    const online = failRequests((url, method) => saveUrl(url) && method !== 'GET');
+    try {
+      await expect(setAnalyticsConsent(true)).rejects.toThrow();
+    } finally {
+      online();
+    }
+    expect(await analyticsConsent()).toBe(false);
+    expect(await inDatabase()).toBe(false);
   });
 });
 
