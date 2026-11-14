@@ -37,7 +37,11 @@ export async function myNotifications(limit = 50, types?: Notification['type'][]
   // for app builds that can't render them).
   const { data, error } = await supabase.rpc('my_notifications_v2', { p_limit: limit, p_types: types ?? null });
   if (error) throw error;
-  return data as Notification[];
+  // Only kinds this build can show: a room kind always with its room (never a link to /room/null/…),
+  // or an account notice. Anything newer is left out rather than shown wrong.
+  return (data as Notification[]).filter((n) =>
+    isAccountNotification(n) ? true : KNOWN_ROOM_KINDS.includes(n.type) && n.story_id !== null,
+  );
 }
 
 /** Home's "REPLIES TO YOU": replies and mentions only (reactions live on the notifications screen). */

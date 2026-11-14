@@ -43,9 +43,10 @@ create policy notifications_own_read on public.notifications for select to authe
     and (discussion_id is null or public.can_access_discussion(discussion_id))
   );
 
--- my_notifications gains the reason, and rows without a room (story and room columns are then null).
-drop function public.my_notifications(int, public.notification_type[]);
-create function public.my_notifications(p_limit int default 50, p_types public.notification_type[] default null)
+-- my_notifications_v2: every kind, with the reason, and rows without a room (story and room columns are
+-- then null). The new app calls it. my_notifications stays exactly what older app builds know: replies,
+-- reactions and mentions only, always with a room (an unknown kind would crash their rendering).
+create function public.my_notifications_v2(p_limit int default 50, p_types public.notification_type[] default null)
 returns table (
   id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
   actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
@@ -69,8 +70,21 @@ language sql stable security definer set search_path = public as $$
   order by n.created_at desc
   limit least(greatest(coalesce(p_limit, 50), 1), 200)
 $$;
-revoke execute on function public.my_notifications(int, public.notification_type[]) from public, anon;
-grant execute on function public.my_notifications(int, public.notification_type[]) to authenticated;
+revoke execute on function public.my_notifications_v2(int, public.notification_type[]) from public, anon;
+grant execute on function public.my_notifications_v2(int, public.notification_type[]) to authenticated;
+
+create or replace function public.my_notifications(p_limit int default 50, p_types public.notification_type[] default null)
+returns table (
+  id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
+  actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
+  room_kind public.discussion_kind, section_number int, comment_id uuid
+)
+language sql stable security definer set search_path = public as $$
+  select v.id, v.type, v.created_at, v.read_at, v.actor_username, v.story_id, v.story_title, v.story_kind,
+         v.room_kind, v.section_number, v.comment_id
+  from public.my_notifications_v2(p_limit, coalesce(p_types, array['reply', 'reaction', 'mention']::public.notification_type[])) v
+  where v.type::text in ('reply', 'reaction', 'mention') and v.story_id is not null
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Suspending and lifting. Admins only (42501); a reason (trimmed, 1-500 characters) is required to
