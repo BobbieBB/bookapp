@@ -7,9 +7,9 @@ table. Anonymous users (`anon`) have no access at all.
 
 | Table | What it holds | Who can read |
 |---|---|---|
-| `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick | Logged-in users |
+| `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick, the admin and suspension flags | Logged-in users read the public columns (`id`, `username`, `display_name`, `avatar_url`, `reads_books`, `reads_fanfic`, `favourite_genres`, `favourite_fandoms`, `created_at`); the terms columns, the age tick and the admin and suspension flags only you, through `my_profile()` (14 Nov 2026) |
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
-| `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public`, which is never set today: entries are private by default (13 Nov 2026) |
+| `library_entries` | Your status, progress, favourite flag and visibility per story | Only you: `visibility` can only be `private` (constraint `library_entries_private`, 14 Nov 2026); counts across readers go through security definer functions |
 | `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
 | `comments` | Comments and replies (one level of `parent_id`); `author_id` is empty once the author deleted their account | Only readers who unlocked that discussion |
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
@@ -123,6 +123,17 @@ author can never be changed, except to empty by that `set null`. Queries compare
 Storage files can't be removed from SQL: the app removes the reader's `covers/<user id>/` files before
 calling the function, and goes on if that fails.
 
+## Who reads which profile columns
+
+Postgres has no per-row column rights, so `profiles` grants `select` only on its public columns (see
+Tables) to every signed-in reader, and nobody can read `is_admin`, `is_suspended`, `terms_version`,
+`terms_accepted_at` or `age_confirmed` from the table, not even their own: `select('*')` on `profiles`
+is refused (42501), so every query names its columns, and filtering on a hidden column is refused too.
+A reader's whole own row comes from `my_profile()` (security definer, the caller's row or none); the app
+loads the signed-in profile through it (`src/lib/auth.tsx`). Security definer functions (`is_admin()`,
+`is_active_user()`, moderation, Discover) and RLS policies read every column as before. Updates are
+unchanged (column grants, as before); an update that returns rows may return only public columns.
+
 ## Terms and age
 
 `profiles.terms_version` is the version of the terms and privacy policy the reader accepted (the app's
@@ -200,6 +211,7 @@ migrations or the service role can change `moderation_email_settings`.
 | `mark_notifications_read()` | Mark all your notifications read |
 | `delete_my_account(erase_comments)` | Delete your own account for good (see Deleting an account) |
 | `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |
+| `my_profile()` | Your own profile row, every column (the admin flag and the terms columns are not readable from the table); no row before onboarding |
 | `my_fandoms()` | Discover's YOUR FANDOMS: picked ones, then fandoms of fics in your library (max 6); the starter list if none |
 | `suggested_fandoms()` | Fandoms of fics in your library you haven't picked (Profile's "+" chips) |
 | `search_fandoms(text)` | All fandoms in the app matching the text, most discussed this week first |
