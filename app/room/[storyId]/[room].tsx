@@ -303,7 +303,7 @@ function Discussion({
       ) : null}
 
       {suspendedNotice ? (
-        <View accessibilityRole="alert">
+        <View accessible accessibilityRole="alert">
           <ErrorText>{t('notifications.suspendedInRoom')}</ErrorText>
         </View>
       ) : suspended ? (
