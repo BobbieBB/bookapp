@@ -37,6 +37,12 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "owner": "boryanas-team",
+    "extra": {
+      "eas": {
+        "projectId": "f0c0466a-a21f-48ed-94e7-00cc5f466359"
+      }
     }
   }
 }
