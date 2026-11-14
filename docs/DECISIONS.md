@@ -355,6 +355,21 @@ Choices made during development where the decisions above don't say. Each one is
   and the `chapter_count_requests` table (see DATA_MODEL.md). Hiding a reported comment or review also closes every other
   open report on it. The e-mail part is built separately.
 
+## Moderation notices (14 Nov 2026; EU Digital Services Act arts. 16(5) and 17)
+- **Hiding a comment or review tells its author**, in the app (notification `content_hidden`): "Your comment in {story}
+  was hidden: {reason}. If you think this is a mistake, write to support@livami.app and we'll look again." The report
+  reason the moderator acted on is the statement of reasons; the chapter is shown for a comment. It never says who reported.
+- **Resolving a report tells the reporter** (notification `report_resolved`): "We reviewed your report about a
+  {comment / review / reader} in {story}: {we hid it / we didn't remove it}." Several reports on the same item: one notice
+  per report. A report about a reader has no story.
+- System notices, not social ones: sent even when the author and the reporter have blocked each other, and they never
+  name the other party. They never send a push (pushes stay for replies and mentions). Unread ones also show on Home
+  under "From the Livami team" until the notifications list is opened.
+- Written by `moderation_resolve` in the same transaction as the decision, so a notice cannot be lost.
+- **Not notified:** a fic hidden on an author's removal request (the author wrote in from outside the app and has no
+  account to notify; the reply goes to the contact they gave), and the readers who added that fic (they are not the
+  provider of the affected content).
+
 ## Chapter counts for books (20 Oct 2026, PO)
 - No public source gives chapter counts (Open Library and Google Books don't), and editions differ. So:
   1. **The community fills it once per edition** (already: the first reader enters it, everyone after gets it).
