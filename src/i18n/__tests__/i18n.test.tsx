@@ -42,6 +42,11 @@ describe('dictionaries', () => {
 });
 
 describe('translate', () => {
+  it('a key this build does not know (a newer server kind) shows the key instead of crashing', () => {
+    expect(translate('en', 'notifications.some_future_kind' as never)).toBe('notifications.some_future_kind');
+    expect(translate('bg', 'notifications.some_future_kind' as never, { name: 'x' })).toBe('notifications.some_future_kind');
+  });
+
   it('fills in {placeholders}', () => {
     expect(translate('en', 'library.finishedChapterOf', { n: 3, total: 10 })).toBe('Finished chapter 3 of 10');
   });

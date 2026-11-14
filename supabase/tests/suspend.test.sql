@@ -83,11 +83,14 @@ select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-
 
 -- The reader is told in the app, never by push ----------------------------------------------------
 select test.login('00000000-0000-0000-0000-0000000005e1');
-select test.ok((select count(*) from public.my_notifications() where type = 'account_suspended') = 1,
+select test.ok((select count(*) from public.my_notifications_v2() where type = 'account_suspended') = 1,
   'the reader gets an account_suspended notification');
-select test.ok((select reason from public.my_notifications() where type = 'account_suspended') = 'Repeated spoilers in chapter rooms',
+select test.ok(not exists (select 1 from public.my_notifications() where type::text not in ('reply', 'reaction', 'mention'))
+  and not exists (select 1 from public.my_notifications(50, null) where type::text not in ('reply', 'reaction', 'mention')),
+  'the old call shape (older app builds) returns none of the new kinds');
+select test.ok((select reason from public.my_notifications_v2() where type = 'account_suspended') = 'Repeated spoilers in chapter rooms',
   '... carrying the reason');
-select test.ok((select actor_username is null and story_id is null from public.my_notifications() where type = 'account_suspended'),
+select test.ok((select actor_username is null and story_id is null from public.my_notifications_v2() where type = 'account_suspended'),
   '... and naming no admin and no story');
 select test.ok((select suspended and reason = 'Repeated spoilers in chapter rooms' and since is not null from public.my_suspension()),
   'my_suspension says so, with the reason');
@@ -154,8 +157,10 @@ select test.ok(not (select is_suspended from public.profiles where id = '0000000
 select test.ok((select count(*) from public.suspensions where user_id = '00000000-0000-0000-0000-0000000005e1' and not suspended
                 and by_admin = '00000000-0000-0000-0000-0000000005ea') = 1, 'the lifting is logged too');
 select test.login('00000000-0000-0000-0000-0000000005e1');
-select test.ok((select count(*) from public.my_notifications() where type = 'account_restored') = 1,
+select test.ok((select count(*) from public.my_notifications_v2() where type = 'account_restored') = 1,
   'the reader gets an account_restored notification');
+select test.ok(not exists (select 1 from public.my_notifications() where story_id is null),
+  'the old call shape never returns a row without a room');
 select test.ok((select not suspended and reason is null from public.my_suspension()), 'my_suspension says it is over');
 select test.ok(test.code_of($$insert into public.comments (discussion_id, body) values ('e2000000-0000-0000-0000-000000000001', 'back')$$) is null,
   'and they can comment again');
