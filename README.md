@@ -58,6 +58,10 @@ Before launch:
   every reader accepts the new version. Apply the terms migration (`20261103000000_terms_acceptance.sql`)
   to the hosted database **before** shipping an app build that includes it: the app reads
   `profiles.terms_version` at sign-in, and without the column that read fails for every reader.
+  **Before the first `TERMS_VERSION` bump past a published build**, add a minimum-supported-build
+  (force-upgrade) check: older builds meet a profile on a newer version, cannot write their own older one
+  (the database refuses the downgrade) and loop on the terms gate (docs/DECISIONS.md, "Terms changes take
+  effect on a date"). The effective-date check is phone-side UX only; the acceptance record is the proof.
 - **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
   listing in English and Bulgarian; `app.json` has the bundle id / package `app.livami` (confirmed by the PO, 5 Nov 2026) and the
   `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a

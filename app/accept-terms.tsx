@@ -24,8 +24,10 @@ export default function AcceptTerms() {
   const { language } = useLanguage();
   const router = useRouter();
   const { session, profile, refreshProfile, signOut } = useAuth();
-  // Pinned on open: accepting turns the status to 'current' before the root layout closes this screen.
-  const [early] = useState(() => termsStatus(profile?.terms_version) === 'upcoming');
+  // Live, so a reader still here when the date passes gets Sign out and Delete instead of only "Not now"
+  // (which would take them back to a Home they can no longer open). Accepting turns the status to
+  // 'current', which shows the gate's choices for the moment before the root layout closes this screen.
+  const early = termsStatus(profile?.terms_version) === 'upcoming';
   const [acceptsTerms, setAcceptsTerms] = useState(false);
   const [oldEnough, setOldEnough] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -65,7 +67,12 @@ export default function AcceptTerms() {
           accessibilityHint={ticked ? undefined : t('legal.tickBoth')}
         />
         {early ? (
-          <Button variant="link" title={t('legal.notNow')} onPress={() => router.back()} disabled={busy} />
+          <Button
+            variant="link"
+            title={t('legal.notNow')}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            disabled={busy}
+          />
         ) : (
           <>
             <Button variant="link" title={t('common.signOut')} onPress={signOut} />

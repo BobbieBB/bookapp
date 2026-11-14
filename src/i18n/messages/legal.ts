@@ -26,6 +26,20 @@ export const en = {
   'legal.earlyTitle': 'The new terms',
   'legal.earlyIntro': 'They apply from {date}. To accept them now, read the Terms and the Privacy Policy and tick both boxes.',
   'legal.notNow': 'Not now',
+  // A day, spelt out ("1 December 2026"); see formatDay in src/components/TermsChangeNotice.tsx.
+  'legal.day': '{day} {month} {year}',
+  'legal.month1': 'January',
+  'legal.month2': 'February',
+  'legal.month3': 'March',
+  'legal.month4': 'April',
+  'legal.month5': 'May',
+  'legal.month6': 'June',
+  'legal.month7': 'July',
+  'legal.month8': 'August',
+  'legal.month9': 'September',
+  'legal.month10': 'October',
+  'legal.month11': 'November',
+  'legal.month12': 'December',
 } as const;
 
 export const bg: Translation<typeof en> = {
@@ -50,4 +64,17 @@ export const bg: Translation<typeof en> = {
   'legal.earlyTitle': 'Новите условия',
   'legal.earlyIntro': 'Важат от {date}. За да ги приемеш сега, прочети Условията и Политиката за поверителност и отметни двете полета.',
   'legal.notNow': 'Не сега',
+  'legal.day': '{day} {month} {year} г.',
+  'legal.month1': 'януари',
+  'legal.month2': 'февруари',
+  'legal.month3': 'март',
+  'legal.month4': 'април',
+  'legal.month5': 'май',
+  'legal.month6': 'юни',
+  'legal.month7': 'юли',
+  'legal.month8': 'август',
+  'legal.month9': 'септември',
+  'legal.month10': 'октомври',
+  'legal.month11': 'ноември',
+  'legal.month12': 'декември',
 };
