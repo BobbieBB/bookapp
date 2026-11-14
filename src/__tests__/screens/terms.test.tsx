@@ -294,10 +294,22 @@ describe('terms that change on a date', () => {
   afterEach(() => restore());
 
   /**
+   * AsyncStorage's getItem, with its record of calls cleared. It is already a jest.fn (jest.setup.ts mocks
+   * the package), so it is used as is: jest.spyOn would hand back that same mock, and mockRestore would
+   * then strip its implementation, so every later read, the auth session's included, would return
+   * undefined and the next sign-up would write to profiles signed out.
+   */
+  function storageReads() {
+    const read = jest.mocked(AsyncStorage.getItem);
+    read.mockClear();
+    return read;
+  }
+
+  /**
    * Waits until Home's notice has read the reader's remembered dismissal and React has applied it: the
    * definite point after which a notice that should stay hidden would have shown.
    */
-  async function noticeHasRead(u: User, read: jest.SpyInstance) {
+  async function noticeHasRead(u: User, read: jest.MockedFunction<typeof AsyncStorage.getItem>) {
     await waitFor(() => expect(read).toHaveBeenCalledWith(termsNoticeKey(u.id)), { timeout: 8000 });
     const call = read.mock.calls.findIndex(([key]) => key === termsNoticeKey(u.id));
     await act(async () => {
@@ -336,15 +348,11 @@ describe('terms that change on a date', () => {
     expect(await AsyncStorage.getItem(termsNoticeKey(u.id))).toBe(TERMS_VERSION);
     first.unmount();
 
-    const read = jest.spyOn(AsyncStorage, 'getItem');
-    try {
-      await renderScreen('en', homeApp, '/');
-      expect(await atHome(u)).toBeOnTheScreen();
-      await noticeHasRead(u, read);
-      expect(screen.queryByText(notice)).toBeNull();
-    } finally {
-      read.mockRestore();
-    }
+    const read = storageReads();
+    await renderScreen('en', homeApp, '/');
+    expect(await atHome(u)).toBeOnTheScreen();
+    await noticeHasRead(u, read);
+    expect(screen.queryByText(notice)).toBeNull();
   });
 
   it('a dismissal is per reader: another reader on the same phone still sees the notice', async () => {
@@ -426,15 +434,11 @@ describe('terms that change on a date', () => {
   it('a reader on the current version sees no notice', async () => {
     restore = before();
     const u = await signUp('uptodate', TERMS_VERSION);
-    const read = jest.spyOn(AsyncStorage, 'getItem');
-    try {
-      await renderScreen('en', homeApp, '/');
-      expect(await atHome(u)).toBeOnTheScreen();
-      await noticeHasRead(u, read);
-      expect(screen.queryByText(notice)).toBeNull();
-    } finally {
-      read.mockRestore();
-    }
+    const read = storageReads();
+    await renderScreen('en', homeApp, '/');
+    expect(await atHome(u)).toBeOnTheScreen();
+    await noticeHasRead(u, read);
+    expect(screen.queryByText(notice)).toBeNull();
   });
 
   it('a reader who never accepted any terms is still gated before the date', async () => {
