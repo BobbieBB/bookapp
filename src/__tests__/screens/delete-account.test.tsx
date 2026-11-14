@@ -39,7 +39,7 @@ async function as(u: User) {
 const signInFails = async (u: User) =>
   !!(await supabase.auth.signInWithPassword({ email: u.email, password })).error;
 
-const KEEP = 'Keep my comments, shown as “Deleted reader”';
+const KEEP = 'Keep my comments and reviews, shown as “Deleted reader”';
 const ERASE = 'Erase my comments and delete my reviews';
 const deleteButton = () => screen.getByRole('button', { name: 'Delete my account' });
 
@@ -193,7 +193,7 @@ it('in Bulgarian', async () => {
   expect(await screen.findByText('Изтриване на акаунта', {}, { timeout: 8000 })).toBeOnTheScreen();
   expect(screen.getByText('Какво се изтрива')).toBeOnTheScreen();
   expect(screen.getByText('Какво остава')).toBeOnTheScreen();
-  expect(screen.getByRole('radio', { name: 'Запази коментарите ми, с „Изтрит читател“ вместо името ми' })).not.toBeChecked();
+  expect(screen.getByRole('radio', { name: 'Запази коментарите и ревютата ми, с „Изтрит читател“ вместо името ми' })).not.toBeChecked();
   expect(screen.getByRole('radio', { name: 'Изтрий коментарите и ревютата ми' })).not.toBeChecked();
   expect(screen.getByRole('button', { name: 'Изтрий акаунта ми' })).toBeDisabled();
 });

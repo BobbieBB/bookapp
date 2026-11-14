@@ -237,7 +237,7 @@ describe('readers who accepted an older version, or none', () => {
     await renderScreen('en', app, '/profile');
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete my account' }, { timeout: 8000 }));
     expect(await screen.findByText('Delete your account', {}, { timeout: 8000 })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('radio', { name: 'Keep my comments, shown as “Deleted reader”' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Keep my comments and reviews, shown as “Deleted reader”' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Delete my account' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Yes, delete it forever' }));
     expect(await screen.findByText('Welcome back', {}, { timeout: 15000 })).toBeOnTheScreen();
@@ -249,7 +249,7 @@ describe('readers who accepted an older version, or none', () => {
     await renderScreen('en', app, '/profile');
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete my account' }, { timeout: 8000 }));
     expect(await screen.findByText('Delete your account', {}, { timeout: 8000 })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('radio', { name: 'Keep my comments, shown as “Deleted reader”' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Keep my comments and reviews, shown as “Deleted reader”' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Delete my account' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Yes, delete it forever' }));
     await waitFor(async () => expect((await supabase.auth.getSession()).data.session).toBeNull(), { timeout: 15000 });
