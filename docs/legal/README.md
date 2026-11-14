@@ -4,46 +4,62 @@
 
 ## Files
 
-- `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics opt-out, security).
-- `terms.md`: Terms of Use (eligibility, accounts, content licence, community rules, moderation, fanfiction stance, IP/takedown, termination, liability, governing law).
+- `privacy-policy.md`: GDPR privacy notice (controller, data per feature, legal bases, processors, retention, rights, children, transfers, analytics consent, security).
+- `terms.md`: Terms of Use (eligibility, accounts, content licence, community rules, DSA content moderation, fanfiction stance, our IP, suspension, liability, governing law).
 
-Both were derived from the code at `origin/main` (migrations up to `20261103000000`, `src/lib/analytics.ts`, `legal.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`, `app/onboarding.tsx`, `app/accept-terms.tsx`, `app/reset-password.tsx`, the moderation and moderation-e-mail migrations) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. The earlier `[after PR #N merge]` markers (#20 orphan-cover sweep, #23 Moderation screen and chapter-count requests, #24 moderation e-mail via Resend) are gone: all three PRs are merged and the text now states what the code does. The Calm theme/appearance choice is not in the policy on purpose: it is stored only on the phone (`AsyncStorage`, key `livami.appearance`, `src/appearance.tsx`), not on the server.
+Both were derived from the code at `origin/main` (migrations up to `20261113000000`, `src/lib/analytics.ts`, `legal.ts`, `push*.ts`, `covers.ts`, `sources.ts`, `account.ts`, `safety.ts`, `app/onboarding.tsx`, `app/accept-terms.tsx`, `app/reset-password.tsx`, the moderation and moderation-e-mail migrations) and `docs/DECISIONS.md` / `docs/DATA_MODEL.md`. Every assumption or open question is marked inline as `[TO CONFIRM: ...]`; search the files for that string. Markers "ships with <branch>" (BG: "идва с <branch>") flag app changes the text already describes; drop each when its PR merges. The earlier `[after PR #N merge]` markers (#20 orphan-cover sweep, #23 Moderation screen and chapter-count requests, #24 moderation e-mail via Resend) are gone: all three PRs are merged and the text now states what the code does. The Calm theme/appearance choice is not in the policy on purpose: it is stored only on the phone (`AsyncStorage`, key `livami.appearance`, `src/appearance.tsx`), not on the server.
 
 ## Bulgarian versions
 
 `privacy-policy.bg.md` and `terms.bg.md` are working Bulgarian drafts of the two texts (13 Nov 2026), written in plain language with the app's own wording for buttons and screens. Open items are marked `[ЗА ЮРИСТ: ...]` (for the lawyer), `[ЗА PO: ...]` or `[ЗА ЕКИПА: ...]`. The lawyer reviews both languages; suggest that Bulgarian prevails.
 
-## Decided by the PO (13 Nov 2026)
+## Decided
+
+By the PO (13 Nov 2026):
 
 - Operator: **Boryana Dimitrova**, natural person; contact **support@livami.app** (forwarded to her mailbox, tested).
 - Minimum age **16**, self-declared tick.
 - Libraries **private by default** (migration `20261113000000_private_library.sql`, run).
-- Analytics on, with the opt-out in Profile.
 - Supabase and Resend in the EU (Ireland, `eu-west-1`); password-reset and moderation e-mail switched on through Resend; open/click tracking off.
 - Moderation aim: within 24 hours on a best-effort basis.
 - Promise kept in the terms: we never sell readers' content or use it to train AI models.
 
-Follow-up for the team: other readers can technically read the whole `profiles` row, including `terms_version`, `terms_accepted_at`, `age_confirmed` and `is_admin`, which no screen shows; hide these columns from other readers before launch.
+By the legal review (14 Nov 2026), now written into the drafts, each app change marked "ships with <branch>" until its PR merges:
+
+- Privacy Policy is information, not a term: tick text "I accept the Terms. I have read the Privacy Policy." (`feat/terms-update`); legal basis for the acceptance record is Art. 6(1)(b)/(f); the "cannot be withdrawn" sentence is gone.
+- Terms changes: notice, effective date, acceptance from that date, no "continued use" (`feat/terms-update`).
+- Explicit works: minimum age stays 16; AO3 warnings and link for Explicit works need a separate "I'm 18 or over" (`feat/explicit-gate`).
+- Content moderation (terms section 6) follows the DSA: contact point in Bulgarian and English, notice with art. 16 elements, statement of reasons and notices to author and reporter (`feat/moderation-notices`); the former takedown/"counter-notice" clause is gone and section 9 is only about our own IP.
+- Suspension is a reserved power with warning, reason and a way to contest; admins can suspend and unsuspend (`feat/suspend`).
+- Deletion: the reader chooses keep or erase, nothing preselected (`feat/delete-choice`).
+- Analytics are opt-in, with an unticked box at onboarding; existing readers count as not opted in (`feat/analytics-consent`).
+- Accounts that never create a profile are deleted after 30 days (`feat/account-cleanup`).
+- No liability cap and no blanket "as is"; liability for foreseeable loss; the service is free.
+- Bulgarian text prevails; assignment to a successor with notice; force majeure; how the contract is concluded and stored; EU ODR platform removed, ADR via КЗП and its conciliation committees.
+- Apple's standard EULA is used and the terms supplement it.
+
+Follow-up for the team: the profile columns (`terms_version`, `terms_accepted_at`, `age_confirmed`, `is_admin`, `is_suspended`) are hidden from other readers and library visibility is pinned to private in `fix/profile-privacy`; drop the markers when it merges. Before launch, publish `site/terms` and `site/privacy`, set `TERMS_VERSION` to the publication date, and archive old versions at a stable address.
 
 ## Open decisions (grouped)
 
 **PO decides**
-1. Operator identity: legal name, address, EIK/VAT, contact mailbox (support@livami.app must exist and be monitored).
-2. Minimum age (13/14/16): `MIN_AGE = 16` in `src/lib/legal.ts` is a dev default. The app now stores a self-declared yes/no tick (`age_confirmed`), never a birth date; decide whether that suffices. Whether Mature/Explicit AO3 works need a higher age or gate. Publish the pages at `TERMS_URL` / `PRIVACY_URL` and set `TERMS_VERSION` to match the published text (bumping it makes every reader accept again).
-3. Retention periods: inactive accounts, feedback, removal requests, resolved chapter-count requests, moderation e-mails (also at Resend), accounts that never reach the profile step, proof of terms acceptance, logs, backups.
-4. Library visibility: the database default is "public" and no screen sets it. Decide the product behaviour (private by default is safer).
-5. Analytics basis: legitimate interests with opt-out (as in DECISIONS) vs. opt-in consent.
-6. Promises in the terms: no AI training on user content, one account per person, 24-hour moderation target.
-7. Whether to offer an in-app data export (none today) and deletion of past analytics on opt-out.
+1. Operator identity: legal name, **address for service** (required), EIK/VAT, contact mailbox (support@livami.app must exist and be monitored). Whether to run Livami through an ЕООД (the terms already allow transfer to a successor).
+2. Alternative to the 18+ tick: minimum age 18 for the whole app. Whether Mature works are gated like Explicit. `MIN_AGE = 16` in `src/lib/legal.ts` is a dev default.
+3. Retention periods: inactive accounts (none today), feedback (24 months proposed), removal requests, resolved chapter-count requests, moderation e-mails (also at Resend), proof of terms acceptance, logs, backups.
+4. Notice period for terms changes (30 days proposed), the time limit to ask us to look at a moderation decision again (6 months proposed), notice before stopping the service.
+5. Whether we agree to take part in ADR before the КЗП conciliation committees (text says yes).
+6. Promises in the terms: one account per person, 24-hour moderation target.
+7. Whether to offer an in-app data export (none today) and deletion of past analytics when consent is withdrawn.
 8. Test that custom covers lose EXIF: the app resizes to 1200 px and re-encodes as JPEG 0.8 (`CustomCover.tsx`), which very likely drops it.
 
 **Lawyer decides**
-1. GDPR basis for analytics and for keeping comments as "Deleted reader" after deletion; the age of digital consent in Bulgaria (understood to be 14; verify).
-2. DPO / EU representative need, DPAs with Supabase, Expo and Resend, transfer mechanisms (DPF or SCCs).
-3. DSA duties for a hosting service (notice-and-action, statement of reasons, contact point, complaints) and takedown wording.
-4. Liability limits and disclaimers against Bulgarian/EU consumer law; governing law and venue; ADR/ODR wording.
-5. Terms-change mechanism enforceable against consumers; Apple EULA vs. custom EULA.
-6. Use of the "AO3" name and the Open Library data and cover licences.
+1. Capacity of 16 and 17 year olds (free app as an everyday transaction, or a parental-permission line in the tick).
+2. GDPR basis for keeping comments as "Deleted reader" and whether erase should be the default; acceptance record on Art. 6(1)(b)/(f).
+3. DPO / EU representative need, DPAs with Supabase, Expo and Resend, transfer mechanisms (DPF or SCCs).
+4. DSA: that Livami is a hosting service and a micro-enterprise (arts. 19, 11, 12, 14, 16, 17, 18); Copyright Act elements for notices.
+5. Liability wording (ЗЗД чл. 82, 94; ЗЗП чл. 143), whether the Digital Content Directive (ЗПЦСЦУПС) applies to the free service, whether 14-day withdrawal wording is needed, and the right to end the contract after a change.
+6. Venue (competent Bulgarian court), ADR wording, prevailing language.
+7. Use of the "AO3" name (OTW guidelines) and the Open Library data and cover licences and attribution.
 
 **Engineering confirms** (see "Code checks" below)
 - Supabase project region (EU?); Supabase log and backup retention.
@@ -56,11 +72,11 @@ Follow-up for the team: other readers can technically read the whole `profiles` 
 - `feedback.device` exists in the schema, but the app writes only `app_version` (`src/lib/safety.ts`). The policy says so.
 - `profiles.avatar_url` exists, but no app screen was found that uses it. The policy does not claim avatar uploads.
 - No data-export feature was found in the code. The age tick, terms acceptance (`terms_version`, `terms_accepted_at`, `age_confirmed`) and password reset by e-mail code now exist and are described. The account (e-mail, password) is created at sign-up before the terms are ticked at profile creation; the policy says so.
-- Library entries default to `visibility = public` and the RLS lets any signed-in reader read public entries; no screen that changes it was found.
+- Library entries now default to private (migration `20261113000000`), but until `fix/profile-privacy` merges the owner can still set `public` through the API and the read policy honours it.
 - Open Library's `User-Agent` carries the GitHub project URL, not an e-mail (DECISIONS says "app name and contact email", the dev default says project page). The policy follows the code.
 - Moderation e-mail (Resend), the Moderation screen, chapter-count requests and the orphan-cover sweep are in `main` and described without markers. Moderation e-mail is off until `moderation_email_settings.enabled` is set; the text describes it as it will run at launch.
 - Reviews can now be reported (`reportReview` in `src/lib/safety.ts`, used by `BookReviews.tsx`).
-- Profiles, per-user book ratings and public library entries are readable by every signed-in reader (`init.sql` profiles_read, ratings_read, library_read).
+- Profiles (whole row, until `fix/profile-privacy` merges), per-user book ratings and public library entries are readable by every signed-in reader (`init.sql` profiles_read, ratings_read, library_read).
 
 ## Sign-off
 
@@ -81,3 +97,19 @@ Both stores need a **public URL** for the privacy policy, reachable without logi
 - The app links to them at profile creation and on the "Our terms have changed" screen (`TermsConsent`, using `TERMS_URL` / `PRIVACY_URL`); a link in Profile > About was not found [TO CONFIRM: add one].
 - Keep the URLs stable; update the text in place and keep dated older versions.
 - Fill in Apple's privacy "nutrition label" and Google's Data safety form from section 3 of the privacy policy, and the age-rating questionnaires from the minimum-age decision.
+
+## Code references moved out of the reader-facing text
+
+The policy and terms no longer name files, columns or functions. For the lawyer and the team, the facts behind the wording are:
+
+- Sources used for the drafts: migrations up to `20261113000000`, `src/lib/*`, `app/onboarding.tsx`, `app/accept-terms.tsx`, `app/reset-password.tsx`, `docs/DECISIONS.md`, `docs/DATA_MODEL.md`.
+- Terms acceptance is stored as `profiles.terms_version`, `terms_accepted_at` (set by the server) and `age_confirmed`; migration `supabase/migrations/20261103000000_terms_acceptance.sql`.
+- The profile has a display-name field in the database, but the app leaves it empty (`app/onboarding.tsx:39-41`); the Name is the only name shown.
+- `set_book_chapter_count` is the database function through which the first reader sets a book's chapter count.
+- `feedback.device` exists in the schema; the app does not fill it in.
+- Until `fix/profile-privacy` merges, an owner can still set a library entry to `public` through the API.
+- Blocking is one-way for content: `comments_read`, `reviews_read` and `reactions_read` filter only on `blocker_id = auth.uid()`; replies and notifications use `is_blocked_between`.
+- Supabase and Resend run in `eu-west-1` (Ireland). Pushes go through Expo's push service (`exp.host`).
+- Analytics consent: a record of the time of consent is kept (GDPR Art. 7(1)) and deleted on withdrawal or account deletion.
+- Onboarding offers only sign-out for an account with no profile; deletion by support or the 30-day clean-up (`feat/account-cleanup`) covers it.
+- Moderation today is one person; the drafts must not say so.
