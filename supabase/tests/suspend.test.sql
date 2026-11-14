@@ -87,7 +87,7 @@ select test.ok((select actor_username is null and story_id is null from public.m
   '... and naming no admin and no story');
 select test.ok((select suspended and reason = 'Repeated spoilers in chapter rooms' and since is not null from public.my_suspension()),
   'my_suspension says so, with the reason');
-select test.ok(test.code_of($$select * from public.suspensions$$) is null and (select count(*) from public.suspensions) = 0,
+select test.ok((select count(*) from public.suspensions) = 0,
   'the log itself is for admins only');
 select test.logout();
 select test.ok(public.push_messages((select id from public.notifications where user_id = '00000000-0000-0000-0000-0000000005e1' and type = 'account_suspended')) = '[]'::jsonb,
@@ -131,18 +131,14 @@ select test.ok(test.code_of($$insert into public.discussion_follows (discussion_
   '... and follow a room');
 select test.ok(test.code_of($$insert into public.blocks (blocked_id) values ('00000000-0000-0000-0000-0000000005e2')$$) is null,
   '... and block someone');
-select test.ok(test.code_of($$update public.comments set deleted_at = now() where id = 'e3000000-0000-0000-0000-000000000002'$$) is null
-  and (select body from public.comments where id = 'e3000000-0000-0000-0000-000000000002') = '[deleted]',
-  'a suspended reader can still delete their comment');
-select test.ok(test.code_of($$update public.comments set deleted_at = now(), body = 'sneaky' where id = 'e3000000-0000-0000-0000-000000000003'$$) is null
-  and (select body from public.comments where id = 'e3000000-0000-0000-0000-000000000003') = '[deleted]',
-  '... and deleting never lets new text through');
-select test.ok(test.code_of($$delete from public.reviews where id = 'e4000000-0000-0000-0000-000000000002'$$) is null
-  and not exists (select 1 from public.reviews where id = 'e4000000-0000-0000-0000-000000000002'),
-  '... and their review');
-select test.ok(test.code_of($$delete from public.ratings where user_id = auth.uid()$$) is null
-  and not exists (select 1 from public.ratings where user_id = '00000000-0000-0000-0000-0000000005e1'),
-  '... and their rating');
+select test.ok(test.code_of($$update public.comments set deleted_at = now() where id = 'e3000000-0000-0000-0000-000000000002'$$) is null, 'a suspended reader can still delete their comment (runs)');
+select test.ok((select body from public.comments where id = 'e3000000-0000-0000-0000-000000000002') = '[deleted]', 'a suspended reader can still delete their comment');
+select test.ok(test.code_of($$update public.comments set deleted_at = now(), body = 'sneaky' where id = 'e3000000-0000-0000-0000-000000000003'$$) is null, '... and deleting never lets new text through (runs)');
+select test.ok((select body from public.comments where id = 'e3000000-0000-0000-0000-000000000003') = '[deleted]', '... and deleting never lets new text through');
+select test.ok(test.code_of($$delete from public.reviews where id = 'e4000000-0000-0000-0000-000000000002'$$) is null, '... and their review (runs)');
+select test.ok(not exists (select 1 from public.reviews where id = 'e4000000-0000-0000-0000-000000000002'), '... and their review');
+select test.ok(test.code_of($$delete from public.ratings where user_id = auth.uid()$$) is null, '... and their rating (runs)');
+select test.ok(not exists (select 1 from public.ratings where user_id = '00000000-0000-0000-0000-0000000005e1'), '... and their rating');
 select test.ok(test.code_of($$select public.mark_notifications_read(now())$$) is null, '... and mark notifications read');
 
 -- Lifting it --------------------------------------------------------------------------------------
@@ -165,6 +161,7 @@ select test.ok(public.push_messages((select id from public.notifications where u
 
 -- The moderation queue says who a report is about and whether they are suspended -------------------
 select test.login('00000000-0000-0000-0000-0000000005e1');
+delete from public.blocks where blocker_id = auth.uid();
 insert into public.reports (id, comment_id, reason) values ('e5000000-0000-0000-0000-000000000001', 'e3000000-0000-0000-0000-000000000001', 'spam');
 insert into public.reports (id, reported_user_id, reason) values ('e5000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000005e2', 'harassment');
 select test.login('00000000-0000-0000-0000-0000000005ea');
