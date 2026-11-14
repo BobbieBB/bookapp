@@ -16,6 +16,8 @@ export const en = {
   'legal.gateIntro': 'Before you go on, please read the Terms and the Privacy Policy and tick both boxes.',
   'legal.accept': 'Accept',
   'legal.acceptFailed': 'We couldn’t save that. Please try again.',
+  // Analytics are opt-in (docs/DECISIONS.md, "Analytics: opt-in"): unticked at onboarding, not required.
+  'legal.analyticsConsent': 'Help us improve the app: count which features get used. Never what you read or write.',
 } as const;
 
 export const bg: Translation<typeof en> = {
@@ -32,4 +34,5 @@ export const bg: Translation<typeof en> = {
   'legal.gateIntro': 'Преди да продължиш, прочети Условията и Политиката за поверителност и отметни двете полета.',
   'legal.accept': 'Приемам',
   'legal.acceptFailed': 'Не успяхме да запазим това. Опитай пак.',
+  'legal.analyticsConsent': 'Помогни ни да подобрим приложението: да броим кои функции се използват. Никога какво четеш или пишеш.',
 };

@@ -3,7 +3,7 @@ import type { Translation } from '../types';
 export const en = {
   'admin.link': 'Numbers',
   'admin.title': 'Numbers',
-  'admin.intro': 'Counted from “Help us improve the app”. Readers who switched it off are never counted. Weeks start on Monday.',
+  'admin.intro': 'Counted from “Help us improve the app”: only readers who switched it on are counted. Weeks start on Monday.',
   'admin.back': 'Back',
   'admin.refused': 'These numbers are only for the Livami team.',
   'admin.error': 'We couldn’t load the numbers. Please try again.',
@@ -27,7 +27,7 @@ export const en = {
 export const bg: Translation<typeof en> = {
   'admin.link': 'Числа',
   'admin.title': 'Числа',
-  'admin.intro': 'Броим от „Помогни ни да подобрим приложението“. Читателите, които са го изключили, никога не се броят. Седмиците започват в понеделник.',
+  'admin.intro': 'Броим от „Помогни ни да подобрим приложението“: само читателите, които са го включили. Седмиците започват в понеделник.',
   'admin.back': 'Назад',
   'admin.refused': 'Тези числа са само за екипа на Livami.',
   'admin.error': 'Не успяхме да заредим числата. Опитай пак.',

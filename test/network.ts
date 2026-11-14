@@ -15,6 +15,22 @@ export function holdRequest(matches: (url: string) => boolean) {
   return { release, answer };
 }
 
+type ResponseHold = { matches: (url: string) => boolean; released: Promise<void>; sent: () => void };
+const responseHolds: ResponseHold[] = [];
+
+/**
+ * Sends the next request that `matches` at once, but keeps its answer back until `release` is called: the
+ * database has answered, and the app hears it late (a slow read overtaken by a newer write).
+ */
+export function holdResponse(matches: (url: string) => boolean) {
+  let release!: () => void;
+  let sent!: () => void;
+  const released = new Promise<void>((resolve) => (release = resolve));
+  const answered = new Promise<void>((resolve) => (sent = resolve));
+  responseHolds.push({ matches, released, sent });
+  return { release, answered };
+}
+
 type Failure = { matches: (url: string, method: string) => boolean };
 const failures: Failure[] = [];
 
@@ -54,6 +70,14 @@ export async function networkFetch(input: RequestInfo | URL, init?: RequestInit)
   const failing = failures.findIndex((f) => f.matches(url, method));
   if (failing !== -1) {
     throw new TypeError('Network request failed');
+  }
+  const late = responseHolds.findIndex((h) => h.matches(url));
+  if (late !== -1) {
+    const [hold] = responseHolds.splice(late, 1);
+    const response = await nodeFetch(input, init);
+    hold.sent();
+    await hold.released;
+    return response;
   }
   const index = holds.findIndex((h) => h.matches(url));
   if (index === -1) return nodeFetch(input, init);

@@ -248,7 +248,7 @@ Choices made during development where the decisions above don't say. Each one is
 - **Bulgarian Cyrillic letterforms** (д like g, т like m, и like u), which Sofia Sans shows when the app is in Bulgarian, stay:
   the PO likes them (20 Oct 2026, phone test). No switch to the Russian-style forms.
 
-## Analytics: first-party, with an opt-out (18 Oct 2026, PO)
+## Analytics: first-party, with an opt-out (18 Oct 2026, PO; now opt-in, see "Analytics: opt-in" below)
 - Confirms the PR #12 approach: our own `analytics_events` table, a fixed list of events, short non-content properties, never
   titles, comment text or other people's ids. Linked to the account so we can see whether people come back; deleted with it.
 - Add a Profile switch "Help us improve the app" (on by default). When off, the app records nothing. GDPR: readers can object.
@@ -422,7 +422,8 @@ protection by default (GDPR Art. 25), and dark romance readers may not want thei
 - The operator ("controller" in the privacy policy) is the PO as a natural person for now; a company can
   replace her later, with a new terms version.
 - Minimum age **16**, a self-declared tick (`MIN_AGE` in `src/lib/legal.ts`).
-- Analytics stay **on with an opt-out** (legitimate interests); the lawyer confirms the basis.
+- Analytics stay **on with an opt-out** (legitimate interests); the lawyer confirms the basis. Superseded on 14 Nov 2026:
+  analytics are opt-in (below).
 
 ## Readers' content stays out of AI tools (PO, 13 Nov 2026)
 
@@ -430,3 +431,19 @@ The terms promise that Livami never sells readers' content or uses it to train A
 same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
+
+## Analytics: opt-in (14 Nov 2026)
+
+Recording which features a reader uses reads from and stores on their device, so under ePrivacy art. 5(3) (EDPB
+Guidelines 2/2023) the safer basis is consent, not legitimate interests. Analytics are now **off until the reader
+says yes**:
+- Onboarding has a third box, unticked and not needed to start: "Help us improve the app: count which features get
+  used. Never what you read or write." Ticking it stores consent right after the profile is saved.
+- The Profile switch "Help us improve the app" shows that consent, off by default; on stores it, off deletes it.
+- Consent is a row in `analytics_consents`; the database refuses every event from a reader without one, and the app
+  sends nothing unless it knows the reader said yes. Existing readers start without consent, whatever they chose
+  before; the old `analytics_opt_outs` table is dropped.
+- `sign_up` is now sent from onboarding, after the consent, together with `onboarding_done`: at sign-up itself
+  nobody has said yes yet. The admin numbers therefore count only readers who said yes (week-1 return included).
+- If saving the consent at onboarding fails, the reader still gets in: no consent is stored, nothing is recorded,
+  and they can switch it on in Profile.

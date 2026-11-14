@@ -1,4 +1,4 @@
-import { holdRequest, recordRequests } from '../../../test/network';
+import { holdResponse, recordRequests } from '../../../test/network';
 import { analyticsConsent, cleanProps, setAnalyticsConsent, track } from '../analytics';
 import { supabase } from '../supabase';
 
@@ -36,11 +36,10 @@ describe('consent is cached, and a save always wins over an older read', () => {
 
   it('a read that started before a save never overwrites the saved value', async () => {
     await newReader('racer');
-    let reached!: () => void;
-    const readSent = new Promise<void>((resolve) => (reached = resolve));
-    const read = holdRequest((url) => url.includes('/rest/v1/analytics_consents?select=') && (reached(), true));
-    const before = analyticsConsent(); // nothing cached yet: this one asks the database, which answers "no"
-    await readSent;
+    // The read reaches the database first (no consent yet), but its answer arrives after the save.
+    const read = holdResponse((url) => url.includes('/rest/v1/analytics_consents?select='));
+    const before = analyticsConsent(); // nothing cached yet: this one asks the database
+    await read.answered;
     await setAnalyticsConsent(true);
     read.release();
     expect(await before).toBe(true);
