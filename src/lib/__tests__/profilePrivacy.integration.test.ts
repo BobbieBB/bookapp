@@ -78,6 +78,15 @@ it('a reader loads her whole own profile through my_profile()', async () => {
   expect(mine.data).toEqual([{ id: reader.id, is_admin: false }]);
 });
 
+it('an update of her own profile cannot return a hidden column', async () => {
+  await as(admin);
+  const hidden = await supabase.from('profiles').update({ reads_books: true }).eq('id', admin.id).select('is_admin');
+  expect(hidden.data).toBeNull();
+  expect(hidden.error?.code).toBe('42501');
+  const visible = await supabase.from('profiles').update({ reads_books: true }).eq('id', admin.id).select('username').throwOnError();
+  expect(visible.data).toEqual([{ username: admin.username }]);
+});
+
 it('a library entry cannot be made public, and other readers never read it', async () => {
   await as(admin);
   const storyId = (await createManualBook({ title: `Private ${run}`, author: 'x', chapters: 2, language: 'en' })).id;
