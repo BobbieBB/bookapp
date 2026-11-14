@@ -13,10 +13,6 @@ describe('roomPath', () => {
     expect(roomPath({ story_id: null, room_kind: 'chapter', section_number: 2 })).toBeNull();
     expect(roomPath({ story_id: 's1', room_kind: 'chapter', section_number: null })).toBeNull();
   });
-
-  it('an account notice has no room either', () => {
-    expect(roomPath({ story_id: null, room_kind: null, section_number: null })).toBeNull();
-  });
 });
 
 // Moderation notices and account notices are one kind of row: system notices (names no one, no link).

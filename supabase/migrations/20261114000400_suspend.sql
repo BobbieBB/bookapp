@@ -29,62 +29,79 @@ grant select on public.suspensions to authenticated;
 create policy suspensions_admin_read on public.suspensions for select to authenticated using (public.is_admin());
 
 -- ---------------------------------------------------------------------------
--- Account notices have no room: discussion_id may now be empty, and suspension_id says which entry of
--- the log the notice is about (its reason is shown to the reader; the admin is never named).
+-- Account notices are system notices, like the moderation notices of 20261114000300: no room, no actor,
+-- always shown, never pushed. suspension_id says which entry of the log the notice is about; its reason
+-- is the admin's own words (free text), not a report_reason, so it gets its own column rather than
+-- notifications.reason. The shape check grows a branch for them, and only they may name a suspension.
 -- ---------------------------------------------------------------------------
-alter table public.notifications alter column discussion_id drop not null;
-alter table public.notifications add column suspension_id uuid references public.suspensions (id) on delete cascade;
+alter table public.notifications
+  add column suspension_id uuid references public.suspensions (id) on delete cascade,
+  drop constraint notifications_place,
+  add constraint notifications_place check (discussion_id is not null or content_kind is not null or suspension_id is not null),
+  drop constraint notifications_moderation_shape,
+  add constraint notifications_moderation_shape check (
+    case
+      when type::text = 'content_hidden' then content_kind in ('comment', 'review') and reason is not null and outcome is null and actor_id is null and suspension_id is null
+      when type::text = 'report_resolved' then content_kind is not null and outcome is not null and actor_id is null and suspension_id is null
+      when type::text in ('account_suspended', 'account_restored') then suspension_id is not null and discussion_id is null and story_id is null
+        and content_kind is null and reason is null and outcome is null and actor_id is null and comment_id is null
+      else content_kind is null and discussion_id is not null and suspension_id is null
+    end
+  );
 
 drop policy notifications_own_read on public.notifications;
 create policy notifications_own_read on public.notifications for select to authenticated
   using (
     user_id = auth.uid()
-    and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = notifications.actor_id)
-    and (discussion_id is null or public.can_access_discussion(discussion_id))
+    and (
+      type::text in ('content_hidden', 'report_resolved', 'account_suspended', 'account_restored')
+      or (
+        not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = notifications.actor_id)
+        and public.can_access_discussion(discussion_id)
+      )
+    )
   );
 
--- my_notifications_v2: every kind, with the reason, and rows without a room (story and room columns are
--- then null). The new app calls it. my_notifications stays exactly what older app builds know: replies,
--- reactions and mentions only, always with a room (an unknown kind would crash their rendering).
+-- my_notifications_v2 (20261114000300) gains the account notices: always shown, like the moderation
+-- notices, with suspension_reason (the log entry's reason; null for account_restored and every other
+-- kind). A new result column changes the return type, so it is dropped and created again with the same
+-- signature. my_notifications (older app builds) is untouched: it still returns only replies, mentions
+-- and reactions.
+drop function public.my_notifications_v2(int, public.notification_type[]);
 create function public.my_notifications_v2(p_limit int default 50, p_types public.notification_type[] default null)
 returns table (
   id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
   actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
-  room_kind public.discussion_kind, section_number int, comment_id uuid, reason text
+  room_kind public.discussion_kind, section_number int, comment_id uuid,
+  content_kind text, reason public.report_reason, outcome public.report_status,
+  suspension_reason text
 )
 language sql stable security definer set search_path = public as $$
   select n.id, n.type, n.created_at, n.read_at, a.username, s.id, s.title, s.kind, d.kind, d.section_number, n.comment_id,
-         x.reason
+         n.content_kind, n.reason, n.outcome, x.reason
   from public.notifications n
   left join public.discussions d on d.id = n.discussion_id
-  left join public.stories s on s.id = d.story_id
+  left join public.stories s on s.id = coalesce(n.story_id, d.story_id)
   left join public.profiles a on a.id = n.actor_id
   left join public.comments c on c.id = n.comment_id
   left join public.suspensions x on x.id = n.suspension_id
   where n.user_id = auth.uid()
     and (p_types is null or n.type = any (p_types))
-    and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = n.actor_id)
-    -- nothing about a comment that was deleted or hidden by moderators
-    and (n.comment_id is null or (c.deleted_at is null and not c.is_hidden))
-    and (n.discussion_id is null or public.can_access_section(d.story_id, d.kind, d.section_number))
+    and (
+      n.type::text in ('content_hidden', 'report_resolved', 'account_suspended', 'account_restored')
+      or (
+        d.id is not null
+        and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = n.actor_id)
+        -- nothing about a comment that was deleted or hidden by moderators
+        and (n.comment_id is null or (c.deleted_at is null and not c.is_hidden))
+        and public.can_access_section(d.story_id, d.kind, d.section_number)
+      )
+    )
   order by n.created_at desc
   limit least(greatest(coalesce(p_limit, 50), 1), 200)
 $$;
 revoke execute on function public.my_notifications_v2(int, public.notification_type[]) from public, anon;
 grant execute on function public.my_notifications_v2(int, public.notification_type[]) to authenticated;
-
-create or replace function public.my_notifications(p_limit int default 50, p_types public.notification_type[] default null)
-returns table (
-  id uuid, type public.notification_type, created_at timestamptz, read_at timestamptz,
-  actor_username text, story_id uuid, story_title text, story_kind public.story_kind,
-  room_kind public.discussion_kind, section_number int, comment_id uuid
-)
-language sql stable security definer set search_path = public as $$
-  select v.id, v.type, v.created_at, v.read_at, v.actor_username, v.story_id, v.story_title, v.story_kind,
-         v.room_kind, v.section_number, v.comment_id
-  from public.my_notifications_v2(p_limit, coalesce(p_types, array['reply', 'reaction', 'mention']::public.notification_type[])) v
-  where v.type::text in ('reply', 'reaction', 'mention') and v.story_id is not null
-$$;
 
 -- ---------------------------------------------------------------------------
 -- Suspending and lifting. Admins only (42501); a reason (trimmed, 1-500 characters) is required to

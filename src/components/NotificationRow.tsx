@@ -3,13 +3,13 @@ import { Pressable, View } from 'react-native';
 
 import { T } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
-import { isModerationNotice, roomPath, type Notification } from '@/lib/notifications';
+import { isSystemNotice, roomPath, type Notification } from '@/lib/notifications';
 import { relativeTime } from '@/lib/relativeTime';
 import { radius, space, useTheme } from '@/theme';
 
 /** One reply / mention / reaction: who, where, when. Never the comment text. Account notices have no room. */
 export function NotificationRow({ n }: { n: Notification }) {
-  return isModerationNotice(n) ? <ModerationNotice n={n} /> : <SocialNotification n={n} />;
+  return isSystemNotice(n) ? <SystemNotice n={n} /> : <SocialNotification n={n} />;
 }
 
 function SocialNotification({ n }: { n: Notification }) {
@@ -44,36 +44,51 @@ function SocialNotification({ n }: { n: Notification }) {
 }
 
 /**
- * A moderation decision (EU DSA arts. 16(5) and 17): your comment or review was hidden and why, or
- * what was decided on your report. Never names the other reader; leads nowhere (the content is gone).
+ * A system notice: a moderation decision (EU DSA arts. 16(5) and 17: your comment or review was hidden
+ * and why, or what was decided on your report) or a change to your account (suspended with the admin's
+ * reason, or active again; docs/DECISIONS.md, Suspending a reader). Never names the other reader or the
+ * admin; leads nowhere (the content is gone, an account has no room).
  */
-function ModerationNotice({ n }: { n: Notification }) {
+function SystemNotice({ n }: { n: Notification }) {
   const t = useT();
   const { language } = useLanguage();
   const { c, card } = useTheme();
   const story = n.story_title ?? '';
   let what: string;
+  const details: string[] = [];
   if (n.type === 'content_hidden') {
     const reason = t(`notifications.hiddenReason.${n.reason ?? 'other'}`);
     what = t(n.content_kind === 'review' ? 'notifications.reviewHidden' : 'notifications.commentHidden', { story, reason });
-  } else {
+  } else if (n.type === 'report_resolved') {
     const item = t(`notifications.reported.${n.content_kind ?? 'reader'}`);
     const decision = t(n.outcome === 'actioned' ? 'notifications.decisionHidden' : 'notifications.decisionKept');
     what = n.story_title
       ? t('notifications.reportResolved', { item, story, decision })
       : t('notifications.reportResolvedNoStory', { item, decision });
+  } else if (n.type === 'account_suspended') {
+    what = t('notifications.account_suspended');
+    if (n.suspension_reason) details.push(t('notifications.reason', { reason: n.suspension_reason }));
+    details.push(t('notifications.suspendedBody'));
+  } else {
+    what = t('notifications.account_restored');
+    details.push(t('notifications.restoredBody'));
   }
   const room = n.room_kind === 'epilogue' ? t('room.epilogue') : n.room_kind ? t('room.chapter', { n: n.section_number ?? 0 }) : null;
   const unread = n.read_at === null;
-
   return (
     <View
+      testID={`notification-${n.id}`}
       accessible
       accessibilityLabel={unread ? `${what}. ${t('notifications.unread')}` : what}
       style={[card, { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m }]}
     >
       <View style={{ flex: 1, gap: space.xs }}>
         <T v="label">{what}</T>
+        {details.map((d) => (
+          <T key={d} v={d === details[details.length - 1] ? 'muted' : 'body'}>
+            {d}
+          </T>
+        ))}
         {room ? <T v="muted">{room}</T> : null}
         <T v="muted">{relativeTime(n.created_at, language)}</T>
       </View>

@@ -469,4 +469,5 @@ The terms reserve the right to suspend a reader who seriously or repeatedly brea
   you can't post, react or report until this is lifted. Write to support@livami.app if you think this is a
   mistake."; `account_restored` when lifted), never a push. While suspended, Home shows a banner with the latest
   reason, and a discussion room shows the same explanation in place of the comment box and when a reaction is
-  tapped. The admin is never named to the reader.
+  tapped. The admin is never named to the reader. Account notices are system notices, like the moderation notices:
+  `my_notifications_v2` returns them (with `suspension_reason`) and the app renders all four kinds in one row component.
