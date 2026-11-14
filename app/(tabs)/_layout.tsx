@@ -1,5 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
-import { Tabs } from 'expo-router';
+import { Tabs, useSegments } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { useT } from '@/i18n';
@@ -35,6 +35,9 @@ function TabIcon({ name, label, focused }: { name: IconName; label: string; focu
 export default function TabsLayout() {
   const { c } = useTheme();
   const t = useT();
+  // The active tab, from the URL: ['(tabs)'] on Home, ['(tabs)', 'library'] and so on elsewhere.
+  const segments = useSegments() as string[];
+  const active = segments[0] === '(tabs)' ? (segments[1] ?? 'index') : undefined;
   const tab = (label: string, icon: IconName) => ({
     title: label,
     tabBarAccessibilityLabel: label,
@@ -44,7 +47,7 @@ export default function TabsLayout() {
     <Tabs
       // The active tab gets more room than the others, so its pill (icon + label) always fits, also with
       // the longer Bulgarian labels ("Библиотека"); the inactive tabs only show an icon.
-      screenOptions={({ navigation }) => ({
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {
@@ -60,7 +63,7 @@ export default function TabsLayout() {
           elevation: 8,
         },
         tabBarIconStyle: { width: 'auto', height: 48 },
-        tabBarItemStyle: { flex: navigation.isFocused() ? 2.4 : 1 },
+        tabBarItemStyle: { flex: route.name === active ? 2.4 : 1 },
       })}
     >
       <Tabs.Screen name="index" options={tab(t('common.home'), 'home')} />
