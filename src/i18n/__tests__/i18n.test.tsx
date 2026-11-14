@@ -56,6 +56,22 @@ describe('translate', () => {
   it('leaves an unknown placeholder visible rather than printing "undefined"', () => {
     expect(translate('en', 'library.finishedChapterOf', { n: 3 })).toBe('Finished chapter 3 of {total}');
   });
+
+  it('never throws on a key this build does not know (e.g. a notification kind added later): shows the key', () => {
+    const unknown = 'notifications.account_suspended' as Parameters<typeof translate>[1];
+    expect(() => translate('en', unknown)).not.toThrow();
+    expect(translate('bg', unknown, { count: 2 })).toBe('notifications.account_suspended');
+  });
+
+  it('falls back to English when only Bulgarian lacks the key', () => {
+    const enOnly = 'test.enOnly' as Parameters<typeof translate>[1];
+    (en as unknown as Record<string, string>)[enOnly] = 'English only';
+    try {
+      expect(translate('bg', enOnly)).toBe('English only');
+    } finally {
+      delete (en as unknown as Record<string, string>)[enOnly];
+    }
+  });
 });
 
 describe('LanguageProvider', () => {
