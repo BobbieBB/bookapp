@@ -39,6 +39,9 @@ export async function enablePush(language: Language): Promise<PushStatus> {
   if (platform === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Livami',
+      // expo-notifications 58 ships `* */ export var` on one line, which eslint-plugin-import's
+      // module sniffing misses; the enum is exported (tsc checks it).
+      // eslint-disable-next-line import/namespace
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }

@@ -57,6 +57,8 @@ const app = {
   'accept-terms': AcceptTerms,
   'delete-account': DeleteAccount,
   '(tabs)/_layout': TabsLayout,
+  // Once the gate opens, SDK 58's router lands on the tabs' first screen (Home); Profile stands in for it.
+  '(tabs)/index': Profile,
   '(tabs)/profile': Profile,
 };
 const inTheApp = () => screen.findByLabelText('Help us improve the app', {}, { timeout: 8000 });
@@ -126,7 +128,7 @@ describe('onboarding', () => {
   });
 
   it('the Terms and Privacy Policy links open the web pages', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     try {
       await signUp('linker');
       await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
@@ -140,7 +142,7 @@ describe('onboarding', () => {
   });
 
   it('a link that cannot open says so, until a later one opens', async () => {
-    const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(undefined);
     try {
       await signUp('nobrowser');
       await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
