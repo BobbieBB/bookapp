@@ -81,7 +81,8 @@ describe('finishing', () => {
     await as(me);
     const id = await book('currently_reading');
     await renderScreen('en', { 'story/[id]': StoryScreen, 'finished/[id]': FinishedStub }, `/story/${id}`);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Finished' }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^Status: / }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Finished' }));
     expect(await screen.findByText(`finished ${id}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
@@ -89,7 +90,8 @@ describe('finishing', () => {
     await as(me);
     const id = await book('finished');
     await renderScreen('en', { 'story/[id]': StoryScreen, 'finished/[id]': FinishedStub }, `/story/${id}`);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Finished' }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^Status: / }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Finished' }));
     await act(async () => new Promise((r) => setTimeout(r, 1500)));
     expect(screen.queryByText(`finished ${id}`)).toBeNull();
     expect(screen.getByTestId('story-title')).toBeOnTheScreen();

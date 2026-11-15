@@ -1,16 +1,19 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BookReviews } from '@/components/BookReviews';
-import { StoryRooms } from '@/components/StoryRooms';
+import { RoomCounts, StoryRooms } from '@/components/StoryRooms';
 import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
-import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
+import { ChoiceList, NumberWheel, Sheet } from '@/components/Sheet';
+import { Button, Card, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
+import { loadRooms } from '@/lib/discussions';
 import { isAo3Link } from '@/lib/links';
-import { progressLine, statusKey } from '@/lib/library';
+import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
@@ -23,7 +26,6 @@ import {
   loadStoryPage,
   markComplete,
   nextChapter,
-  pagePercent,
   reopen,
   setBookChapterCount,
   setChapter,
@@ -39,6 +41,9 @@ import { useLookup } from '@/lib/useLookup';
 import { coverColor, radius, softShadow, space, useTheme } from '@/theme';
 
 const STATUSES: LibraryStatus[] = ['currently_reading', 'want_to_read', 'finished', 'dnf', 'on_hold'];
+
+// The page wheel's end for a book whose page count we don't know.
+const PAGE_WHEEL_MAX = 2000;
 
 const isRating = (v: string | null): v is (typeof AO3_RATINGS)[number] => AO3_RATINGS.some((r) => r === v);
 const isWarning = (v: string): v is (typeof AO3_WARNINGS)[number] => AO3_WARNINGS.some((w) => w === v);
@@ -226,17 +231,20 @@ function StoryBody({
   userId: string;
   onChanged: () => void;
 }) {
-  const { c, mode, fonts } = useTheme();
+  const { c, fonts } = useTheme();
   const t = useT();
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
   const [error, setError] = useState('');
-  const [picking, setPicking] = useState(false);
   const [countText, setCountText] = useState('');
   const [countError, setCountError] = useState('');
   const [pending, setPending] = useState<{ base: MyEntry | null; patch: Partial<MyEntry> }>({ base: null, patch: {} });
   const entry = loaded && pending.base === loaded ? { ...loaded, ...pending.patch } : loaded;
-  const [pageText, setPageText] = useState(entry?.progress_page?.toString() ?? '');
+  const [statusOpen, setStatusOpen] = useState(false);
+  // The value on the chapter (or page) wheel while its sheet is open.
+  const [wheel, setWheel] = useState<number | null>(null);
+  // The chapter whose room "I finished chapter N" just opened on this visit: it glows until you do something else.
+  const [justOpened, setJustOpened] = useState<number | null>(null);
 
   const myCover = useCustomCover(story.id, loaded !== null);
   const [coverOpen, setCoverOpen] = useState(false);
@@ -272,20 +280,10 @@ function StoryBody({
       setPending((p) => ({ base: loaded, patch: { ...(p.base === loaded ? p.patch : {}), ...patch } }));
     });
 
-  async function savePage() {
-    const n = Number(pageText);
-    if (!/^\d+$/.test(pageText.trim()) || !Number.isSafeInteger(n)) {
-      setError(t('story.pageInvalid'));
-      return;
-    }
-    await act(() => setPage(story.id, userId, n));
-  }
-
   const libraryEntry: LibraryEntry | null = entry
     ? { ...entry, story_id: story.id, updated_at: '', story }
     : null;
   const next = entry ? nextChapter(story, entry.progress_section) : null;
-  const percent = entry ? pagePercent(entry.progress_page, story.page_count) : null;
   const statuses = STATUSES.filter((s) => s !== 'on_hold' || isFic);
   const link = isAo3Link(story.source_url) ? story.source_url : null;
 
@@ -337,18 +335,13 @@ function StoryBody({
 
       {entry && libraryEntry ? (
         <Card style={{ gap: space.m }}>
-          <T v="overline">{t('story.yourLibrary').toUpperCase()}</T>
-
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
-            {statuses.map((s) => (
-              <Chip key={s} label={t(statusKey(s, story))} active={entry.status === s} onPress={() => saved(s === 'finished' ? finishedFields(story) : { status: s }, () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)), s === 'finished' && entry.status !== 'finished' ? () => { void track('story_finished', { kind: story.kind }); router.push(`/finished/${story.id}`); } : undefined)} />
-            ))}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s }}>
+            <T v="overline">{t('story.yourLibrary').toUpperCase()}</T>
+            <StatusButton label={t(statusKey(entry.status, story))} onPress={() => setStatusOpen(true)} />
           </View>
 
-          <T v="label">{progressLine(libraryEntry, t)}</T>
-
           {/* A Want to read book added without its chapter count: ask for it here, once. */}
-          {story.kind === 'book' && story.has_chapters && chapterCount(story) === null ? (
+          {story.kind === 'book' && story.has_chapters && count === null ? (
             <View style={{ gap: space.s }}>
               <T v="label">{t('story.countTitle')}</T>
               <T v="muted">{t('story.countHint')}</T>
@@ -375,69 +368,36 @@ function StoryBody({
                 }}
               />
             </View>
-          ) : null}
+          ) : (
+            <ProgressLine
+              label={story.has_chapters ? progressLine(libraryEntry, t) : pageLine(entry.progress_page, story.page_count, t)}
+              fraction={story.has_chapters ? (count ? entry.progress_section / count : null) : pageFraction(entry.progress_page, story.page_count)}
+              glow={justOpened !== null}
+              kind={story.kind}
+              changeLabel={t(story.has_chapters ? 'story.changeChapter' : 'story.changePage')}
+              onChange={() => setWheel(story.has_chapters ? entry.progress_section : (entry.progress_page ?? 0))}
+            />
+          )}
 
           {/* On a caught-up WIP you mostly wait: a new chapter is a quiet action, not the main button. */}
           {next ? (
             <Button
               variant={next.newlyPublished ? 'secondary' : 'primary'}
               title={next.newlyPublished ? t('story.chapterOut', { n: next.chapter }) : t('story.finishChapter', { n: next.chapter })}
-              onPress={() => saved({ progress_section: next.chapter }, async () => { await finishChapter(story.id, userId, next); void track('chapter_finished', { kind: story.kind }); })}
-             
+              onPress={() =>
+                saved(
+                  { progress_section: next.chapter },
+                  async () => {
+                    await finishChapter(story.id, userId, next);
+                    void track('chapter_finished', { kind: story.kind });
+                  },
+                  () => setJustOpened(next.chapter),
+                )
+              }
             />
           ) : null}
 
-          {story.has_chapters ? (
-            <>
-              <Button variant="secondary" title={t('story.changeChapter')} onPress={() => setPicking((p) => !p)} />
-              {picking ? (
-                <View accessibilityLabel={t('story.chapterPicker')} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
-                  {Array.from({ length: (count ?? entry.progress_section) + 1 }, (_, n) => (
-                    <Pressable
-                      key={n}
-                      testID={`chapter-option-${n}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: entry.progress_section === n }}
-                      accessibilityLabel={n === 0 ? t('library.notStarted') : t('story.chapterOption', { n })}
-                     
-                      onPress={() => {
-                        setPicking(false);
-                        saved({ progress_section: n }, () => setChapter(story.id, userId, n));
-                      }}
-                      style={{
-                        minWidth: 44,
-                        minHeight: 44,
-                        paddingHorizontal: 12,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: radius.pill,
-                        borderWidth: 2,
-                        borderColor: entry.progress_section === n ? c.signal : 'transparent',
-                        backgroundColor: entry.progress_section === n ? c.primary : c.surface,
-                        ...(entry.progress_section === n ? {} : softShadow(mode, 'small')),
-                      }}
-                    >
-                      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: entry.progress_section === n ? c.onPrimary : c.inkSoft }}>{n}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </>
-          ) : null}
-
-          {!isFic ? (
-            <View style={{ gap: space.s }}>
-              <Field
-                label={t('story.page')}
-                value={pageText}
-                onChangeText={setPageText}
-                keyboardType="number-pad"
-                placeholder={story.page_count ? `1–${story.page_count}` : undefined}
-              />
-              <Button variant="secondary" title={t('story.savePage')} onPress={savePage} />
-              {percent !== null ? <T v="label">{t('story.percentRead', { n: percent })}</T> : null}
-            </View>
-          ) : null}
+          {justOpened !== null ? <OpenedRoom storyId={story.id} chapter={justOpened} /> : null}
 
           {canComplete(story, entry.progress_section) ? (
             <Button variant="secondary" title={t('story.markComplete')} onPress={() => act(() => markComplete(story.id))} />
@@ -445,10 +405,161 @@ function StoryBody({
           {canReopen(story, entry.progress_section) ? (
             <Button variant="link" title={t('story.reopen')} onPress={() => act(() => reopen(story.id))} />
           ) : null}
+
+          <Sheet open={statusOpen} title={t('story.statusTitle')} onClose={() => setStatusOpen(false)}>
+            <ChoiceList
+              options={statuses.map((s) => ({ value: s, label: t(statusKey(s, story)) }))}
+              value={entry.status}
+              onPick={(s) => {
+                setStatusOpen(false);
+                if (s === entry.status) return;
+                setJustOpened(null);
+                saved(
+                  s === 'finished' ? finishedFields(story) : { status: s },
+                  () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)),
+                  s === 'finished'
+                    ? () => {
+                        void track('story_finished', { kind: story.kind });
+                        router.push(`/finished/${story.id}`);
+                      }
+                    : undefined,
+                );
+              }}
+            />
+          </Sheet>
+
+          <Sheet open={wheel !== null} title={t(story.has_chapters ? 'story.chapterPicker' : 'story.pagePicker')} onClose={() => setWheel(null)}>
+            {wheel !== null ? (
+              <NumberWheel
+                min={0}
+                max={story.has_chapters ? Math.max(count ?? 0, entry.progress_section) : Math.max(story.page_count ?? PAGE_WHEEL_MAX, entry.progress_page ?? 0)}
+                value={wheel}
+                onChange={setWheel}
+                label={(n) => (n === 0 ? t('library.notStarted') : t(story.has_chapters ? 'story.chapterOption' : 'story.pageOption', { n }))}
+                testIDPrefix={story.has_chapters ? 'chapter-option' : 'page-option'}
+              />
+            ) : null}
+            <Button
+              title={t('story.done')}
+              onPress={() => {
+                const n = wheel;
+                setWheel(null);
+                if (n === null) return;
+                setJustOpened(null);
+                if (story.has_chapters) {
+                  if (n !== entry.progress_section) saved({ progress_section: n }, () => setChapter(story.id, userId, n));
+                } else if (n !== (entry.progress_page ?? 0)) {
+                  saved({ progress_page: n }, () => setPage(story.id, userId, n));
+                }
+              }}
+            />
+          </Sheet>
         </Card>
       ) : (
         <Button title={t('story.addToLibrary')} onPress={() => act(() => addToLibrary(story.id, "want_to_read"))} loading={busy} />
       )}
     </>
+  );
+}
+
+function pageLine(page: number | null, pageCount: number | null, t: Translate): string {
+  if (!page) return t('library.notStarted');
+  return pageCount ? t('story.pageOf', { n: page, total: pageCount }) : t('story.pageAt', { n: page });
+}
+
+function pageFraction(page: number | null, pageCount: number | null): number | null {
+  return page !== null && pageCount ? Math.min(1, page / pageCount) : null;
+}
+
+/** "Reading ▾": the status, as a button that opens the list of statuses. */
+function StatusButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const { c, mode, fonts } = useTheme();
+  const t = useT();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('story.statusButton', { status: label })}
+      onPress={onPress}
+      style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: c.surface, ...softShadow(mode, 'small') }}
+    >
+      <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink }}>{label}</Text>
+      <Feather name="chevron-down" size={18} color={c.ink} />
+    </Pressable>
+  );
+}
+
+/** "Finished chapter 23 of 40", a bar, and Change. Mint for a moment after a chapter is finished. */
+function ProgressLine({
+  label,
+  fraction,
+  glow,
+  kind,
+  changeLabel,
+  onChange,
+}: {
+  label: string;
+  fraction: number | null;
+  glow: boolean;
+  kind: StoryDetails['kind'];
+  changeLabel: string;
+  onChange: () => void;
+}) {
+  const { c, fonts } = useTheme();
+  const fill = glow ? c.secondary : kind === 'fanfic' ? c.progressAlt : c.progress;
+  return (
+    <View style={{ gap: space.s }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s }}>
+        <Text testID="progress-line" style={{ flex: 1, fontFamily: fonts.bodyBold, fontSize: 17, color: glow ? c.success : c.ink }}>
+          {label}
+        </Text>
+        <Pressable accessibilityRole="button" onPress={onChange} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center' }}>
+          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{changeLabel}</Text>
+        </Pressable>
+      </View>
+      {fraction !== null ? (
+        <View style={{ height: 8, borderRadius: 999, backgroundColor: c.track, overflow: 'hidden' }}>
+          <View style={{ height: '100%', borderRadius: 999, width: `${Math.round(Math.min(1, Math.max(0, fraction)) * 100)}%`, backgroundColor: fill }} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** The room "I finished chapter N" just opened, glowing, one tap from the discussion. */
+function OpenedRoom({ storyId, chapter }: { storyId: string; chapter: number }) {
+  const { c, mode, fonts } = useTheme();
+  const t = useT();
+  const rooms = useLookup(`opened:${storyId}:${chapter}`, () => loadRooms(storyId));
+  const room = rooms.data?.find((r) => r.kind === 'chapter' && r.section_number === chapter);
+  const name = t('room.chapter', { n: chapter });
+  return (
+    <Pressable
+      testID="opened-room"
+      accessibilityRole="button"
+      accessibilityLabel={t('story.openRoom', { room: name })}
+      onPress={() => router.push(`/room/${storyId}/${chapter}`)}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space.m,
+        padding: space.m,
+        borderRadius: radius.s,
+        backgroundColor: c.surface,
+        borderWidth: 2,
+        borderColor: c.secondary,
+        shadowColor: c.secondary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: mode === 'dark' ? 0.6 : 0.45,
+        shadowRadius: 12,
+        elevation: 4,
+      }}
+    >
+      <View style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: c.band }}>
+        <Feather name="message-circle" size={18} color={c.ink} />
+      </View>
+      <Text style={{ flex: 1, fontFamily: fonts.bodyBold, fontSize: 17, color: c.ink }}>{name}</Text>
+      {room ? <RoomCounts comments={room.comments} readers={room.readers} /> : null}
+      <Feather name="chevron-right" size={20} color={c.muted} />
+    </Pressable>
   );
 }
