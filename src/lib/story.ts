@@ -81,7 +81,7 @@ export type StoryDetails = Story &
 export type MyEntry = Pick<LibraryEntry, 'status' | 'is_favourite' | 'progress_section' | 'progress_page'>;
 
 const DETAILS =
-  'id, kind, title, author_name, fandoms, ships, has_chapters, published_sections, total_sections, page_count, ' +
+  'id, kind, title, author_name, fandoms, ships, has_chapters, section_label, published_sections, total_sections, page_count, ' +
   'status, source_url, language, cover_url, content_rating, warnings, completed_at';
 
 /** The story and the signed-in reader's library entry for it (null if it isn't in their library). */

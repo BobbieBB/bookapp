@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChoiceList, Sheet } from '@/components/Sheet';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
@@ -23,6 +24,7 @@ import {
   createManualBook,
   findStory,
   type BookLanguage,
+  type SplitKind,
 } from '@/lib/stories';
 import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
 import { RATING_LABEL, WARNING_LABEL } from '@/lib/ao3Labels';
@@ -285,6 +287,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   const t = useT();
   const [language, setLanguage] = useState<BookLanguage>(guessLanguage(book.title));
   const [chapters, setChapters] = useState('');
+  const [split, setSplit] = useState<SplitKind>('chapter');
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
   const [saveError, setError] = useState('');
@@ -299,11 +302,13 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
     const n = Number(chapters);
     if (existing === undefined) return;
     fields.submit();
-    if (!existing && chaptersError(chapters, t, status === 'want_to_read')) return;
+    if (!existing && sectionsError(split, chapters, t, status === 'want_to_read')) return;
     setBusy(true);
     setError('');
     try {
-      const story = existing ?? (await createBook(book, { chapters: chapters.trim() ? n : null }, language));
+      const story =
+        existing ??
+        (await createBook(book, split === 'pages' ? { pages: n } : { chapters: chapters.trim() ? n : null, label: split }, language));
       await finish(story, status, 'book', 'open_library', language);
     } catch (e) {
       setError(friendly(e, t));
@@ -327,14 +332,14 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
         !existing && (
           <>
             <T v="muted">{t('add.firstEdition')}</T>
-            <Field
-              label={status === 'want_to_read' ? t('add.chaptersOptional') : t('add.chapters')}
-              keyboardType="number-pad"
+            <SectionsField
+              split={split}
+              onSplit={setSplit}
               value={chapters}
-              onChangeText={setChapters}
+              onChange={setChapters}
+              optional={status === 'want_to_read'}
               onBlur={fields.onBlur('chapters')}
-              error={fields.show('chapters', chaptersError(chapters, t, status === 'want_to_read'), chapters)}
-              placeholder={t('add.chaptersPlaceholder')}
+              error={fields.show('chapters', sectionsError(split, chapters, t, status === 'want_to_read'), chapters)}
             />
           </>
         )
@@ -352,6 +357,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   const [title, setTitle] = useState(isbnOf(initialTitle) ? '' : initialTitle.trim());
   const [author, setAuthor] = useState('');
   const [chapters, setChapters] = useState('');
+  const [split, setSplit] = useState<SplitKind>('chapter');
   const [language, setLanguage] = useState<BookLanguage>(guessLanguage(initialTitle));
   const [status, setStatus] = useState<LibraryStatus>('currently_reading');
   const [busy, setBusy] = useState(false);
@@ -360,7 +366,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
   const errors = {
     title: title.trim() ? undefined : t('add.errorTitle'),
     author: author.trim() ? undefined : t('add.errorAuthor'),
-    chapters: chaptersError(chapters, t, status === 'want_to_read'),
+    chapters: sectionsError(split, chapters, t, status === 'want_to_read'),
   };
 
   async function save() {
@@ -370,7 +376,13 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
     setBusy(true);
     setError('');
     try {
-      const story = await createManualBook({ title: title.trim(), author: author.trim(), chapters: chapters.trim() ? n : null, language });
+      const story = await createManualBook({
+        title: title.trim(),
+        author: author.trim(),
+        chapters: chapters.trim() ? n : null,
+        language,
+        split: split === 'chapter' ? undefined : split,
+      });
       await finish(story, status, 'book', 'manual', language);
     } catch (e) {
       setError(friendly(e, t));
@@ -383,11 +395,12 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
       <T v="h2">{t('add.manualTitle')}</T>
       <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
       <Field label={t('add.fieldAuthor')} value={author} onChangeText={setAuthor} onBlur={fields.onBlur('author')} error={fields.show('author', errors.author)} />
-      <Field
-        label={status === 'want_to_read' ? t('add.chaptersOptional') : t('add.chapters')}
-        keyboardType="number-pad"
+      <SectionsField
+        split={split}
+        onSplit={setSplit}
         value={chapters}
-        onChangeText={setChapters}
+        onChange={setChapters}
+        optional={status === 'want_to_read'}
         onBlur={fields.onBlur('chapters')}
         error={fields.show('chapters', errors.chapters, chapters)}
       />
@@ -592,6 +605,76 @@ function AddFic() {
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// How a book is split (docs/DECISIONS.md, PO testing round, E). The main path stays "Chapters"; a small
+// grey "No chapters?" offers parts, acts (plays) or no division (25-page parts by page).
+// ---------------------------------------------------------------------------
+
+const SPLIT_FIELD = {
+  chapter: 'add.chapters',
+  part: 'add.parts',
+  act: 'add.acts',
+  pages: 'add.pageCount',
+} as const;
+
+/** The number for the chosen split; chapters may wait for "Want to read", like before. */
+function sectionsError(split: SplitKind, value: string, t: Translate, optional: boolean): string | undefined {
+  if (split === 'chapter') return chaptersError(value, t, optional);
+  const n = Number(value);
+  if (split === 'pages') return Number.isInteger(n) && n >= 1 && n <= 50000 ? undefined : t('add.errorPages');
+  return Number.isInteger(n) && n >= 1 && n <= 5000 ? undefined : t('add.errorSections');
+}
+
+function SectionsField({
+  split,
+  onSplit,
+  value,
+  onChange,
+  optional,
+  onBlur,
+  error,
+}: {
+  split: SplitKind;
+  onSplit: (s: SplitKind) => void;
+  value: string;
+  onChange: (v: string) => void;
+  optional: boolean;
+  onBlur: () => void;
+  error: string | undefined;
+}) {
+  const { c, fonts } = useTheme();
+  const t = useT();
+  const [choosing, setChoosing] = useState(false);
+  const label = split === 'chapter' && optional ? t('add.chaptersOptional') : t(SPLIT_FIELD[split]);
+  return (
+    <View style={{ gap: space.xs }}>
+      <Field label={label} keyboardType="number-pad" value={value} onChangeText={onChange} onBlur={onBlur} error={error} placeholder={split === 'chapter' ? t('add.chaptersPlaceholder') : undefined} />
+      <Pressable accessibilityRole="button" onPress={() => setChoosing(true)} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
+        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: c.muted, textDecorationLine: 'underline' }}>
+          {split === 'chapter' ? t('add.noChapters') : t('add.changeSplit')}
+        </Text>
+      </Pressable>
+      <Sheet open={choosing} title={t('add.splitTitle')} onClose={() => setChoosing(false)}>
+        <ChoiceList
+          options={(['chapter', 'part', 'act', 'pages'] as const).map((v) => ({ value: v, label: t(SPLIT_OPTION[v]) }))}
+          value={split}
+          onPick={(v) => {
+            setChoosing(false);
+            onSplit(v);
+          }}
+        />
+      </Sheet>
+    </View>
+  );
+}
+
+const SPLIT_OPTION = {
+  chapter: 'add.splitChapters',
+  part: 'add.splitParts',
+  act: 'add.splitActs',
+  pages: 'add.splitPages',
+} as const;
 
 /** A small grey link for a side path ("I don't have a link"), so the main path stays as it was. */
 function QuietLink({ label, onPress }: { label: string; onPress: () => void }) {

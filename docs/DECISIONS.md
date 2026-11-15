@@ -644,6 +644,8 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   moderator action logged. Not built until needed.
 - **E. Books without chapters.** The add form stays "Number of chapters"; a small grey "No chapters?" opens a
   choice: parts, acts (plays), or no division (rooms by blocks of pages). The main path doesn't change.
+  The blocks stay at **25 pages**, as the app already had them, not the 50 first discussed: changing the size
+  would renumber the rooms of books already added (`section_label` on `stories`, 20261115000400).
 - **F. Discover for books, in v1.** "Books | Fanfiction" at the top, shown only to readers who read both;
   readers of one kind see theirs directly. Books start as one "Being read now" list, no genres yet.
 - **G. A fic without a link.** If the site doesn't answer, adding falls back to the manual form with the link

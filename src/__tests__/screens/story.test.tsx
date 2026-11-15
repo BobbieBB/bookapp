@@ -130,6 +130,25 @@ describe('a book without chapters', () => {
   });
 });
 
+describe('a play split into acts', () => {
+  it('names its sections acts: the button, the progress and the room', async () => {
+    const id = (await createManualBook({ title: `In Four Acts ${run}`, author: 'D. Writer', chapters: 4, language: 'en', split: 'act' })).id;
+    await addToLibrary(id, 'currently_reading');
+    await open('en', id);
+    await fireEvent.press(screen.getByText('I finished act 1'));
+    expect(await screen.findByText('Finished act 1 of 4', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(within(await screen.findByTestId('opened-room')).getByText('Act 1')).toBeOnTheScreen();
+    expect(within(await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 })).getByText('Act 1')).toBeOnTheScreen();
+  });
+
+  it('in Bulgarian', async () => {
+    const id = (await createManualBook({ title: `Пиеса ${run}`, author: 'Д. Писател', chapters: 3, language: 'bg', split: 'act' })).id;
+    await addToLibrary(id, 'currently_reading');
+    await open('bg', id);
+    expect(screen.getByText('Прочетох действие 1')).toBeOnTheScreen();
+  });
+});
+
 describe('a WIP fic you are caught up with', () => {
   it('shows fic details: fandom, ship, AO3 rating, archive warnings and a link to all tags', async () => {
     await open('en', wipId);

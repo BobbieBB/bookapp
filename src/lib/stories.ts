@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import type { LibraryStatus, Story } from './types';
 
 const STORY_COLUMNS =
-  'id, kind, title, author_name, fandoms, ships, has_chapters, published_sections, total_sections, page_count, status, source_url';
+  'id, kind, title, author_name, fandoms, ships, has_chapters, section_label, published_sections, total_sections, page_count, status, source_url';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -44,7 +44,10 @@ async function insertStory(row: Record<string, unknown>, existing: () => Promise
 
 /** How a new book's discussions are split: by chapters, or by 25-page parts. */
 /** Chapters known, or `null` for "not yet" (a Want to read book: set later on its page), or pages. */
-export type BookSplit = { chapters: number | null } | { pages: number };
+/** How the add form splits a book: chapters (the default), parts, acts, or pages. */
+export type SplitKind = 'chapter' | 'part' | 'act' | 'pages';
+
+export type BookSplit = { chapters: number | null; label?: 'chapter' | 'part' | 'act' } | { pages: number };
 
 export async function createBook(book: BookResult, split: BookSplit, language: BookLanguage): Promise<Story> {
   return insertStory(
@@ -59,6 +62,7 @@ export async function createBook(book: BookResult, split: BookSplit, language: B
       source_id: bookSourceId(book.key, language),
       status: 'completed',
       has_chapters: 'chapters' in split,
+      section_label: 'chapters' in split ? (split.label ?? 'chapter') : 'chapter',
       total_sections: 'chapters' in split ? split.chapters : null,
       page_count: 'pages' in split ? split.pages : book.pages,
     },
@@ -73,7 +77,10 @@ export async function createManualBook(b: {
   author: string;
   chapters: number | null;
   language: BookLanguage;
+  /** Parts or acts instead of chapters, or pages for a book with no division (decision E). */
+  split?: Exclude<SplitKind, 'chapter'>;
 }): Promise<Story> {
+  const pages = b.split === 'pages';
   const { data, error } = await supabase
     .from('stories')
     .insert({
@@ -83,8 +90,10 @@ export async function createManualBook(b: {
       author_name: b.author,
       source: 'manual',
       status: 'completed',
-      has_chapters: true,
-      total_sections: b.chapters,
+      has_chapters: !pages,
+      section_label: b.split === 'part' || b.split === 'act' ? b.split : 'chapter',
+      total_sections: pages ? null : b.chapters,
+      page_count: pages ? b.chapters : null,
     })
     .select(STORY_COLUMNS)
     .single();

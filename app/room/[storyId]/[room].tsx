@@ -11,6 +11,7 @@ import { useT } from '@/i18n';
 import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
 import { asksAdult } from '@/lib/explicit';
+import { FINISH_PILL, FINISH_ROW, LOCKED_ROOM, ROOM_NAME, sectionLabel } from '@/lib/sections';
 import {
   deleteComment,
   loadComments,
@@ -80,6 +81,8 @@ export default function RoomScreen() {
   // Finished, so a next chapter there only shows up for an admin moderating it: no button then.
   const next = page?.entry && target.kind === 'chapter' ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
+  // Chapters, parts or acts: the story says (until it has loaded, chapters).
+  const label = page ? sectionLabel(page.story) : 'chapter';
   // An Explicit fic's room reached without the 18+ yes (a link, a notification): ask here. The server
   // refuses the room until then (user_can_access_section); admins get in to moderate, so they are not asked.
   const asking = !!profile && !profile.is_admin && asksAdult(page?.story.content_rating, profile);
@@ -98,13 +101,13 @@ export default function RoomScreen() {
         <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
           <View style={{ gap: space.xs }}>
             <T v="moment">
-              <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t('room.chapter', { n: target.n })}</Text>
+              <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t(ROOM_NAME[label], { n: target.n })}</Text>
             </T>
             <T v="muted">{t('room.subtitle')}</T>
           </View>
           {next && userId ? (
             <FinishPill
-              label={t('room.finishedPill', { n: next.chapter })}
+              label={t(FINISH_PILL[label], { n: next.chapter })}
               onDone={() => finishAndTrack(next, userId)}
               onChanged={refresh}
             />
@@ -113,7 +116,7 @@ export default function RoomScreen() {
             <ExplicitDialog onBack={leave} />
           ) : room.error ? (
             locked ? (
-              <T>{target.kind === 'epilogue' ? t('room.lockedEpilogue') : t('room.lockedChapter', { n: target.n })}</T>
+              <T>{target.kind === 'epilogue' ? t('room.lockedEpilogue') : t(LOCKED_ROOM[label], { n: target.n })}</T>
             ) : (
               <ErrorText>{t('room.error')}</ErrorText>
             )
@@ -124,7 +127,7 @@ export default function RoomScreen() {
               loadFailed={!!comments.error}
               reload={reloadComments}
               userId={userId}
-              finishRow={next && userId ? { label: t('room.finishedRow', { n: next.chapter }), onDone: () => finishAndTrack(next, userId), onChanged: refresh } : null}
+              finishRow={next && userId ? { label: t(FINISH_ROW[label], { n: next.chapter }), onDone: () => finishAndTrack(next, userId), onChanged: refresh } : null}
             />
           ) : null}
         </ScrollView>

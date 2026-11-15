@@ -3,13 +3,14 @@ import { useFocusEffect } from 'expo-router';
 
 import type { MessageKey } from '../i18n/en';
 import type { Params } from '../i18n';
+import { FINISHED, FINISHED_OF, sectionLabel } from './sections';
 import { supabase } from './supabase';
 import type { LibraryEntry, LibraryStatus } from './types';
 
 const SELECT = `
   story_id, status, is_favourite, progress_section, progress_page, updated_at,
   story:stories!inner (
-    id, kind, title, author_name, fandoms, ships, has_chapters,
+    id, kind, title, author_name, fandoms, ships, has_chapters, section_label,
     published_sections, total_sections, page_count, status, source_url
   )
 `;
@@ -79,6 +80,6 @@ export function progressLine(entry: LibraryEntry, t: Translate) {
   }
   if (entry.status === 'finished') return t('library.status.finished');
   if (n === 0) return t('library.notStarted');
-  const unit = entry.story.has_chapters ? 'Chapter' : 'Part';
-  return total ? t(`library.finished${unit}Of`, { n, total }) : t(`library.finished${unit}`, { n });
+  const label = sectionLabel(entry.story);
+  return total ? t(FINISHED_OF[label], { n, total }) : t(FINISHED[label], { n });
 }

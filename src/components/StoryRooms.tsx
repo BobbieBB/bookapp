@@ -7,6 +7,7 @@ import { ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { loadRooms, type Room } from '@/lib/discussions';
+import { LOCKED_ROW, ROOM_NAME, type SectionLabel } from '@/lib/sections';
 import { useLookup } from '@/lib/useLookup';
 import { radius, softShadow, space, useTheme } from '@/theme';
 
@@ -37,7 +38,7 @@ export const unlockedChapters = (rooms: Room[]) =>
  * bottom. Locked chapters are not listed (the main button already says what comes next); the database
  * refuses them anyway (Spoiler Safe Mode). "All (N) ›" opens every unlocked room.
  */
-export function StoryRooms({ storyId, version }: { storyId: string; version: number }) {
+export function StoryRooms({ storyId, version, label = 'chapter' }: { storyId: string; version: number; label?: SectionLabel }) {
   const { c, fonts } = useTheme();
   const t = useT();
   const { profile } = useAuth();
@@ -60,7 +61,7 @@ export function StoryRooms({ storyId, version }: { storyId: string; version: num
             testID="all-rooms"
             accessibilityRole="link"
             accessibilityLabel={t('story.allRoomsLabel', { count: unlocked.length })}
-            onPress={() => router.push(`/rooms/${storyId}`)}
+            onPress={() => router.push(`/rooms/${storyId}?label=${label}`)}
             hitSlop={8}
             style={{ minHeight: 44, justifyContent: 'center' }}
           >
@@ -75,9 +76,9 @@ export function StoryRooms({ storyId, version }: { storyId: string; version: num
         <>
           {unlocked.length === 0 && !epilogue?.unlocked ? <T v="muted">{t('story.roomsEmpty')}</T> : null}
           {unlocked.slice(0, ROOMS_ON_STORY_PAGE).map((room) => (
-            <RoomRow key={room.section_number} room={room} onEnter={() => enter(room)} />
+            <RoomRow key={room.section_number} room={room} label={label} onEnter={() => enter(room)} />
           ))}
-          {epilogue ? <RoomRow room={epilogue} onEnter={() => enter(epilogue)} /> : null}
+          {epilogue ? <RoomRow room={epilogue} label={label} onEnter={() => enter(epilogue)} /> : null}
         </>
       )}
     </View>
@@ -107,17 +108,17 @@ export function RoomCounts({ comments, readers }: { comments: number | null; rea
 }
 
 /** One room: open ones with the discussion icon and counts; a locked one (only The Epilogue) faded, with a lock. */
-export function RoomRow({ room, onEnter }: { room: Room; onEnter: () => void }) {
+export function RoomRow({ room, label = 'chapter', onEnter }: { room: Room; label?: SectionLabel; onEnter: () => void }) {
   const { c, mode, fonts } = useTheme();
   const t = useT();
   const epilogue = room.kind === 'epilogue';
-  const name = epilogue ? t('room.epilogue') : t('room.chapter', { n: room.section_number! });
+  const name = epilogue ? t('room.epilogue') : t(ROOM_NAME[label], { n: room.section_number! });
 
   return (
     <Pressable
       testID={epilogue ? 'room-epilogue' : `room-chapter-${room.section_number}`}
       accessibilityRole="button"
-      accessibilityLabel={room.unlocked ? name : `${name}. ${epilogue ? t('story.epilogueLocked') : t('story.roomLocked', { n: room.section_number! })}`}
+      accessibilityLabel={room.unlocked ? name : `${name}. ${epilogue ? t('story.epilogueLocked') : t(LOCKED_ROW[label], { n: room.section_number! })}`}
       accessibilityState={{ disabled: !room.unlocked }}
       disabled={!room.unlocked}
       onPress={onEnter}
