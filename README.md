@@ -60,6 +60,10 @@ Before launch:
   every reader accepts the new version. Apply the terms migration (`20261103000000_terms_acceptance.sql`)
   to the hosted database **before** shipping an app build that includes it: the app reads
   `profiles.terms_version` at sign-in, and without the column that read fails for every reader.
+  **Before the first `TERMS_VERSION` bump past a published build**, add a minimum-supported-build
+  (force-upgrade) check: older builds meet a profile on a newer version, cannot write their own older one
+  (the database refuses the downgrade) and loop on the terms gate (docs/DECISIONS.md, "Terms changes take
+  effect on a date"). The effective-date check is phone-side UX only; the acceptance record is the proof.
 - **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
   listing in English and Bulgarian; `app.json` has the bundle id / package `app.livami` (confirmed by the PO, 5 Nov 2026) and the
   `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a
@@ -76,6 +80,11 @@ Before launch:
 - **Android test build for friends:** `eas build -p android --profile preview` makes an APK (no Play
   account needed); the build page gives a link and a QR code to install it. Pushes need Firebase (FCM)
   credentials, which are not set up yet, so the app says notifications don't work in that version.
+- **Profile privacy:** apply `20261114000000_profile_privacy.sql` to the hosted database **together with**
+  shipping an app build that includes it. The new build loads the signed-in profile through `my_profile()`,
+  which older databases do not have; older builds read `is_admin` and `terms_version` from the table, which
+  the migration no longer grants, so their sign-in fails once it is in. Before launch, with no readers on
+  older builds, apply it first and ship the build right after.
 - **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
   **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
   but with the filter on, Discover's list fails to load until the migration is in.
@@ -119,7 +128,7 @@ docs/
 
 ## Running the app
 
-You need Node.js 20+ on your computer and the **Expo Go** app on your phone (App Store / Google Play).
+You need Node.js 22.13 or newer (an even-numbered release: 22, 24 or 26) on your computer and the **Expo Go** app for Expo SDK 58 on your phone (App Store / Google Play). The app runs on Expo SDK 58 (React Native 0.88).
 
 ```bash
 git clone https://github.com/BobbieBB/bookapp.git
