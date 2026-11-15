@@ -1,6 +1,7 @@
 import type { Messages, Translation } from '../types';
 
-// Replies, mentions and reactions to you, and the "new comments" hint on Continue Reading.
+// Replies, mentions and reactions to you, the "new comments" hint on Continue Reading, and moderation
+// notices (docs/DECISIONS.md, Moderation notices).
 export const en = {
   'notifications.title': 'Notifications',
   'notifications.back': 'Back',
@@ -19,6 +20,23 @@ export const en = {
     one: '{count} new comment in chapter {chapter}',
     other: '{count} new comments in chapter {chapter}',
   },
+  'notifications.commentHidden':
+    'Your comment in {story} was hidden: {reason}. If you think this is a mistake, write to support@livami.app and we’ll look again.',
+  'notifications.reviewHidden':
+    'Your review of {story} was hidden: {reason}. If you think this is a mistake, write to support@livami.app and we’ll look again.',
+  'notifications.hiddenReason.spam': 'spam',
+  'notifications.hiddenReason.harassment': 'harassment',
+  'notifications.hiddenReason.spoiler': 'an unmarked spoiler',
+  'notifications.hiddenReason.inappropriate': 'inappropriate content',
+  'notifications.hiddenReason.other': 'it broke our community rules',
+  'notifications.reportResolved': 'We reviewed your report about a {item} in {story}: {decision}.',
+  'notifications.reportResolvedNoStory': 'We reviewed your report about a {item}: {decision}.',
+  'notifications.reported.comment': 'comment',
+  'notifications.reported.review': 'review',
+  'notifications.reported.reader': 'reader',
+  'notifications.decisionHidden': 'we hid it',
+  'notifications.decisionKept': 'we didn’t remove it',
+  'notifications.moderationTitle': 'From the Livami team',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -39,4 +57,21 @@ export const bg: Translation<typeof en> = {
     one: '{count} нов коментар в глава {chapter}',
     other: '{count} нови коментара в глава {chapter}',
   },
+  'notifications.commentHidden':
+    'Твоят коментар в {story} беше скрит: {reason}. Ако смяташ, че е грешка, пиши ни на support@livami.app и ще го прегледаме отново.',
+  'notifications.reviewHidden':
+    'Твоето мнение за {story} беше скрито: {reason}. Ако смяташ, че е грешка, пиши ни на support@livami.app и ще го прегледаме отново.',
+  'notifications.hiddenReason.spam': 'спам',
+  'notifications.hiddenReason.harassment': 'тормоз',
+  'notifications.hiddenReason.spoiler': 'неотбелязан спойлер',
+  'notifications.hiddenReason.inappropriate': 'неподходящо съдържание',
+  'notifications.hiddenReason.other': 'нарушава правилата на общността',
+  'notifications.reportResolved': 'Прегледахме доклада ти за {item} в {story}: {decision}.',
+  'notifications.reportResolvedNoStory': 'Прегледахме доклада ти за {item}: {decision}.',
+  'notifications.reported.comment': 'коментар',
+  'notifications.reported.review': 'мнение',
+  'notifications.reported.reader': 'читател',
+  'notifications.decisionHidden': 'скрихме го',
+  'notifications.decisionKept': 'не го премахнахме',
+  'notifications.moderationTitle': 'От екипа на Livami',
 };
