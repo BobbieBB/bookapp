@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NotificationRow } from '@/components/NotificationRow';

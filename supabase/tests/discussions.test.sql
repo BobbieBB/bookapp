@@ -77,7 +77,7 @@ select test.ok((select readers from public.story_rooms('d5000000-0000-0000-0000-
 -- An admin's story page follows their own reading, not the moderation bypass: no spoilers on their own book.
 select test.logout();
 insert into auth.users (id) values ('00000000-0000-0000-0000-000000000d05');
-insert into public.profiles (id, username, is_admin) values ('00000000-0000-0000-0000-000000000d05', 'dora', true);
+insert into public.profiles (id, username, is_admin) values ('00000000-0000-0000-0000-000000000d05', 'rooms_admin_d05', true);
 insert into public.library_entries (user_id, story_id, status, progress_section) values
   ('00000000-0000-0000-0000-000000000d05', 'd5000000-0000-0000-0000-000000000001', 'currently_reading', 1);
 select test.login('00000000-0000-0000-0000-000000000d05');
