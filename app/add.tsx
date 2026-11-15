@@ -598,7 +598,7 @@ const SPLIT_FIELD = {
   chapter: 'add.chapters',
   part: 'add.parts',
   act: 'add.acts',
-  pages: 'add.pages',
+  pages: 'add.pageCount',
 } as const;
 
 /** The number for the chosen split; chapters may wait for "Want to read", like before. */
