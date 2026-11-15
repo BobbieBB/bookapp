@@ -129,6 +129,7 @@ export function ChoiceList<V extends string>({
           <Pressable
             key={o.value}
             accessibilityRole="button"
+            accessibilityLabel={o.label}
             accessibilityState={{ selected }}
             onPress={() => onPick(o.value)}
             style={{ minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: c.hairline }}
