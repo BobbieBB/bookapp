@@ -18,7 +18,8 @@ import { isAo3Link } from '@/lib/links';
 import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
-import { addToLibrary, AO3_RATINGS, AO3_WARNINGS } from '@/lib/stories';
+import { addToLibrary, AO3_RATINGS, AO3_WARNINGS, setFicLink } from '@/lib/stories';
+import { normaliseAo3Link } from '@/lib/sources';
 import {
   canComplete,
   canReopen,
@@ -335,6 +336,8 @@ function StoryBody({
             <Pressable accessibilityRole="link" onPress={() => openLink(link)} style={{ minHeight: 44, justifyContent: 'center' }}>
               <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('story.allTags')}</Text>
             </Pressable>
+          ) : !story.source_url && entry ? (
+            <AddFicLink storyId={story.id} onAdded={onChanged} />
           ) : null}
         </View>
       ) : null}
@@ -571,5 +574,56 @@ function OpenedRoom({ storyId, chapter }: { storyId: string; chapter: number }) 
       {room ? <RoomCounts comments={room.comments} readers={room.readers} /> : null}
       <Feather name="chevron-right" size={20} color={c.muted} />
     </Pressable>
+  );
+}
+
+/** A fic added without a link (decision G): "Add the AO3 link", once a reader has it. */
+function AddFicLink({ storyId, onAdded }: { storyId: string; onAdded: () => void }) {
+  const { c, fonts } = useTheme();
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    const canonical = normaliseAo3Link(text);
+    if (!canonical) return setError(t('add.badLink'));
+    setSaving(true);
+    setError('');
+    try {
+      await setFicLink(storyId, canonical);
+      onAdded();
+    } catch (e) {
+      setError((e as { code?: string } | null)?.code === '23505' ? t('story.linkTaken') : t('story.actionFailed'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
+        <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('story.addLink')}</Text>
+      </Pressable>
+    );
+  }
+  return (
+    <View style={{ gap: space.s }}>
+      <Field
+        label={t('add.ao3Link')}
+        placeholder={t('add.ao3Placeholder')}
+        value={text}
+        onChangeText={(v) => {
+          setText(v);
+          setError('');
+        }}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="url"
+        error={error || undefined}
+      />
+      <Button variant="secondary" title={t('story.linkSave')} onPress={() => void save()} loading={saving} />
+    </View>
   );
 }

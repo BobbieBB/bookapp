@@ -43,6 +43,9 @@ export const en = {
   'story.allRoomsLabel': 'All unlocked discussions, {count}',
   'story.roomsTitle': 'Discussions',
   'story.roomsEmpty': 'Finish chapter 1 and its discussion opens here.',
+  'story.addLink': 'Add the AO3 link',
+  'story.linkSave': 'Save the link',
+  'story.linkTaken': 'Another fic in Livami already has this link.',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -88,4 +91,7 @@ export const bg: Translation<typeof en> = {
   'story.allRoomsLabel': 'Всички отключени обсъждания, {count}',
   'story.roomsTitle': 'Обсъждания',
   'story.roomsEmpty': 'Завърши глава 1 и обсъждането ѝ ще се отвори тук.',
+  'story.addLink': 'Добави линка към AO3',
+  'story.linkSave': 'Запази линка',
+  'story.linkTaken': 'Друг фикшън в Livami вече е с този линк.',
 };
