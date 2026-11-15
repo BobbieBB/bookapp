@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react-nativ
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
+import AllRooms from '../../../app/rooms/[storyId]';
 import StoryScreen from '../../../app/story/[id]';
 import { sql } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
@@ -73,29 +74,33 @@ describe('a book you are reading', () => {
     await fireEvent.press(screen.getByText('I finished chapter 4'));
     expect(await screen.findByText('Finished chapter 4 of 10', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(bookId)).progress_section).toBe(4);
+    // The room it opened glows under the button, one tap from the discussion; the button moves on.
+    expect(within(await screen.findByTestId('opened-room')).getByText('Chapter 4')).toBeOnTheScreen();
+    expect(screen.getByText('I finished chapter 5')).toBeOnTheScreen();
   });
 
   it('the chapter picker can move progress back', async () => {
     await open('en', bookId);
-    await fireEvent.press(screen.getByText('Change chapter'));
+    await fireEvent.press(screen.getByText('Change'));
     await fireEvent.press(await screen.findByTestId('chapter-option-2'));
+    await fireEvent.press(screen.getByText('Done'));
     expect(await screen.findByText('Finished chapter 2 of 10', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(bookId)).progress_section).toBe(2);
   });
 
-  it('a page number shows a personal percentage and leaves the chapter alone', async () => {
+  it('a chaptered book has no page field (PO testing round, A)', async () => {
     await open('en', bookId);
-    await fireEvent.changeText(screen.getByLabelText('I’m on page'), '150');
-    await fireEvent.press(screen.getByText('Save page'));
-    expect(await screen.findByText('50% read', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(await entry(bookId)).toMatchObject({ progress_page: 150, progress_section: 2 });
+    expect(screen.queryByText('Change page')).toBeNull();
+    expect(screen.queryByTestId('page-option-1')).toBeNull();
   });
 
   it('status is saved; On Hold is only for fanfiction; no favourites in v1', async () => {
     await open('en', bookId);
+    await fireEvent.press(screen.getByRole('button', { name: 'Status: Currently Reading. Change' }));
+    expect(screen.getByRole('button', { name: 'Currently Reading', selected: true })).toBeOnTheScreen();
     expect(screen.queryByText('On Hold')).toBeNull();
     await fireEvent.press(screen.getByText('Want to Read'));
-    await screen.findByRole('button', { name: 'Want to Read', selected: true }, { timeout: 8000 });
+    expect(await screen.findByRole('button', { name: 'Status: Want to Read. Change' }, { timeout: 8000 })).toBeOnTheScreen();
     expect(await entry(bookId)).toMatchObject({ status: 'want_to_read' });
     expect(screen.queryByLabelText('Add to favourites')).toBeNull();
   });
@@ -104,6 +109,23 @@ describe('a book you are reading', () => {
     await open('bg', bookId);
     expect(screen.getByText('Прочетена глава 2 от 10')).toBeOnTheScreen();
     expect(screen.getByText('Прочетох глава 3')).toBeOnTheScreen();
+  });
+});
+
+describe('a book without chapters', () => {
+  it('tracks the page on the same wheel, and its 25-page parts follow', async () => {
+    const id = (
+      await createBook({ key: `/works/OL${run}PG`, title: 'By Pages', author: 'P. Writer', year: 2002, pages: null, coverUrl: null }, { pages: 200 }, 'en')
+    ).id;
+    await addToLibrary(id, 'currently_reading');
+    await open('en', id);
+    expect(screen.getByTestId('progress-line')).toHaveTextContent('Not started');
+    expect(screen.queryByText(/I finished chapter/)).toBeNull();
+    await fireEvent.press(screen.getByText('Change'));
+    await fireEvent.press(await screen.findByTestId('page-option-150'));
+    await fireEvent.press(screen.getByText('Done'));
+    expect(await screen.findByText('Page 150 of 200', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await entry(id)).toMatchObject({ progress_page: 150, progress_section: 6 });
   });
 });
 
@@ -116,6 +138,7 @@ describe('a WIP fic you are caught up with', () => {
     expect(screen.getByText('Major character death')).toBeOnTheScreen();
     expect(screen.getByText('All tags on AO3 ↗')).toBeOnTheScreen();
     expect(screen.getByText('WIP')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /^Status: / }));
     expect(screen.getByText('On Hold')).toBeOnTheScreen();
   });
 
@@ -161,22 +184,36 @@ describe('the discussion rooms on a story page', () => {
     await supabase.from('library_entries').update({ progress_section: 1 }).eq('story_id', roomsBookId).eq('user_id', me).throwOnError();
   });
 
-  it('lists every chapter and The Epilogue, with what is still locked', async () => {
+  it('lists only the rooms you unlocked, and The Epilogue, locked, at the bottom', async () => {
     await renderScreen('en', { 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomStub }, `/story/${roomsBookId}`);
     const ch1 = await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 });
     expect(within(ch1).getByText('Chapter 1')).toBeOnTheScreen();
-    expect(within(ch1).getByText('1 reader')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('room-chapter-2')).getByText('Finish chapter 2 to open')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('room-epilogue')).getByText('The Epilogue')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('room-epilogue')).getByText('Opens when you finish')).toBeOnTheScreen();
+    expect(within(ch1).getByLabelText('1 reader')).toBeOnTheScreen();
+    expect(screen.queryByTestId('room-chapter-2')).toBeNull();
+    expect(screen.getByRole('button', { name: 'The Epilogue. Opens when you finish' })).toBeOnTheScreen();
+    expect(screen.queryByTestId('all-rooms')).toBeNull();
   });
 
-  it('an unlocked room opens; a locked one does not', async () => {
+  it('an unlocked room opens; the locked Epilogue does not', async () => {
     await renderScreen('en', { 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomStub }, `/story/${roomsBookId}`);
-    await fireEvent.press(await screen.findByTestId('room-chapter-2', {}, { timeout: 8000 }));
-    expect(screen.queryByText('room 2')).toBeNull();
+    await fireEvent.press(await screen.findByTestId('room-epilogue', {}, { timeout: 8000 }));
+    expect(screen.queryByText('room epilogue')).toBeNull();
     await fireEvent.press(screen.getByTestId('room-chapter-1'));
     expect(await screen.findByText('room 1', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('shows the last three, newest first, and All (N) opens every one', async () => {
+    const many = (await createManualBook({ title: `Five Rooms ${run}`, author: 'C. Writer', chapters: 8, language: 'en' })).id;
+    await addToLibrary(many, 'currently_reading');
+    await supabase.from('library_entries').update({ progress_section: 5 }).eq('story_id', many).eq('user_id', me).throwOnError();
+    await renderScreen('en', { 'story/[id]': StoryScreen, 'rooms/[storyId]': AllRooms, 'room/[storyId]/[room]': RoomStub }, `/story/${many}`);
+    await screen.findByTestId('room-chapter-5', {}, { timeout: 8000 });
+    const shown = screen.getAllByTestId(/^room-chapter-/).map((r) => r.props.testID);
+    expect(shown).toEqual(['room-chapter-5', 'room-chapter-4', 'room-chapter-3']);
+    await fireEvent.press(screen.getByRole('link', { name: 'All unlocked discussions, 5' }));
+    expect(await screen.findByText('Discussions', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getAllByTestId(/^room-chapter-/)).toHaveLength(5), { timeout: 8000 });
+    expect(screen.queryByTestId('room-chapter-6')).toBeNull();
   });
 });
 

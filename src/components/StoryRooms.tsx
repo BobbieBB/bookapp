@@ -107,7 +107,7 @@ export function RoomRow({ storyId, room }: { storyId: string; room: Room }) {
         borderRadius: radius.s,
         ...(room.unlocked
           ? { backgroundColor: c.surface, ...softShadow(mode, 'small') }
-          : { borderWidth: 1.5, borderStyle: 'dashed', borderColor: c.hairline, opacity: 0.6 }),
+          : { borderWidth: 1.5, borderStyle: 'dashed' as const, borderColor: c.hairline, opacity: 0.6 }),
       }}
     >
       <View style={{ width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: room.unlocked ? c.band : c.track }}>
