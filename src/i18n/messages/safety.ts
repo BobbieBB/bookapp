@@ -74,7 +74,7 @@ export const bg: Translation<typeof en> = {
   'safety.unblock': 'Отблокирай',
   'safety.unblockName': 'Отблокирай {name}',
   'safety.feedbackTitle': 'Изпрати отзив',
-  'safety.feedbackIntro': 'Кажи ни какво не работи или какво би искал да може приложението.',
+  'safety.feedbackIntro': 'Кажи ни какво не работи или какво ти липсва в приложението.',
   'safety.kind.problem': 'Проблем',
   'safety.kind.idea': 'Идея',
   'safety.kind.other': 'Друго',

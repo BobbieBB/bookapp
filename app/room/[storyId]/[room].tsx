@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { CommentCard } from '@/components/CommentCard';
 import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
 import {
   deleteComment,
@@ -41,7 +42,7 @@ function parseRoom(room: string | undefined): { kind: 'chapter'; n: number } | {
 export default function RoomScreen() {
   const { c } = useTheme();
   const t = useT();
-  const router = useRouter();
+  const headerOffset = useHeaderOffset();
   const { session } = useAuth();
   const userId = session?.user.id;
   const params = useLocalSearchParams<{ storyId: string; room: string }>();
@@ -68,7 +69,9 @@ export default function RoomScreen() {
     );
   }
 
-  const next = page?.entry ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
+  // "I finished chapter N" belongs in chapter rooms. The Epilogue only opens once the whole story is
+  // Finished, so a next chapter there only shows up for an admin moderating it: no button then.
+  const next = page?.entry && target.kind === 'chapter' ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
   const finishAndTrack = async (chapter: NonNullable<typeof next>, uid: string) => {
     await finishChapter(params.storyId, uid, chapter);
@@ -76,12 +79,9 @@ export default function RoomScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
         <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
-          <View style={{ alignItems: 'flex-start' }}>
-            <Button variant="link" title={t('room.back')} onPress={() => router.back()} />
-          </View>
           <View style={{ gap: space.xs }}>
             <T v="moment">
               <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t('room.chapter', { n: target.n })}</Text>

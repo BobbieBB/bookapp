@@ -55,7 +55,7 @@ it('picking Calm in Profile recolours the screen and is remembered across a remo
 it('offers Auto, Light, Dark and Calm, in Bulgarian too', async () => {
   await renderScreen('bg', { profile: Profile }, '/profile');
   await screen.findByText(username, {}, { timeout: 8000 });
-  expect(screen.getByText('Облик')).toBeOnTheScreen();
+  expect(screen.getByText('Тема')).toBeOnTheScreen();
   for (const name of ['Автоматично', 'Светла', 'Тъмна', 'Спокойна']) {
     expect(screen.getByRole('button', { name })).toBeOnTheScreen();
   }

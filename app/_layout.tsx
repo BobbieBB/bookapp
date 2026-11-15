@@ -95,19 +95,19 @@ export function RootStack() {
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="add" options={{ presentation: 'modal' }} />
-          {/* Pages you open from a list get the native back chevron and stay clear of the status bar. */}
+          {/* Every page you open on top of the tabs gets the same native back chevron. */}
           <Stack.Screen name="story/[id]" options={pushed} />
           <Stack.Screen name="finished/[id]" options={pushed} />
-          <Stack.Screen name="room/[storyId]/[room]" />
-          <Stack.Screen name="blocked" />
-          <Stack.Screen name="feedback" />
-          <Stack.Screen name="authors" />
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="admin" />
-          <Stack.Screen name="moderation" />
+          <Stack.Screen name="room/[storyId]/[room]" options={pushed} />
+          <Stack.Screen name="blocked" options={pushed} />
+          <Stack.Screen name="feedback" options={pushed} />
+          <Stack.Screen name="authors" options={pushed} />
+          <Stack.Screen name="notifications" options={pushed} />
+          <Stack.Screen name="admin" options={pushed} />
+          <Stack.Screen name="moderation" options={pushed} />
         </Stack.Protected>
         <Stack.Protected guard={hasProfile}>
-          <Stack.Screen name="delete-account" />
+          <Stack.Screen name="delete-account" options={pushed} />
         </Stack.Protected>
       </Stack>
     </>

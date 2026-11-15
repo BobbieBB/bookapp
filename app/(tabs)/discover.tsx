@@ -124,6 +124,10 @@ export default function Discover() {
   // is a fanfiction reader whatever the flag says; only a reader with neither is told it is not for them.
   const fanficReader = profile?.reads_fanfic !== false || (mine.data ?? []).some((f) => f.source !== 'starter');
   const chips = (mine.data ?? []).slice(0, MAX_CHIPS).map((f) => f.fandom);
+  // Say where the chips come from, so Discover and Profile tell the same story: only fandoms the reader
+  // picked are "yours"; before that they come from the library, or are popular ones to start with.
+  const sources = new Set((mine.data ?? []).slice(0, MAX_CHIPS).map((f) => f.source));
+  const chipsTitle = sources.has('picked') ? 'discover.yourFandoms' : sources.has('library') ? 'discover.fromLibrary' : 'discover.popularFandoms';
   const shownChips = selected && !chips.includes(selected) ? [selected, ...chips.slice(0, MAX_CHIPS - 1)] : chips;
   const scope = selected ? [selected] : chips;
   const [completeOnly, setCompleteOnly] = useCompleteOnly();
@@ -155,7 +159,7 @@ export default function Discover() {
         ) : (
           <>
             <View style={{ gap: space.s }}>
-              <T v="overline">{t('discover.yourFandoms')}</T>
+              <T v="overline">{t(chipsTitle)}</T>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
                 {shownChips.map((fandom) => (
                   <Chip

@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,7 +52,6 @@ function Choice({ label, hint, checked, onPress, disabled }: { label: string; hi
 export default function DeleteAccount() {
   const { c } = useTheme();
   const t = useT();
-  const router = useRouter();
   // null until the reader chooses: deleting needs an explicit choice (GDPR art. 17, the content licence).
   const [erase, setErase] = useState<boolean | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -75,11 +73,8 @@ export default function DeleteAccount() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <View style={{ alignItems: 'flex-start' }}>
-          <Button variant="link" title={t('safety.back')} onPress={() => router.back()} />
-        </View>
         <T v="h1">{t('account.title')}</T>
         <T>{t('account.intro')}</T>
         <Card>

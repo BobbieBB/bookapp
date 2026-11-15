@@ -10,6 +10,7 @@ import { LANGUAGES, useLanguage, useT, type Language } from '@/i18n';
 import { analyticsConsent, setAnalyticsConsent, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
+import { useLegalUrl } from '@/lib/legalLinks';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { disablePush, enablePush, pushIsOn, type PushStatus } from '@/lib/pushDevice';
 import { useLookup } from '@/lib/useLookup';
@@ -274,6 +275,7 @@ export default function Profile() {
 
 // The terms and privacy policy stay one tap away after sign-up (App Store, Google Play); they open in the browser.
 function LegalLinks() {
+  const legal = useLegalUrl();
   const t = useT();
   const [failed, setFailed] = useState(false);
   const open = (url: string) => {
@@ -282,8 +284,8 @@ function LegalLinks() {
   };
   return (
     <Card>
-      <Button variant="link" title={t('legal.terms')} onPress={() => open(TERMS_URL)} />
-      <Button variant="link" title={t('legal.privacy')} onPress={() => open(PRIVACY_URL)} />
+      <Button variant="link" title={t('legal.terms')} onPress={() => open(legal(TERMS_URL))} />
+      <Button variant="link" title={t('legal.privacy')} onPress={() => open(legal(PRIVACY_URL))} />
       {failed && <ErrorText>{t('legal.linkFailed')}</ErrorText>}
     </Card>
   );

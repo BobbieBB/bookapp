@@ -1,4 +1,5 @@
 // Shows one language: ?lang=bg|en, else the last choice, else the browser's language. Without this script both show.
+// ?theme=light|dark (the app passes its own look) overrides the phone's light or dark setting for this visit.
 (() => {
   const root = document.documentElement;
   const remember = (lang) => {
@@ -23,7 +24,10 @@
     remember(lang);
   };
   const valid = (lang) => lang === 'bg' || lang === 'en';
-  const asked = new URLSearchParams(location.search).get('lang');
+  const params = new URLSearchParams(location.search);
+  const theme = params.get('theme');
+  if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
+  const asked = params.get('lang');
   const saved = recall();
   const browser = (navigator.language || '').toLowerCase().startsWith('bg') ? 'bg' : 'en';
   const start = valid(asked) ? asked : valid(saved) ? saved : browser;
