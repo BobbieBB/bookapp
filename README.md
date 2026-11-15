@@ -27,8 +27,9 @@ Before launch:
   the newest file in `supabase/migrations`).
   Apply `20261114000400_suspend.sql` before shipping a build with suspensions: the app calls
   `my_suspension()` and reads `subject_id` from `moderation_queue()`, which older databases don't have.
-- **18+ switch (deploy order):** apply migration `20261114000200_adult_confirmed.sql` before shipping a
-  build with the "I'm 18 or over" switch: the app reads `profiles.adult_confirmed` when it loads the profile.
+- **18+ dialog (deploy order):** apply migration `20261115000100_adult_confirmed.sql` before shipping a
+  build with the "Explicit content" dialog: the app reads `profiles.adult_confirmed` through `my_profile()`,
+  calls `confirm_adult()` and reads `adult_only` from `story_rooms`.
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
   (see PR #13). The push migration turns on `pg_net` and `pg_cron` itself; check that the
   `send-held-pushes` job shows up under Integrations → Cron.

@@ -193,11 +193,14 @@ database.
   (it is still hidden).
 - The app reads them through `my_notifications_v2`; `my_notifications` never returns them (older app builds).
 
-`profiles.adult_confirmed` (boolean, not null, default false) is the reader's yes to "I'm 18 or over"
-(docs/DECISIONS.md, "Explicit works: an 18+ yes/no"). Only the reader can change it, both ways: the
-update-own policy keeps other readers off the row, and the trigger `profiles_guard_adult` refuses any change
-(or an insert with `true`) without the reader's own session, the owner and `service_role` included (`LV001`).
-`user_can_access_section` requires it for the rooms of a story whose `content_rating` is `Explicit`.
+`profiles.adult_confirmed` (boolean, not null, default false) is the reader's yes to "I'm 18 or over", given
+in the dialog before an Explicit work's AO3 link or discussion (docs/DECISIONS.md, "Explicit works: an 18+
+confirmation"). It is private: no column grant, the reader reads it through `my_profile()`. It is set only by
+`confirm_adult()` (security definer, the caller's own row, to yes), and the trigger `profiles_guard_adult`
+refuses a new profile at yes, a yes without the reader's own session, and any change from yes back to no, the
+owner and `service_role` included (`LV001`). `user_can_access_section` requires it for the rooms of a story
+whose `content_rating` is `Explicit` (through `user_reached_section`, the reading-progress rule, and
+`user_needs_adult`); `story_rooms` returns `adult_only` for such a room the reader has reached, so the app can ask.
 
 ## Push notifications
 

@@ -28,7 +28,7 @@ By the legal review (14 Nov 2026), now written into the drafts, each app change 
 
 - Privacy Policy is information, not a term: tick text "I accept the Terms. I have read the Privacy Policy." (`feat/terms-update`); legal basis for the acceptance record is Art. 6(1)(b)/(f); the "cannot be withdrawn" sentence is gone.
 - Terms changes: notice, effective date, acceptance from that date, no "continued use" (`feat/terms-update`).
-- Explicit works: minimum age stays 16; AO3 warnings and link for Explicit works need a separate "I'm 18 or over" (`feat/explicit-gate`).
+- Explicit works: minimum age stays 16; the first time a reader opens the AO3 link or a discussion room of an Explicit work, a dialog asks "I'm 18 or over, continue" / "Back", and the yes is kept on the account; nothing else is hidden (`feat/explicit-gate`). Open for the lawyer: whether a click-through 18+ confirmation is enough for Explicit works.
 - Content moderation (terms section 6) follows the DSA: contact point in Bulgarian and English, notice with art. 16 elements, statement of reasons and notices to author and reporter (`feat/moderation-notices`); the former takedown/"counter-notice" clause is gone and section 9 is only about our own IP.
 - Suspension is a reserved power with warning, reason and a way to contest; admins can suspend and unsuspend (`feat/suspend`).
 - Deletion: the reader chooses keep or erase, nothing preselected (`feat/delete-choice`).
@@ -44,7 +44,7 @@ Follow-up for the team: the profile columns (`terms_version`, `terms_accepted_at
 
 **PO decides**
 1. Operator identity: legal name, **address for service** (required), EIK/VAT, contact mailbox (support@livami.app must exist and be monitored). Whether to run Livami through an ЕООД (the terms already allow transfer to a successor).
-2. Alternative to the 18+ tick: minimum age 18 for the whole app. Whether Mature works are gated like Explicit. `MIN_AGE = 16` in `src/lib/legal.ts` is a dev default.
+2. Alternative to the 18+ confirmation dialog: minimum age 18 for the whole app. Whether Mature works are gated like Explicit. `MIN_AGE = 16` in `src/lib/legal.ts` is a dev default.
 3. Retention periods: inactive accounts (none today), feedback (24 months proposed), removal requests, resolved chapter-count requests, moderation e-mails (also at Resend), proof of terms acceptance, logs, backups.
 4. Notice period for terms changes (30 days proposed), the time limit to ask us to look at a moderation decision again (6 months proposed), notice before stopping the service.
 5. Whether we agree to take part in ADR before the КЗП conciliation committees (text says yes).
@@ -60,6 +60,7 @@ Follow-up for the team: the profile columns (`terms_version`, `terms_accepted_at
 5. Liability wording (ЗЗД чл. 82, 94; ЗЗП чл. 143), whether the Digital Content Directive (ЗПЦСЦУПС) applies to the free service, whether 14-day withdrawal wording is needed, and the right to end the contract after a change.
 6. Venue (competent Bulgarian court), ADR wording, prevailing language.
 7. Use of the "AO3" name (OTW guidelines) and the Open Library data and cover licences and attribution.
+8. Whether a click-through 18+ confirmation (the "Explicit content" dialog, asked once per account, no age check) is enough for Explicit works, or whether Explicit works need more (age verification, minimum age 18).
 
 **Engineering confirms** (see "Code checks" below)
 - Supabase project region (EU?); Supabase log and backup retention.
