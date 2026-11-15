@@ -114,7 +114,7 @@ docs/
 
 ## Running the app
 
-You need Node.js 20+ on your computer and the **Expo Go** app on your phone (App Store / Google Play).
+You need Node.js 22.13 or newer (an even-numbered release: 22, 24 or 26) on your computer and the **Expo Go** app for Expo SDK 58 on your phone (App Store / Google Play). The app runs on Expo SDK 58 (React Native 0.88).
 
 ```bash
 git clone https://github.com/BobbieBB/bookapp.git
