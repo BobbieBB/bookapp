@@ -51,8 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     }
     setProfileState('loading');
+    // Through my_profile(): the table does not grant is_admin or terms_version to anyone, so other readers
+    // cannot read them (supabase/migrations/20261114000000_profile_privacy.sql). The filter keeps a reply
+    // that went out with an earlier reader's session from passing as this one's.
     const { data, error } = await supabase
-      .from('profiles')
+      .rpc('my_profile')
       .select('id, username, display_name, reads_books, reads_fanfic, is_admin, terms_version')
       .eq('id', userId)
       .maybeSingle();
