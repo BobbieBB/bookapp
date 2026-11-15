@@ -140,6 +140,35 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
   });
 });
 
+it('a fic without a link: "I don’t have a link" opens the same form; it is saved without one', async () => {
+  const title = `No Link Fic ${run}`;
+  await open('en');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'I don’t have a link' }));
+  expect(screen.queryByLabelText('AO3 link')).toBeNull();
+  expect(screen.getByText(/stays out of Discover/)).toBeOnTheScreen();
+  await fireEvent.changeText(screen.getByLabelText('Title'), title);
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), `Linkless Fandom ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '4');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await waitFor(
+    async () => {
+      const { data } = await supabase.from('stories').select('kind, source, source_url, published_sections').eq('title', title);
+      expect(data).toEqual([{ kind: 'fanfic', source: 'manual', source_url: null, published_sections: 4 }]);
+    },
+    { timeout: 8000 },
+  );
+});
+
+it('"I have a link after all" brings the link field back', async () => {
+  await open('bg');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Фенфикшън' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Нямам линк' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Все пак имам линк' }));
+  expect(await screen.findByLabelText('Линк към AO3')).toBeOnTheScreen();
+});
+
 it('adding a fic adds its fandom to "Your fandoms"', async () => {
   const fandom = `Followed Fandom ${run}`;
   await open('en');

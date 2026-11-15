@@ -443,6 +443,9 @@ function AddFic() {
   };
 
   const [filled, setFilled] = useState(false);
+  // "I don't have a link" (docs/DECISIONS.md, PO testing round, G): the same form, no link. The fic stays
+  // out of Discover until a reader adds the link on its page.
+  const [noLink, setNoLink] = useState(false);
 
   /** A plain link, or AO3's Share text: then everything it says is filled in (nothing is fetched from AO3). */
   function onLink(value: string) {
@@ -476,22 +479,26 @@ function AddFic() {
     setWarnings((cur) => (cur.includes(w) ? cur.filter((x) => x !== w) : [...cur, w]));
   }
 
+  // The form shows for a link we don't know yet, or for a fic added without one.
+  const showForm = noLink || (!!canonical && !checking && !existing);
+  const ready = noLink || (!!canonical && !checking);
+
   async function save() {
-    if (!canonical) return setError(t('add.errorLink'));
-    if (!existing) {
+    if (!noLink && !canonical) return setError(t('add.errorLink'));
+    if (noLink || !existing) {
       fields.submit();
       if (Object.values(errors).some(Boolean)) return;
     }
     setBusy(true);
     setError('');
     try {
-      if (existing) {
+      if (existing && !noLink) {
         await finish(existing, status, 'fanfic', 'ao3', undefined, existing.fandoms);
         return;
       }
       const n = Number(chapters);
       const story = await createFic({
-        ao3Link: canonical,
+        ao3Link: noLink ? null : canonical,
         title,
         author,
         fandom,
@@ -501,7 +508,7 @@ function AddFic() {
         rating,
         warnings,
       });
-      await finish(story, status, 'fanfic', 'ao3', undefined, [fandom.trim()]);
+      await finish(story, status, 'fanfic', noLink ? 'manual' : 'ao3', undefined, [fandom.trim()]);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);
@@ -510,20 +517,30 @@ function AddFic() {
 
   return (
     <View style={{ gap: space.m }}>
-      <Field
-        label={t('add.ao3Link')}
-        placeholder={t('add.ao3Placeholder')}
-        value={link}
-        onChangeText={onLink}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-      />
-      <T v="muted">{filled ? t('add.ao3Filled') : t('add.ao3ShareHint')}</T>
-      {checking && <T v="muted">{t('add.checking')}</T>}
-      {badLink && <ErrorText>{t('add.badLink')}</ErrorText>}
+      {noLink ? (
+        <>
+          <T v="muted">{t('add.noLinkHint')}</T>
+          <QuietLink label={t('add.haveLink')} onPress={() => setNoLink(false)} />
+        </>
+      ) : (
+        <>
+          <Field
+            label={t('add.ao3Link')}
+            placeholder={t('add.ao3Placeholder')}
+            value={link}
+            onChangeText={onLink}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+          />
+          <T v="muted">{filled ? t('add.ao3Filled') : t('add.ao3ShareHint')}</T>
+          {checking && <T v="muted">{t('add.checking')}</T>}
+          {badLink && <ErrorText>{t('add.badLink')}</ErrorText>}
+          {!canonical ? <QuietLink label={t('add.noLink')} onPress={() => setNoLink(true)} /> : null}
+        </>
+      )}
 
-      {existing ? (
+      {existing && !noLink ? (
         <Card tone="band">
           <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
             <Feather name="check" size={18} color={c.ink} />
@@ -533,7 +550,7 @@ function AddFic() {
           <T v="muted">{[existing.author_name, existing.fandoms[0], existing.ships[0]].filter(Boolean).join(' · ')}</T>
         </Card>
       ) : (
-        canonical && !checking && (
+        showForm && (
           <>
             <Field label={t('add.fieldTitle')} value={title} onChangeText={setTitle} onBlur={fields.onBlur('title')} error={fields.show('title', errors.title)} />
             <Field
@@ -578,9 +595,9 @@ function AddFic() {
         )
       )}
 
-      {canonical && !checking && (
+      {ready && (
         <>
-          <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={existing ? existing.status === 'ongoing' : !complete} />
+          <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={existing && !noLink ? existing.status === 'ongoing' : !complete} />
           <ErrorText>{error}</ErrorText>
           <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
         </>
@@ -658,3 +675,13 @@ const SPLIT_OPTION = {
   act: 'add.splitActs',
   pages: 'add.splitPages',
 } as const;
+
+/** A small grey link for a side path ("I don't have a link"), so the main path stays as it was. */
+function QuietLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { c, fonts } = useTheme();
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
+      <Text style={{ fontFamily: fonts.body, fontSize: 15, color: c.muted, textDecorationLine: 'underline' }}>{label}</Text>
+    </Pressable>
+  );
+}

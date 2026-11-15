@@ -79,7 +79,7 @@ describe('fics: one story per AO3 work', () => {
     await supabase.auth.signOut();
 
     await signIn(bob);
-    expect(await findStory({ ao3Link: fic().ao3Link })).toMatchObject({ id: first.id });
+    expect(await findStory({ ao3Link: fic().ao3Link! })).toMatchObject({ id: first.id });
     const second = await createFic(fic());
     expect(second.id).toBe(first.id);
     await addToLibrary(second.id, 'want_to_read');

@@ -112,7 +112,7 @@ export const AO3_WARNINGS = [
 ] as const;
 
 export type FicForm = {
-  ao3Link: string; // already normalised
+  ao3Link: string | null; // already normalised; null for a fic added without a link (source 'manual')
   title: string;
   author: string;
   fandom: string;
@@ -133,15 +133,21 @@ export async function createFic(f: FicForm): Promise<Story> {
       ships: f.ship.trim() ? [f.ship.trim()] : [],
       content_rating: f.rating,
       warnings: f.warnings,
-      source: 'ao3',
+      source: f.ao3Link ? 'ao3' : 'manual',
       source_url: f.ao3Link,
       status: f.complete ? 'completed' : 'ongoing',
       has_chapters: true,
       published_sections: f.chapters,
       total_sections: f.complete ? f.chapters : null,
     },
-    () => findStory({ ao3Link: f.ao3Link }),
+    async () => (f.ao3Link ? findStory({ ao3Link: f.ao3Link }) : null),
   );
+}
+
+/** "Add the AO3 link" to a fic added without one (readers who have it; admins). */
+export async function setFicLink(storyId: string, link: string): Promise<void> {
+  const { error } = await supabase.rpc('set_fic_link', { p_story: storyId, p_link: link });
+  if (error) throw error;
 }
 
 /** Adds the story to the signed-in reader's library (or updates its status if already there). */

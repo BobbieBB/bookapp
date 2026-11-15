@@ -20,9 +20,10 @@ async function checkReport(query: PromiseLike<{ error: { code?: string } | null 
 
 const cleanDetails = (details?: string) => (details?.trim() ? details.trim() : null);
 
-export async function sendFeedback(kind: FeedbackKind, body: string) {
+/** `wantsReply`: "I'd like a reply by e-mail", to the account's address (shown to the PO in the daily digest). */
+export async function sendFeedback(kind: FeedbackKind, body: string, wantsReply = false) {
   if (!body.trim()) throw new Error('Feedback is empty.');
-  await check(supabase.from('feedback').insert({ kind, body: body.trim(), app_version: APP_VERSION }));
+  await check(supabase.from('feedback').insert({ kind, body: body.trim(), app_version: APP_VERSION, wants_reply: wantsReply }));
 }
 
 /** An author asks for their fic to be hidden everywhere in the app (an admin processes it). */
