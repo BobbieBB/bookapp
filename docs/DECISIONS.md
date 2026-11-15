@@ -430,3 +430,18 @@ The terms promise that Livami never sells readers' content or uses it to train A
 same rule: readers' comments, reviews, reports and moderation e-mails are never pasted or screenshotted into AI
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
+
+## Retention: accounts that never finish signing up (14 Nov 2026)
+
+Signing up creates an account that holds the e-mail address; the profile only exists once the reader
+accepts the terms. An account that never gets a profile is **deleted 30 days after sign-up**, by a daily
+job (`sweep_profileless_accounts`, see DATA_MODEL.md, "Accounts without a profile"). This is the
+retention period the privacy policy states for these accounts. The 30 days run from the later of sign-up
+and the last sign-in, so a confirmed reader who signs in but has not accepted the terms yet is not
+deleted while they are active. An unconfirmed account still goes 30 days after sign-up: a late e-mail
+confirmation after that finds the account gone, and the reader signs up again. The 30 days are set in one place, the
+function's default.
+
+Inactive accounts **with** a profile are deliberately **not** deleted, however long they go unused: that
+is the PO's call (a reader's library, progress and comments are what they come back for). Readers leave
+by deleting their account themselves. Changing this needs a PO decision and a privacy-policy update.
