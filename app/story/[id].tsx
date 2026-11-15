@@ -15,6 +15,7 @@ import { useAuth } from '@/lib/auth';
 import { loadRooms } from '@/lib/discussions';
 import { asksAdult } from '@/lib/explicit';
 import { isAo3Link } from '@/lib/links';
+import { FINISH, OPTION, ROOM_NAME, sectionLabel } from '@/lib/sections';
 import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
@@ -68,7 +69,7 @@ export default function StoryScreen() {
       {shown && userId ? (
         <>
           <StoryBody story={shown.story} entry={shown.entry} userId={userId} onChanged={reload} />
-          <StoryRooms storyId={shown.story.id} version={version} />
+          <StoryRooms storyId={shown.story.id} version={version} label={sectionLabel(shown.story)} />
           {shown.story.kind === 'book' ? <BookReviews storyId={shown.story.id} version={version} /> : null}
         </>
       ) : page.error ? (
@@ -393,7 +394,7 @@ function StoryBody({
           {next ? (
             <Button
               variant={next.newlyPublished ? 'secondary' : 'primary'}
-              title={next.newlyPublished ? t('story.chapterOut', { n: next.chapter }) : t('story.finishChapter', { n: next.chapter })}
+              title={next.newlyPublished ? t('story.chapterOut', { n: next.chapter }) : t(FINISH[sectionLabel(story)], { n: next.chapter })}
               onPress={() =>
                 saved(
                   { progress_section: next.chapter },
@@ -407,7 +408,7 @@ function StoryBody({
             />
           ) : null}
 
-          {justOpened !== null ? <OpenedRoom storyId={story.id} chapter={justOpened} /> : null}
+          {justOpened !== null ? <OpenedRoom storyId={story.id} chapter={justOpened} name={t(ROOM_NAME[sectionLabel(story)], { n: justOpened })} /> : null}
 
           {canComplete(story, entry.progress_section) ? (
             <Button variant="secondary" title={t('story.markComplete')} onPress={() => act(() => markComplete(story.id))} />
@@ -445,7 +446,7 @@ function StoryBody({
                 max={story.has_chapters ? Math.max(count ?? 0, entry.progress_section) : Math.max(story.page_count ?? PAGE_WHEEL_MAX, entry.progress_page ?? 0)}
                 value={wheel}
                 onChange={setWheel}
-                label={(n) => (n === 0 ? t('library.notStarted') : t(story.has_chapters ? 'story.chapterOption' : 'story.pageOption', { n }))}
+                label={(n) => (n === 0 ? t('library.notStarted') : t(story.has_chapters ? OPTION[sectionLabel(story)] : 'story.pageOption', { n }))}
                 testIDPrefix={story.has_chapters ? 'chapter-option' : 'page-option'}
               />
             ) : null}
@@ -536,12 +537,11 @@ function ProgressLine({
 }
 
 /** The room "I finished chapter N" just opened, glowing, one tap from the discussion. */
-function OpenedRoom({ storyId, chapter }: { storyId: string; chapter: number }) {
+function OpenedRoom({ storyId, chapter, name }: { storyId: string; chapter: number; name: string }) {
   const { c, mode, fonts } = useTheme();
   const t = useT();
   const rooms = useLookup(`opened:${storyId}:${chapter}`, () => loadRooms(storyId));
   const room = rooms.data?.find((r) => r.kind === 'chapter' && r.section_number === chapter);
-  const name = t('room.chapter', { n: chapter });
   return (
     <Pressable
       testID="opened-room"

@@ -21,6 +21,8 @@ export const en = {
   'library.finishedChapterOf': 'Finished chapter {n} of {total}',
   'library.finishedPart': 'Finished part {n}',
   'library.finishedPartOf': 'Finished part {n} of {total}',
+  'library.finishedAct': 'Finished act {n}',
+  'library.finishedActOf': 'Finished act {n} of {total}',
   'library.coverLabel': '{title} cover',
 } as const satisfies Messages;
 
@@ -45,5 +47,7 @@ export const bg: Translation<typeof en> = {
   'library.finishedChapterOf': 'Прочетена глава {n} от {total}',
   'library.finishedPart': 'Прочетена част {n}',
   'library.finishedPartOf': 'Прочетена част {n} от {total}',
+  'library.finishedAct': 'Прочетено действие {n}',
+  'library.finishedActOf': 'Прочетено действие {n} от {total}',
   'library.coverLabel': 'Корица на {title}',
 };

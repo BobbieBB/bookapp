@@ -3,6 +3,14 @@ import type { Messages, Translation } from '../types';
 // Chapter Discussions and The Epilogue.
 export const en = {
   'room.chapter': 'Chapter {n}',
+  'room.part': 'Part {n}',
+  'room.act': 'Act {n}',
+  'room.finishedPillPart': 'I finished part {n}',
+  'room.finishedPillAct': 'I finished act {n}',
+  'room.finishedRowPart': 'Done with part {n}? Mark it as read',
+  'room.finishedRowAct': 'Done with act {n}? Mark it as read',
+  'room.lockedPart': 'Finish part {n} to join this discussion.',
+  'room.lockedAct': 'Finish act {n} to join this discussion.',
   'room.epilogue': 'The Epilogue',
   'room.subtitle': 'The whole story, spoilers and all. Opens when you finish.',
   'room.finishedPill': 'I finished chapter {n}',
@@ -29,6 +37,14 @@ export const en = {
 
 export const bg: Translation<typeof en> = {
   'room.chapter': 'Глава {n}',
+  'room.part': 'Част {n}',
+  'room.act': 'Действие {n}',
+  'room.finishedPillPart': 'Прочетох част {n}',
+  'room.finishedPillAct': 'Прочетох действие {n}',
+  'room.finishedRowPart': 'Свърши ли част {n}? Отбележи я като прочетена',
+  'room.finishedRowAct': 'Свърши ли действие {n}? Отбележи го като прочетено',
+  'room.lockedPart': 'Прочети част {n}, за да се включиш в обсъждането.',
+  'room.lockedAct': 'Прочети действие {n}, за да се включиш в обсъждането.',
   'room.epilogue': 'Епилогът',
   'room.subtitle': 'Цялата история, със спойлери. Отваря се, когато я завършиш.',
   'room.finishedPill': 'Прочетох глава {n}',

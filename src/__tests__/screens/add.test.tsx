@@ -232,6 +232,47 @@ it('pasting AO3’s Share text fills in the fic (nothing is fetched from AO3)', 
 });
 
 // story_added carries the edition language, for the PO's "BG vs EN" number (docs/DECISIONS.md, Analytics).
+it('a play: "No chapters?" lets a book be split into acts; the main path stays "Chapters"', async () => {
+  const title = `A Play ${run}`;
+  await open('en');
+  await fireEvent.changeText(await screen.findByLabelText('Search'), 'zzzz');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add it by hand' }, { timeout: 3000 }));
+  expect(screen.getByLabelText('Chapters')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'No chapters?' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Acts (a play)' }));
+  await fireEvent.changeText(await screen.findByLabelText('Acts'), '4');
+  await fireEvent.changeText(screen.getByLabelText('Title'), title);
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'Someone');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await waitFor(
+    async () => {
+      const { data } = await supabase.from('stories').select('has_chapters, section_label, total_sections').eq('title', title);
+      expect(data).toEqual([{ has_chapters: true, section_label: 'act', total_sections: 4 }]);
+    },
+    { timeout: 8000 },
+  );
+});
+
+it('a book with no division at all is split by pages', async () => {
+  const title = `No Division ${run}`;
+  await open('bg');
+  await fireEvent.changeText(await screen.findByLabelText('Търсене'), 'zzzz');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Добави я ръчно' }, { timeout: 3000 }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Няма глави?' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Няма деление (по страници)' }));
+  await fireEvent.changeText(await screen.findByLabelText('Страници'), '200');
+  await fireEvent.changeText(screen.getByLabelText('Заглавие'), title);
+  await fireEvent.changeText(screen.getByLabelText('Автор'), 'Някой');
+  await fireEvent.press(screen.getByRole('button', { name: 'Добави в моята библиотека' }));
+  await waitFor(
+    async () => {
+      const { data } = await supabase.from('stories').select('has_chapters, page_count, total_sections').eq('title', title);
+      expect(data).toEqual([{ has_chapters: false, page_count: 200, total_sections: null }]);
+    },
+    { timeout: 8000 },
+  );
+});
+
 describe('the story_added event', () => {
   let tracked: jest.SpyInstance;
   beforeEach(() => {

@@ -25,6 +25,8 @@ export type Story = {
   fandoms: string[];
   ships: string[];
   has_chapters: boolean;
+  /** What a section is called: chapters, or for a book, parts or acts (a play). Missing on old rows means chapters. */
+  section_label?: 'chapter' | 'part' | 'act';
   published_sections: number | null;
   total_sections: number | null;
   page_count: number | null;
