@@ -231,7 +231,7 @@ function StoryBody({
   userId: string;
   onChanged: () => void;
 }) {
-  const { c, mode, fonts } = useTheme();
+  const { c, fonts } = useTheme();
   const t = useT();
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
