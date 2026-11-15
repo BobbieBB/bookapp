@@ -578,3 +578,33 @@ function's default.
 Inactive accounts **with** a profile are deliberately **not** deleted, however long they go unused: that
 is the PO's call (a reader's library, progress and comments are what they come back for). Readers leave
 by deleting their account themselves. Changing this needs a PO decision and a privacy-policy update.
+
+## PO testing round on iPhone (15 Nov 2026)
+
+Decisions from the PO's first test on her own phone. Each ships in its own pull request; this records the choice.
+
+- **A. Progress card on the story page.** A status menu ("Reading ▾") instead of a row of chips; "Chapter N of M"
+  with a bar and *Change*, which opens a wheel picker in a bottom sheet with *Done* (no grid of chips); one main
+  button "I finished chapter N+1". After it, the new room appears as a glowing card with the discussion icon
+  ("Chapter 24 · 3 comments · 2 readers ›") and the button moves on to the next chapter. Chaptered books have no
+  page field; pages (same wheel) only for books without chapters.
+- **B. Discussions list.** Only rooms you unlocked, newest first: the last **3**, with "All (N) ›" next to the
+  heading opening a separate screen with every unlocked room. No row for the next locked chapter (the main
+  button already says what comes next); The Epilogue stays at the bottom, locked until you finish. Counts as
+  icons (💬 3 · 👤 2), no explanatory text under locked rooms.
+- **C. Feedback can get a reply.** An unticked box "I'd like a reply by e-mail" ("Искам отговор по имейл"), with
+  the account's e-mail shown under it ("We'll write to …"). Nothing new is collected; the PO answers from
+  support@livami.app. The reader picks it for themselves, so it is worded in the first person, like "I accept".
+- **D. Moderators.** Only the PO for now. Later 2–3 people with a narrower role: hide comments and reviews on a
+  report and accept chapter counts; no feedback (it has e-mails), no Numbers, no fic removals, no roles. Every
+  moderator action logged. Not built until needed.
+- **E. Books without chapters.** The add form stays "Number of chapters"; a small grey "No chapters?" opens a
+  choice: parts, acts (plays), or no division (rooms by blocks of pages). The main path doesn't change.
+- **F. Discover for books, in v1.** "Books | Fanfiction" at the top, shown only to readers who read both;
+  readers of one kind see theirs directly. Books start as one "Being read now" list, no genres yet.
+- **G. A fic without a link.** If the site doesn't answer, adding falls back to the manual form with the link
+  kept; a small grey "I don't have a link" opens the same form. Fics without a link show up in search but not in
+  Discover (we can't send readers to the author or match a removal request) until a link is added.
+- **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
+  story page showed them every chapter and The Epilogue as open, a spoiler on their own book
+  (`20261115000000_rooms_follow_progress.sql`).

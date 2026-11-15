@@ -6,6 +6,7 @@ import { failRequests, holdRequest } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import * as analytics from '../../lib/analytics';
 import { PRIVACY_URL, TERMS_URL } from '../../lib/legal';
+import { legalUrl } from '../../lib/legalLinks';
 import { supabase } from '../../lib/supabase';
 
 // Profile > "Help us improve the app" (docs/DECISIONS.md, "Analytics: opt-in", 14 Nov 2026): off until the
@@ -97,10 +98,10 @@ it('the terms and the privacy policy open from Profile, and a failure says so', 
   const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(new Error('no browser')).mockResolvedValue(undefined);
   await renderScreen('bg', { profile: Profile }, '/profile');
   fireEvent.press(await screen.findByRole('button', { name: 'Условия' }, { timeout: 8000 }));
-  expect(open).toHaveBeenLastCalledWith(TERMS_URL);
+  expect(open).toHaveBeenLastCalledWith(legalUrl(TERMS_URL, 'bg', false));
   expect(await screen.findByText('Не успяхме да отворим страницата. Опитай пак.')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Политика за поверителност' }));
-  expect(open).toHaveBeenLastCalledWith(PRIVACY_URL);
+  expect(open).toHaveBeenLastCalledWith(legalUrl(PRIVACY_URL, 'bg', false));
   await waitFor(() => expect(screen.queryByText('Не успяхме да отворим страницата. Опитай пак.')).toBeNull());
   open.mockRestore();
 });

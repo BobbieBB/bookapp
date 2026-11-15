@@ -74,6 +74,29 @@ select test.ok((select readers from public.story_rooms('d5000000-0000-0000-0000-
 select test.ok((select readers from public.story_rooms('d5000000-0000-0000-0000-000000000002') where kind = 'epilogue') = 0,
   'nobody is counted in the Epilogue of a story that is still ongoing');
 
+-- An admin's story page follows their own reading, not the moderation bypass: no spoilers on their own book.
+select test.logout();
+insert into auth.users (id) values ('00000000-0000-0000-0000-000000000d05');
+insert into public.profiles (id, username, is_admin) values ('00000000-0000-0000-0000-000000000d05', 'dora', true);
+insert into public.library_entries (user_id, story_id, status, progress_section) values
+  ('00000000-0000-0000-0000-000000000d05', 'd5000000-0000-0000-0000-000000000001', 'currently_reading', 1);
+select test.login('00000000-0000-0000-0000-000000000d05');
+select test.ok((select array_agg(unlocked order by kind = 'epilogue', section_number) from public.story_rooms('d5000000-0000-0000-0000-000000000001'))
+  = array[true, false, false, false, false], 'an admin who read chapter 1 sees only chapter 1 open, not The Epilogue');
+select test.ok((select comments from public.story_rooms('d5000000-0000-0000-0000-000000000001') where section_number = 3) is null,
+  '... and no comment count for a chapter they have not read');
+select test.ok(test.error_of($$select public.open_discussion('d5000000-0000-0000-0000-000000000001', 'chapter', 3)$$) is null,
+  '... but can still open it to moderate');
+select test.logout();
+update public.library_entries set status = 'finished' where user_id = '00000000-0000-0000-0000-000000000d05';
+select test.login('00000000-0000-0000-0000-000000000d05');
+select test.ok((select bool_and(unlocked) from public.story_rooms('d5000000-0000-0000-0000-000000000001')), '... and sees every room once finished');
+select test.logout();
+update public.library_entries set status = 'currently_reading' where user_id = '00000000-0000-0000-0000-000000000d05';
+select test.login('00000000-0000-0000-0000-000000000d05');
+select test.ok(not (select unlocked from public.story_rooms('d5000000-0000-0000-0000-000000000001') where kind = 'epilogue'),
+  '... and The Epilogue closes again when back to Reading');
+
 select test.logout();
 update public.stories set is_hidden = true where id = 'd5000000-0000-0000-0000-000000000001';
 select test.login('00000000-0000-0000-0000-000000000d02');

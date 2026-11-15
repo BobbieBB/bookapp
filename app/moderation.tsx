@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +18,6 @@ const refused = (error: unknown) => errorCode(error) === '42501';
 export default function Moderation() {
   const { c } = useTheme();
   const t = useT();
-  const router = useRouter();
   const [version, setVersion] = useState(0);
   const { data, error, previous } = useLookup(`moderation-queue-${version}`, fetchQueue);
   // After an action the list reloads; the old one stays on screen meanwhile instead of a spinner.
@@ -29,11 +27,8 @@ export default function Moderation() {
   const { data: health } = useLookup(`moderation-email-health-${version}`, fetchEmailHealth);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <View style={{ alignItems: 'flex-start' }}>
-          <Button variant="link" title={t('moderation.back')} onPress={() => router.back()} />
-        </View>
         <T v="h1">{t('moderation.title')}</T>
         {health && health.failures > 0 ? (
           <View accessibilityRole="alert">

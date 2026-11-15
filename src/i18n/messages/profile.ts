@@ -41,7 +41,7 @@ export const bg: Translation<typeof en> = {
   'profile.authorsNote':
     'Всеки фикшън е подарък за общността. Пазим само линк към твоята творба и връщаме читателите при теб за kudos и коментари. Ако имаш фикшън и предпочиташ да не е в списъка тук, можеш да ни помолиш да го скрием по всяко време.',
   'profile.language': 'Език',
-  'profile.appearance': 'Облик',
+  'profile.appearance': 'Тема',
   'profile.appearance.auto': 'Автоматично',
   'profile.appearance.light': 'Светла',
   'profile.appearance.dark': 'Тъмна',

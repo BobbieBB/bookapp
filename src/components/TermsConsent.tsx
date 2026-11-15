@@ -5,6 +5,7 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { MIN_AGE, PRIVACY_URL, TERMS_URL } from '@/lib/legal';
+import { useLegalUrl } from '@/lib/legalLinks';
 import { radius, space, useTheme } from '@/theme';
 
 export function Checkbox({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -40,12 +41,13 @@ export function Checkbox({ label, checked, onChange, disabled }: { label: string
 }
 
 export function WebLink({ title, label, url, onOpened }: { title: string; label: string; url: string; onOpened: (ok: boolean) => void }) {
+  const legal = useLegalUrl();
   const { c, fonts } = useTheme();
   return (
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={label}
-      onPress={() => Linking.openURL(url).then(() => onOpened(true), () => onOpened(false))}
+      onPress={() => Linking.openURL(legal(url)).then(() => onOpened(true), () => onOpened(false))}
       style={{ minHeight: 44, minWidth: 44, justifyContent: 'center' }}
     >
       <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{title}</Text>

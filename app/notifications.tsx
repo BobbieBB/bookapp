@@ -1,10 +1,9 @@
-import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NotificationRow } from '@/components/NotificationRow';
-import { Button, ErrorText, T } from '@/components/ui';
+import { ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { markReadUpTo, myNotifications } from '@/lib/notifications';
 import { useLookup } from '@/lib/useLookup';
@@ -13,7 +12,6 @@ import { space, useTheme } from '@/theme';
 export default function Notifications() {
   const { c } = useTheme();
   const t = useT();
-  const router = useRouter();
   const { data, error } = useLookup('notifications', () => myNotifications());
 
   // Only what was shown is marked read (anything newer stays unread for next time).
@@ -24,11 +22,8 @@ export default function Notifications() {
   }, [newestShownAt]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <View style={{ alignItems: 'flex-start' }}>
-          <Button variant="link" title={t('notifications.back')} onPress={() => router.back()} />
-        </View>
         <T v="h1">{t('notifications.title')}</T>
         {!data && error === undefined ? <ActivityIndicator color={c.signal} /> : null}
         <ErrorText>{error !== undefined ? t('notifications.error') : null}</ErrorText>
