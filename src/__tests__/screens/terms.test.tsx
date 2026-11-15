@@ -13,6 +13,7 @@ import SignIn from '../../../app/sign-in';
 import { failRequests } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import { MIN_AGE, overrideTermsSchedule, PRIVACY_URL, termsNoticeKey, TERMS_URL, TERMS_VERSION } from '../../lib/legal';
+import { legalUrl } from '../../lib/legalLinks';
 import { supabase } from '../../lib/supabase';
 
 // Terms and age at sign-up (docs/DECISIONS.md, "Terms and age: ticked at sign-up", 2 Nov 2026): two
@@ -137,9 +138,9 @@ describe('onboarding', () => {
       await signUp('linker');
       await renderScreen('en', { onboarding: Onboarding }, '/onboarding');
       await fireEvent.press(await screen.findByRole('link', { name: 'Open the Terms' }, { timeout: 8000 }));
-      expect(open).toHaveBeenCalledWith(TERMS_URL);
+      expect(open).toHaveBeenCalledWith(legalUrl(TERMS_URL, 'en', false));
       await fireEvent.press(screen.getByRole('link', { name: 'Open the Privacy Policy' }));
-      expect(open).toHaveBeenCalledWith(PRIVACY_URL);
+      expect(open).toHaveBeenCalledWith(legalUrl(PRIVACY_URL, 'en', false));
     } finally {
       open.mockRestore();
     }
@@ -333,12 +334,12 @@ describe('terms that change on a date', () => {
 
   it('the notice links to the Terms', async () => {
     restore = before();
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     try {
       await signUp('earlyreader', OLD_VERSION);
       await renderScreen('en', homeApp, '/');
       await fireEvent.press(await screen.findByRole('link', { name: 'Read the new Terms' }, { timeout: 8000 }));
-      expect(open).toHaveBeenCalledWith(TERMS_URL);
+      expect(open).toHaveBeenCalledWith(legalUrl(TERMS_URL, 'en', false));
     } finally {
       open.mockRestore();
     }

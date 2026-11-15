@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,7 +11,6 @@ import { space, useTheme } from '@/theme';
 export default function Blocked() {
   const { c } = useTheme();
   const t = useT();
-  const router = useRouter();
   const [version, setVersion] = useState(0);
   const [failed, setFailed] = useState(false);
   const { data, error, previous } = useLookup(`blocked-${version}`, blockedReaders);
@@ -29,11 +27,8 @@ export default function Blocked() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        <View style={{ alignItems: 'flex-start' }}>
-          <Button variant="link" title={t('safety.back')} onPress={() => router.back()} />
-        </View>
         <T v="h1">{t('safety.blockedTitle')}</T>
         {!readers && error === undefined ? <ActivityIndicator color={c.signal} /> : null}
         <ErrorText>{failed || error !== undefined ? t('safety.error') : null}</ErrorText>

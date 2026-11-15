@@ -15,7 +15,8 @@ table. Anonymous users (`anon`) have no access at all.
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
 | `discussion_follows` | Followed / muted discussions, last read time | You |
 | `blocks` | Users you blocked | You |
-| `notifications` | Replies, reactions and @mentions — **never the comment text** — and moderation notices (`content_hidden`, `report_resolved`: `content_kind`, `reason`, `outcome`, `story_id`; never an `actor_id`, see Moderation notices) | You |
+| `notifications` | Replies, reactions and @mentions — **never the comment text** — and system notices: moderation notices (`content_hidden`, `report_resolved`: `content_kind`, `reason`, `outcome`, `story_id`, see Moderation notices) and account notices (`account_suspended`, `account_restored`: `suspension_id`, the `suspensions` row whose reason is shown). A system notice never has an `actor_id`; only moderation notices may lack a room, account notices never have one (the `notifications_moderation_shape` check) | You |
+| `suspensions` | Every suspension and lifting of a reader: `suspended` (true / false), the reason (required to suspend, 1–500 characters, shown to the reader), `by_admin`, time. Written only by `set_reader_suspended`; deleted with the reader's account | Admins |
 | `ratings` | 0.5–5 in half steps, **books only** (fanfiction is never rated) | Everyone |
 | `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3); `user_id` is empty once the author deleted their account | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
@@ -28,7 +29,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `moderation_email_log` | Every moderation e-mail handed to pg_net and Resend's answer (status code), and the report a report's e-mail is about; kept 30 days | Nobody (read through `moderation_email_health`) |
 | `cover_sweep_settings` | Whether the daily orphan cover sweep runs and the `sweep-covers` function's address (one row; off until set up) | Admins |
 | `analytics_events` | Which features get used: an event name from a fixed list (`room_opened` added for the PO's numbers) and a few short non-content properties (max 300/hour per reader) | Admins only (readers can only add their own) |
-| `analytics_opt_outs` | Readers who switched "Help us improve the app" off; while there is a row, nothing is recorded for them | You only |
+| `analytics_consents` | Readers who said yes to "Help us improve the app" (at onboarding or in Profile); events are recorded only while there is a row (replaced `analytics_opt_outs`, dropped 14 Nov 2026) | You only |
 | `custom_covers` | Which private image is your cover for a story in your library (files in the private `covers` storage bucket, in a folder named after you) | Only you |
 | `starter_fandoms` | Curated big fandoms for an empty app and readers who picked none | Logged-in users |
 
@@ -110,7 +111,8 @@ other, and neither gets notifications from the other. A no longer sees B's react
 "Deleting an account: what happens to comments"). It deletes the `auth.users` row; every table that
 holds the reader's data references it, or `profiles`, with `on delete cascade`: profile, library and
 progress, custom covers, ratings, reactions, follows, blocks, notifications, reports they filed,
-analytics events and opt-out, push tokens. Six keys are `on delete set null` instead, and keep the row
+analytics events and consent (`analytics_consents`; the comment in `20261019000000_delete_account.sql` still
+says "opt-out" from before analytics became opt-in, and that table is gone), push tokens. Six keys are `on delete set null` instead, and keep the row
 without its owner: `comments.author_id` and `reviews.user_id` (shown as "Deleted reader"),
 `stories.created_by` (the story is shared with its other readers), `feedback.user_id`,
 `removal_requests.requester_id` and `notifications.actor_id` (other readers keep their reply and
@@ -148,7 +150,7 @@ swept the same way. The 30 days are the function's default and nowhere else. Onl
 runs it (the cron job); `anon`, `authenticated` and `service_role` cannot. Accounts with neither date are
 kept. Accounts with a profile are
 never swept, however old or inactive (a PO decision). What such an account can have made goes with it
-through `on delete cascade`: analytics events and the analytics opt-out (both reference `auth.users`;
+through `on delete cascade`: analytics events and the analytics consent (both reference `auth.users`;
 everything else needs a profile, so there are no cover files in Storage). A reader accepting the terms
 at that very moment keeps the account: the function locks its candidates `for update skip locked` (a
 profile insert in progress holds a lock on the user row, so that account is skipped), then deletes
@@ -183,7 +185,8 @@ database.
 - every report it closes (actioned or dismissed, on a comment, review or reader): `report_resolved` to that report's
   reporter, with `content_kind`, `outcome` and the story (none for a reader).
 - `actor_id` is always empty (a check constraint holds it), so neither notice can name the reporter or the reported
-  reader, and they are sent across blocks. `discussion_id` may be empty only for these two kinds.
+  reader, and they are sent across blocks. `discussion_id` may be empty only for these two kinds and the account notices
+  (`account_suspended`, `account_restored`, which never have one; see DECISIONS.md, Suspending a reader).
 - They are always visible to their reader (no spoiler-wall check: no comment text, only a story and chapter they
   already knew) and never pushed: `notifications_send_push` and `send_held_pushes` only handle replies and mentions.
 - Hiding a fic on a removal request notifies nobody, and neither does hiding a comment its author had already deleted
@@ -254,7 +257,7 @@ migrations or the service role can change `moderation_email_settings`.
 | `section_reader_counts(story)` | Anonymous "N readers are here" counts |
 | `story_rooms(story)` | The story page's rooms: every chapter (or 25-page part) and The Epilogue, with your lock state, anonymous reader counts, and comment counts only for rooms you unlocked |
 | `my_notifications(limit, types)` | Your replies/mentions/reactions with who, story and room — no text, only rooms you can open now. Only these three kinds, ever: it is what app builds from before 14 Nov 2026 call, and they can't render other kinds |
-| `my_notifications_v2(limit, types)` | What the app calls now: every kind, the social ones under the same rules, plus system notices (moderation notices, always shown) with `content_kind`, `reason`, `outcome` and `story_id` without a room. New notification kinds go here, with any new columns added to its result |
+| `my_notifications_v2(limit, types)` | What the app calls now: every kind, the social ones under the same rules, plus system notices (moderation and account notices, always shown) with `content_kind`, `reason` (a report reason), `outcome`, `story_id` without a room, and `suspension_reason` (the admin's words, `account_suspended` only). New notification kinds go here, with any new columns added to its result |
 | `mark_notifications_read()` | Mark all your notifications read |
 | `delete_my_account(erase_comments)` | Delete your own account for good (see Deleting an account) |
 | `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |
@@ -269,6 +272,10 @@ migrations or the service role can change `moderation_email_settings`.
 | `admin_numbers(weeks)` | Admins only (Profile > Numbers): the PO's weekly numbers from `analytics_events` (see DECISIONS.md, Analytics); everyone else is refused |
 | `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count); everyone else gets 42501 |
 | `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Comment and review hides notify the author (`content_hidden`) and every closed report notifies its reporter (`report_resolved`), in the same transaction. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
+| `moderation_queue()` | Admins only (Profile > Moderation): every open report, removal request, feedback message and chapter-count request, newest first, in one shape (kind, id, story, who, excerpt of up to 280 characters, reason, contact, current and proposed count, and for comment / review / reader reports the reader's id and whether they are suspended); everyone else gets 42501 |
+| `set_reader_suspended(user, suspended, reason)` | Admins only (42501): suspend a reader (reason required, 22023; at most 500 characters, 22001) or lift it; never yourself or another admin (22023); unknown reader P0002; already in that state 55000. Sets `profiles.is_suspended`, logs it in `suspensions` and notifies the reader in the app (no push) |
+| `my_suspension()` | Whether you are suspended now, and the latest reason and time (Home's banner) |
+| `moderation_resolve(kind, id, action)` | Admins only: comment or review report hide / dismiss (hide also actions every other open report on it); user report dismiss; removal request hide / dismiss; chapter count accept / dismiss; feedback done / dismiss. Raises on an unknown kind or action (22023), a missing id (P0002), an item that is not open (55000), a removal request with no fic to hide (MD001), or a book that cannot take the count (MD002). Accepting a count moves readers' progress so nobody is beyond the end (see DECISIONS.md) |
 
 ## Tests
 

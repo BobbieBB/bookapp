@@ -9,8 +9,9 @@
   --primary: #FF4F84;
   --link: #B3123F;
 }
+/* Dark follows the phone, unless the app opened the page with ?theme= (site/lang.js sets data-theme). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --ground: #120C17;
     --surface: #1F1726;
     --band: #13302A;
@@ -20,6 +21,16 @@
     --primary: #FF6B97;
     --link: #FF8FB0;
   }
+}
+:root[data-theme='dark'] {
+  --ground: #120C17;
+  --surface: #1F1726;
+  --band: #13302A;
+  --ink: #F7EEF3;
+  --muted: #B4A6BD;
+  --hairline: #3A2F44;
+  --primary: #FF6B97;
+  --link: #FF8FB0;
 }
 
 * { box-sizing: border-box; }

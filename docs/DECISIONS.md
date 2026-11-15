@@ -207,7 +207,9 @@ Choices made during development where the decisions above don't say. Each one is
 - **Reviews can be reported (2 Nov 2026):** every review on a book page, except your own, has the same Report action and reasons
   as a comment (Apple expects reporting on all user-generated content); a moderator hides or dismisses it from the queue.
 - **User reports are dismiss-only (2 Nov 2026):** there is no banning in v1, so a report on a reader can only be closed;
-  the moderator's tools against a person are the comments they hide and the readers who block them.
+  the moderator's tools against a person are the comments they hide and the readers who block them. *Superseded
+  14 Nov 2026: a moderator can now suspend the reader (see "Suspending a reader"); the report itself is still
+  closed by dismissing it.*
 - **A lowered chapter count (2 Nov 2026):** accepting a count below what readers already reached would leave them "beyond
   the end" (and make their next library update fail). The moderator accepts anyway, and readers past the new count are
   moved back to it; readers who finished the book follow the count up or down and stay finished. Nothing else is
@@ -248,7 +250,7 @@ Choices made during development where the decisions above don't say. Each one is
 - **Bulgarian Cyrillic letterforms** (д like g, т like m, и like u), which Sofia Sans shows when the app is in Bulgarian, stay:
   the PO likes them (20 Oct 2026, phone test). No switch to the Russian-style forms.
 
-## Analytics: first-party, with an opt-out (18 Oct 2026, PO)
+## Analytics: first-party, with an opt-out (18 Oct 2026, PO; now opt-in, see "Analytics: opt-in" below)
 - Confirms the PR #12 approach: our own `analytics_events` table, a fixed list of events, short non-content properties, never
   titles, comment text or other people's ids. Linked to the account so we can see whether people come back; deleted with it.
 - Add a Profile switch "Help us improve the app" (on by default). When off, the app records nothing. GDPR: readers can object.
@@ -479,7 +481,8 @@ protection by default (GDPR Art. 25), and dark romance readers may not want thei
 - The operator ("controller" in the privacy policy) is the PO as a natural person for now; a company can
   replace her later, with a new terms version.
 - Minimum age **16**, a self-declared tick (`MIN_AGE` in `src/lib/legal.ts`).
-- Analytics stay **on with an opt-out** (legitimate interests); the lawyer confirms the basis.
+- Analytics stay **on with an opt-out** (legitimate interests); the lawyer confirms the basis. Superseded on 14 Nov 2026:
+  analytics are opt-in (below).
 
 ## Readers' content stays out of AI tools (PO, 13 Nov 2026)
 
@@ -524,6 +527,79 @@ profile cannot be loaded, the app shows its usual "couldn't load your profile / 
 (`alter table public.profiles disable trigger profiles_guard_adult`, then enable it again): the trigger refuses
 the answer from anyone but the reader, the database owner included.
 
+## Analytics: opt-in (14 Nov 2026)
+
+Recording which features a reader uses reads from and stores on their device, so under ePrivacy art. 5(3) (EDPB
+Guidelines 2/2023) the safer basis is consent, not legitimate interests. Analytics are now **off until the reader
+says yes**:
+- Onboarding has a third box, unticked and not needed to start: "Help us improve the app: count which features get
+  used. Never what you read or write." Ticking it stores consent right after the profile is saved.
+- The Profile switch "Help us improve the app" shows that consent, off by default; on stores it, off deletes it.
+- Consent is a row in `analytics_consents`; the database refuses every event from a reader without one, and the app
+  sends nothing unless it knows the reader said yes. Existing readers start without consent, whatever they chose
+  before; the old `analytics_opt_outs` table is dropped.
+- `sign_up` is now sent from onboarding, after the consent, together with `onboarding_done`: at sign-up itself
+  nobody has said yes yet. The admin numbers therefore count only readers who said yes (week-1 return included).
+- If saving the consent at onboarding fails, the reader still gets in: no consent is stored, nothing is recorded,
+  and they can switch it on in Profile.
+- Events recorded before this change (under the old opt-out) are **kept for now**, pending the PO's decision on
+  deleting them; the migration leaves `analytics_events` as it is.
+- From this change on, the admin numbers (sign-ups, week-1 return and the rest) count only readers who said yes,
+  so weeks before 14 Nov 2026 are not comparable with weeks after.
+
+## Suspending a reader (14 Nov 2026)
+
+The terms reserve the right to suspend a reader who seriously or repeatedly breaks the rules.
+
+- **Who and how:** only admins, from the Moderation screen: on a report about a reader, or on a comment or review
+  report (then it is the author), *Suspend the reader* asks for a reason and *Lift the suspension* undoes it. The
+  reason is required, at most 500 characters, and **the reader sees it**. An admin cannot suspend themselves or another admin (admins are removed by the operator).
+  Suspending or lifting does not close the report: hide or dismiss it as before.
+- **Logged:** every suspension and lifting is a row in `suspensions` (who, by which admin, when, the reason). Admins
+  read it; nobody edits it. It goes with the reader's account if they delete it.
+- **What a suspended reader can't do:** comment or edit a comment, react, write or edit a review, rate, report,
+  add a story or edit one they added, report a new chapter, finish or reopen a fic, set or ask for a chapter count,
+  set a custom cover, open a discussion room nobody has opened yet (a room that exists still opens, for reading), or
+  change their username, display name or picture.
+- **What they still can do:** read everything they could before, keep their library and progress, follow and mute
+  rooms, block readers, delete their own comments, reviews, ratings and account, and **send feedback**: feedback is
+  the channel to contest a suspension, so it stays open (as do author removal requests, which are about a fic,
+  not about the reader's behaviour).
+- **Telling the reader:** an in-app notification (`account_suspended` with the reason and "You can still read, but
+  you can't post, react or report until this is lifted. Write to support@livami.app if you think this is a
+  mistake."; `account_restored` when lifted), never a push. While suspended, Home shows a banner with the latest
+  reason, and a discussion room shows the same explanation in place of the comment box and when a reaction is
+  tapped. The admin is never named to the reader. Account notices are system notices, like the moderation notices:
+  `my_notifications_v2` returns them (with `suspension_reason`) and the app renders all four kinds in one row component.
+- **Deleting the account (GDPR erasure):** a suspended reader can still delete their account, and the suspension log
+  goes with it (`suspensions` cascades from the profile). Someone who signs up again with a new account starts clean:
+  re-registration is not tracked. If suspended readers start coming back this way, that is a PO decision.
+- **`my_notifications_v2` changed shape in place:** it gains the account kinds and the `suspension_reason` column
+  rather than a new function version. That is safe only because no app build with #55's `my_notifications_v2` has
+  shipped. If #55 ships on its own first, this needs a new function version (`my_notifications_v3`) instead.
+- **A comment posted as the suspension lands (accepted):** a comment, reaction or report whose write started just
+  before the suspension committed can still go through. This race is inherent and accepted: moderators hide it like
+  any other content, and every write after the suspension commits is refused.
+
+## App tests run on our own test stack (14 Nov 2026)
+
+Every app test (Jest with the real database, auth, realtime and e-mail) used to run against one
+`supabase start` stack per machine. Parallel agents had to queue for it behind a lock (eight of them
+waited an hour), a test run could reset the database under another one, and CI flaked when pulling the
+CLI's images ("Rate exceeded").
+
+So tests run on `tools/teststack/`: our own Docker Compose file with the same pinned images as
+Supabase CLI 2.121.0, configured as the CLI configures them from `supabase/config.toml`, in up to ten
+independent copies (slots) on their own ports. `npm run test:stack` leases a free slot, refills its
+tables with the clean migrated data and runs Jest; CI runs the same stack on slot 0 instead of `supabase start`.
+Locally nothing in a test run depends on an outside service: the images come from Docker's cache. CI
+pulls them from public.ecr.aws on every run (retried with a backoff, as its anonymous pulls are
+rate limited).
+
+`supabase start` (`npm run db:start`) is still the stack for development (Studio, Edge Functions) and
+still works for `npm test`: the test helpers fall back to its ports and container names. When the CLI
+is upgraded, the image tags and service settings in `tools/teststack/` are updated to match it.
+
 ## Retention: accounts that never finish signing up (14 Nov 2026)
 
 Signing up creates an account that holds the e-mail address; the profile only exists once the reader
@@ -538,3 +614,33 @@ function's default.
 Inactive accounts **with** a profile are deliberately **not** deleted, however long they go unused: that
 is the PO's call (a reader's library, progress and comments are what they come back for). Readers leave
 by deleting their account themselves. Changing this needs a PO decision and a privacy-policy update.
+
+## PO testing round on iPhone (15 Nov 2026)
+
+Decisions from the PO's first test on her own phone. Each ships in its own pull request; this records the choice.
+
+- **A. Progress card on the story page.** A status menu ("Reading ▾") instead of a row of chips; "Chapter N of M"
+  with a bar and *Change*, which opens a wheel picker in a bottom sheet with *Done* (no grid of chips); one main
+  button "I finished chapter N+1". After it, the new room appears as a glowing card with the discussion icon
+  ("Chapter 24 · 3 comments · 2 readers ›") and the button moves on to the next chapter. Chaptered books have no
+  page field; pages (same wheel) only for books without chapters.
+- **B. Discussions list.** Only rooms you unlocked, newest first: the last **3**, with "All (N) ›" next to the
+  heading opening a separate screen with every unlocked room. No row for the next locked chapter (the main
+  button already says what comes next); The Epilogue stays at the bottom, locked until you finish. Counts as
+  icons (💬 3 · 👤 2), no explanatory text under locked rooms.
+- **C. Feedback can get a reply.** An unticked box "I'd like a reply by e-mail" ("Искам отговор по имейл"), with
+  the account's e-mail shown under it ("We'll write to …"). Nothing new is collected; the PO answers from
+  support@livami.app. The reader picks it for themselves, so it is worded in the first person, like "I accept".
+- **D. Moderators.** Only the PO for now. Later 2–3 people with a narrower role: hide comments and reviews on a
+  report and accept chapter counts; no feedback (it has e-mails), no Numbers, no fic removals, no roles. Every
+  moderator action logged. Not built until needed.
+- **E. Books without chapters.** The add form stays "Number of chapters"; a small grey "No chapters?" opens a
+  choice: parts, acts (plays), or no division (rooms by blocks of pages). The main path doesn't change.
+- **F. Discover for books, in v1.** "Books | Fanfiction" at the top, shown only to readers who read both;
+  readers of one kind see theirs directly. Books start as one "Being read now" list, no genres yet.
+- **G. A fic without a link.** If the site doesn't answer, adding falls back to the manual form with the link
+  kept; a small grey "I don't have a link" opens the same form. Fics without a link show up in search but not in
+  Discover (we can't send readers to the author or match a removal request) until a link is added.
+- **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
+  story page showed them every chapter and The Epilogue as open, a spoiler on their own book
+  (`20261115000000_rooms_follow_progress.sql`).

@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { CommentCard } from '@/components/CommentCard';
 import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
 import { hidesExplicit } from '@/lib/links';
 import {
@@ -24,6 +25,7 @@ import {
   type Thread,
 } from '@/lib/discussions';
 import { block, reportComment } from '@/lib/safety';
+import { mySuspension, useMySuspension } from '@/lib/suspension';
 import { track } from '@/lib/analytics';
 import { finishChapter, loadStoryPage, nextChapter } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
@@ -41,7 +43,7 @@ function parseRoom(room: string | undefined): { kind: 'chapter'; n: number } | {
 export default function RoomScreen() {
   const { c } = useTheme();
   const t = useT();
-  const router = useRouter();
+  const headerOffset = useHeaderOffset();
   const { session, profile } = useAuth();
   const userId = session?.user.id;
   const params = useLocalSearchParams<{ storyId: string; room: string }>();
@@ -68,7 +70,9 @@ export default function RoomScreen() {
     );
   }
 
-  const next = page?.entry ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
+  // "I finished chapter N" belongs in chapter rooms. The Epilogue only opens once the whole story is
+  // Finished, so a next chapter there only shows up for an admin moderating it: no button then.
+  const next = page?.entry && target.kind === 'chapter' ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
   // An Explicit fic's rooms: the server refuses them too (user_can_access_section); this says why.
   // Admins get in on the server (can_access_section), so they can read what they moderate.
@@ -79,12 +83,9 @@ export default function RoomScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
         <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
-          <View style={{ alignItems: 'flex-start' }}>
-            <Button variant="link" title={t('room.back')} onPress={() => router.back()} />
-          </View>
           <View style={{ gap: space.xs }}>
             <T v="moment">
               <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t('room.chapter', { n: target.n })}</Text>
@@ -169,6 +170,18 @@ function Discussion({
   const [posted, setPosted] = useState(0); // comments posted here, for the push offer
   const [failed, setFailed] = useState(false);
   const [blockedNotice, setBlockedNotice] = useState(false);
+  // A suspended reader still reads; posting and reacting are refused by the database, so the room
+  // says why instead of a generic error (docs/DECISIONS.md, "Suspending a reader").
+  const suspension = useMySuspension(discussionId);
+  const [suspendedNotice, setSuspendedNotice] = useState(false);
+  const suspended = suspension?.suspended === true || suspendedNotice;
+
+  // A write failed: if it was because the reader is suspended (perhaps since they opened the room), say so.
+  const explainFailure = async () => {
+    const now = await mySuspension().catch(() => undefined);
+    if (now?.suspended) setSuspendedNotice(true);
+    else setFailed(true);
+  };
 
   // Once per room reached, even by readers who only read (the PO's "readers who reach a discussion").
   useEffect(() => {
@@ -203,7 +216,7 @@ function Discussion({
 
   const act = (work: () => Promise<unknown>) => {
     setFailed(false);
-    return work().then(reload, () => setFailed(true));
+    return work().then(reload, explainFailure);
   };
 
   const post = async () => {
@@ -218,7 +231,7 @@ function Discussion({
       setReplyTo(null);
       reload();
     } catch {
-      setFailed(true);
+      await explainFailure();
     } finally {
       setPosting(false);
     }
@@ -234,10 +247,16 @@ function Discussion({
         mine={author !== null && author.id === userId}
         onReply={top ? () => setReplyTo({ id: comment.id, username: author?.username ?? t('account.deletedReader') }) : undefined}
         onDelete={() => void act(() => deleteComment(comment.id))}
-        onReact={(emoji: Emoji, mine: boolean) => void act(async () => {
+        onReact={(emoji: Emoji, mine: boolean) => {
+          if (suspended && !mine) {
+            setSuspendedNotice(true); // say why at once, instead of a refusal from the database
+            return;
+          }
+          void act(async () => {
             await toggleReaction(comment.id, emoji, mine);
             if (!mine) void track('reaction_added');
-          })}
+          });
+        }}
         onReport={(reason, details) => reportComment(comment.id, reason, details)}
         onBlock={
           author
@@ -289,35 +308,44 @@ function Discussion({
         </Text>
       ) : null}
 
-      <View style={{ gap: space.s }}>
-        {replyTo ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <T v="muted">{t('room.replyingTo', { name: replyTo.username })}</T>
-            <Button variant="link" title={t('room.cancel')} onPress={() => setReplyTo(null)} />
-          </View>
-        ) : null}
-        <TextInput
-          accessibilityLabel={t('room.add')}
-          value={draft}
-          onChangeText={setDraft}
-          multiline
-          placeholder={t('room.add')}
-          placeholderTextColor={c.muted}
-          style={{
-            minHeight: 50,
-            borderRadius: radius.s,
-            borderWidth: 1.5,
-            borderColor: c.hairline,
-            backgroundColor: c.surface,
-            paddingHorizontal: space.m,
-            paddingVertical: space.m,
-            fontSize: 16,
-            fontFamily: fonts.body,
-            color: c.ink,
-          }}
-        />
-        <Button title={t('room.post')} onPress={() => void post()} disabled={!draft.trim()} loading={posting} />
-      </View>
+      {suspendedNotice ? (
+        <View accessible accessibilityRole="alert">
+          <ErrorText>{t('notifications.suspendedInRoom')}</ErrorText>
+        </View>
+      ) : suspended ? (
+        <T v="muted">{t('notifications.suspendedInRoom')}</T>
+      ) : null}
+      {suspended ? null : (
+        <View style={{ gap: space.s }}>
+          {replyTo ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <T v="muted">{t('room.replyingTo', { name: replyTo.username })}</T>
+              <Button variant="link" title={t('room.cancel')} onPress={() => setReplyTo(null)} />
+            </View>
+          ) : null}
+          <TextInput
+            accessibilityLabel={t('room.add')}
+            value={draft}
+            onChangeText={setDraft}
+            multiline
+            placeholder={t('room.add')}
+            placeholderTextColor={c.muted}
+            style={{
+              minHeight: 50,
+              borderRadius: radius.s,
+              borderWidth: 1.5,
+              borderColor: c.hairline,
+              backgroundColor: c.surface,
+              paddingHorizontal: space.m,
+              paddingVertical: space.m,
+              fontSize: 16,
+              fontFamily: fonts.body,
+              color: c.ink,
+            }}
+          />
+          <Button title={t('room.post')} onPress={() => void post()} disabled={!draft.trim()} loading={posting} />
+        </View>
+      )}
       <PushOffer posted={posted} />
     </View>
   );

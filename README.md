@@ -25,6 +25,8 @@ MVP v1 is merged into `main` (PRs #1–#13, 16–19 Oct 2026). In the app:
 Before launch:
 - **Hosted database:** apply the migrations to the hosted Supabase in order (everything up to
   the newest file in `supabase/migrations`).
+  Apply `20261114000400_suspend.sql` before shipping a build with suspensions: the app calls
+  `my_suspension()` and reads `subject_id` from `moderation_queue()`, which older databases don't have.
 - **18+ switch (deploy order):** apply migration `20261114000200_adult_confirmed.sql` before shipping a
   build with the "I'm 18 or over" switch: the app reads `profiles.adult_confirmed` when it loads the profile.
 - **Push setup:** create the EAS project and push credentials, then switch on `push_settings.enabled`
@@ -64,6 +66,10 @@ Before launch:
   (force-upgrade) check: older builds meet a profile on a newer version, cannot write their own older one
   (the database refuses the downgrade) and loop on the terms gate (docs/DECISIONS.md, "Terms changes take
   effect on a date"). The effective-date check is phone-side UX only; the acceptance record is the proof.
+- **Analytics consent:** apply `20261114000500_analytics_consent.sql` to the hosted database **before**
+  shipping an app build that includes it. The new build reads `analytics_consents`; without the table its
+  "Help us improve the app" switch shows an error and nothing is recorded. Older builds keep working, but
+  record nothing once the migration is in (their switch shows an error: the opt-out table is gone).
 - **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
   listing in English and Bulgarian; `app.json` has the bundle id / package `app.livami` (confirmed by the PO, 5 Nov 2026) and the
   `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a
@@ -193,15 +199,19 @@ schema, applies every migration and runs `supabase/tests/spoiler_rules.test.sql`
 ## Running the app tests
 
 ```bash
-npm run db:start   # the tests need the local stack and .env.local (see above)
-npm test
+npm run test:stack                          # the whole suite on a test stack of its own
+npm run test:stack -- src/lib/__tests__/x   # any Jest arguments after --
 ```
+
+Or on the stack you develop against: `npm run db:start` (with `.env.local`, see above), then `npm test`.
 
 Jest with `jest-expo` and React Native Testing Library. Tests live next to the code in
 `__tests__/` folders and talk to the **local** Supabase stack with real accounts they sign up
 themselves. `jest.setup.ts` refuses to run against any URL that is not `127.0.0.1` / `localhost`, so
 the tests can never touch the live project. `test/network.ts` can hold one request back to force
 an order of replies (a slow, stale response); every reply still comes from the real server.
+`MAILPIT_URL` and `SUPABASE_DB_CONTAINER` point the mail and SQL helpers in `test/` at a test stack;
+without them they use `supabase start`'s Mailpit (:54324) and database container.
 Open Library is never called from tests: `EXPO_PUBLIC_OPEN_LIBRARY_URL` points the search at a
 small local stand-in server inside the test.
 The cover sweep tests act as the service role: they take the local stack's secret key from
@@ -209,6 +219,59 @@ The cover sweep tests act as the service role: they take the local stack's secre
 `sweep-covers` Edge Function's logic (`supabase/functions/sweep-covers/sweep.ts`) is tested by Jest
 too; the Deno entry point can be tried with
 `npx -y supabase@2.121.0 functions serve sweep-covers --env-file <file with COVER_SWEEP_SECRET=…>`.
+
+### Running tests locally
+
+`npm run test:stack` needs Docker and Docker Compose v2 (`docker compose`, or `brew install
+docker-compose` with Colima), nothing else: no Supabase CLI and no network. The stack in
+`tools/teststack/` is our own compose file with the same pinned images as Supabase CLI 2.121.0 (auth,
+PostgREST, Realtime, Storage, Mailpit, Kong and Postgres), configured as `supabase start` configures
+them from `supabase/config.toml`. Those images are already in Docker's cache once `npm run db:start`
+has run once, so starting a stack downloads nothing.
+
+- **Slots.** Up to 10 copies (slots 0 to 9) run side by side, each its own compose project
+  `livami-test-<slot>` on its own ports: API `127.0.0.1:55<slot>21`, Postgres `55<slot>22`, Mailpit
+  `55<slot>24`. Slots 1 to 9 are for leases, slot 0 for CI and manual use. These ports lie in the
+  operating system's ephemeral range (macOS 49152-65535, Linux 32768-60999), so now and then an
+  outgoing connection may hold one when a slot starts: see *A port is taken* below.
+- **Leases.** `npm run test:stack` leases a free slot from 1 to 4 (`TEST_STACK_POOL` changes the
+  pool), starts it if it is down, resets it, runs Jest with its env and frees the slot, however the
+  run ends (on Ctrl-C or TERM, Jest gets the signal and is waited for first). A lease whose owner
+  died, or that has had no owner for 10 seconds, is taken back. With `TEST_SLOT=<n>` it uses that slot without a
+  lease. Several worktrees or agents can therefore test at once, each on its own database.
+- **Reset.** Every run starts from clean, migrated data (like `supabase db reset`): the tables of
+  `public`, `auth` and `storage` are emptied and refilled from a dump taken right after the migrations,
+  in one transaction, while the services stay connected; pg_net's request queue and responses and
+  pg_cron's run history are emptied, stored files whose objects are gone are deleted, and auth
+  restarts (about a second) to clear its in-memory rate limits. Schema changes a test leaves behind are not
+  undone (tests drop what they create). When a branch has other migrations, its first reset goes back
+  to the database as the services left it, migrates it and takes a new dump (slower: a few services
+  restart). The same happens when `supabase/seed.sql` changes.
+- **Keys.** The stack uses the legacy JWT anon and service_role keys, signed with a fixed test-only
+  secret; hosted Supabase hands out `sb_publishable_` / `sb_secret_` keys instead (no app code depends
+  on the format). Their one copy is `tools/teststack/lib.sh`. They are the Supabase CLI's public
+  local-development defaults, not secrets: if a secret scanner flags them, mark them as such.
+- **By hand.** `tools/teststack/up.sh <slot>`, `reset.sh <slot>`, `down.sh <slot>` (deletes its
+  data), `eval "$(tools/teststack/env.sh <slot>)"` for the env (then `npx jest ...`),
+  `lease.sh` / `release.sh <slot>`, `compose.sh <slot> <docker compose args>` (e.g. `logs auth`).
+  `npm run test:stack-scripts` tests the leases (no Docker needed).
+
+Troubleshooting:
+
+- *All slots are leased, waiting*: other runs hold them; `ls $TMPDIR/livami-teststack` shows the
+  leases and their owners' PIDs. A stuck one can be freed with `tools/teststack/release.sh <slot>`.
+- *A slot does not come up healthy*: `up.sh` shows the end of compose's log
+  (`$TMPDIR/livami-teststack/up-<slot>.log`); `tools/teststack/compose.sh <slot> logs <service>`; the
+  first start of a slot takes a minute or two (the services run their own migrations), later ones
+  seconds. `down.sh <slot>` and run again starts it from scratch.
+- *A port is taken*: another program uses `55<slot>21`/`22`/`24` (or, these being ephemeral ports, an
+  outgoing connection held it for a moment: run again); use other slots
+  (`TEST_SLOT=<n>`, or a smaller `TEST_STACK_POOL`).
+- *Many `AuthRetryableFetchError` or timeout failures while two runs share the machine*: the Mac is
+  too busy for parallel runs (seen at a load average around 30). Run one at a time with
+  `TEST_STACK_POOL=1`; a single slot passed the full suite at that load.
+- *Recovery e-mail without a code after changing `supabase/templates/`*: should not happen; Kong mounts
+  the templates directory (not the file), so the stack always serves the current template.
 
 Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
 no warnings allowed); CI runs all three.

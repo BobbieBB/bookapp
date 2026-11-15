@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddButton } from '@/components/AddButton';
 import { useMyCoverUrls } from '@/components/CustomCover';
 import { StoryRow } from '@/components/StoryRow';
+import { SuspensionBanner } from '@/components/SuspensionBanner';
 import { TermsChangeNotice } from '@/components/TermsChangeNotice';
 import { NotificationRow } from '@/components/NotificationRow';
 import { Button, Card, ErrorText, T } from '@/components/ui';
@@ -13,6 +14,7 @@ import { useLanguage, useT, type Language } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useMyLibrary } from '@/lib/library';
 import { continueReadingHints, repliesToYou, unreadModerationNotices } from '@/lib/notifications';
+import { useMySuspension } from '@/lib/suspension';
 import { useLookup } from '@/lib/useLookup';
 import { space, useTheme } from '@/theme';
 
@@ -37,6 +39,8 @@ export default function Home() {
   // Moderation decisions about you or your reports stay on Home until the notifications list was opened.
   const notices = useLookup(userId ? `notices-${userId}-${version}` : null, () => unreadModerationNotices(3));
   const hints = useLookup(userId ? `hints-${userId}-${version}` : null, continueReadingHints);
+  // Reloaded on every visit, so a suspension lifted meanwhile clears the banner.
+  const suspension = useMySuspension(version);
   const replyItems = replies.data ?? replies.previous;
   const hintMap = hints.data ?? hints.previous;
   // Fanfiction and books are never mixed in one list (fandom etiquette), and Home shows only
@@ -64,6 +68,8 @@ export default function Home() {
           <AddButton />
         </View>
         <TermsChangeNotice />
+
+        <SuspensionBanner suspension={suspension} />
 
         {loading ? (
           <ActivityIndicator color={c.signal} />

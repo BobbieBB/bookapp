@@ -3,7 +3,7 @@ import type { Translation } from '../types';
 export const en = {
   'admin.link': 'Numbers',
   'admin.title': 'Numbers',
-  'admin.intro': 'Counted from “Help us improve the app”. Readers who switched it off are never counted. Weeks start on Monday.',
+  'admin.intro': 'Counted from “Help us improve the app”: since 14 Nov 2026 only readers who switched it on are counted, sign-ups and returns included, so earlier weeks aren’t comparable. Weeks start on Monday.',
   'admin.back': 'Back',
   'admin.refused': 'These numbers are only for the Livami team.',
   'admin.error': 'We couldn’t load the numbers. Please try again.',
@@ -27,7 +27,7 @@ export const en = {
 export const bg: Translation<typeof en> = {
   'admin.link': 'Числа',
   'admin.title': 'Числа',
-  'admin.intro': 'Броим от „Помогни ни да подобрим приложението“. Читателите, които са го изключили, никога не се броят. Седмиците започват в понеделник.',
+  'admin.intro': 'Броим от „Помогни ни да подобрим приложението“: от 14 ноември 2026 г. се броят само читателите, които са го включили, включително при регистрациите и завръщанията, затова по-ранните седмици не са сравними. Седмиците започват в понеделник.',
   'admin.back': 'Назад',
   'admin.refused': 'Тези числа са само за екипа на Livami.',
   'admin.error': 'Не успяхме да заредим числата. Опитай пак.',

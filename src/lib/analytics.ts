@@ -1,5 +1,5 @@
-// First-party analytics (docs/DECISIONS.md, "Analytics: first-party, with an opt-out"): which features
-// get used, never content.
+// First-party analytics (docs/DECISIONS.md, "Analytics: opt-in"): which features get used, never content,
+// and only for readers who said yes to "Help us improve the app".
 // Events are a fixed list (also enforced by the database); properties are a few short, non-content
 // values. Recording an event never gets in a reader's way: failures are swallowed and reported as false.
 import { Platform } from 'react-native';
@@ -39,38 +39,60 @@ export function cleanProps(props: Record<string, Value>): Record<string, Value> 
 
 const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web' ? Platform.OS : null;
 
-// The signed-in reader's "Help us improve the app" choice, read once per account and kept up to date by
-// setAnalyticsOptOut, so track() needn't ask the database before every event. A change made on another
-// device reaches this one at the next start; until then an opt-out made elsewhere is still enforced by
+// The signed-in reader's "Help us improve the app" consent, read once per account and kept up to date by
+// setAnalyticsConsent, so track() needn't ask the database before every event. A change made on another
+// device reaches this one at the next start; until then consent withdrawn elsewhere is still enforced by
 // the database (analytics_insert_own), so nothing is recorded against the reader's wish.
-let optOut: { userId: string; value: boolean } | null = null;
+let consent: { userId: string; value: boolean } | null = null;
+// Saves run one at a time, in the order the reader made them, so the database and the cache always end on
+// their last choice. Reads wait for every save started before them; a read overtaken by a newer save
+// never fills the cache, and waits for that save instead.
+let saving: Promise<unknown> = Promise.resolve();
+let savesStarted = 0;
 
 async function signedInUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data.session?.user.id ?? null;
 }
 
-/** Whether the signed-in reader switched analytics off (stored on the account, so it follows them). */
-export async function analyticsOptOut(): Promise<boolean> {
+/** Whether the signed-in reader said yes to analytics (stored on the account, so it follows them). */
+export async function analyticsConsent(signal?: AbortSignal): Promise<boolean> {
   const userId = await signedInUserId();
   if (!userId) return false;
-  if (optOut?.userId === userId) return optOut.value;
-  const { data } = await supabase.from('analytics_opt_outs').select('user_id').eq('user_id', userId).throwOnError();
-  optOut = { userId, value: (data ?? []).length > 0 };
-  return optOut.value;
+  for (;;) {
+    await saving;
+    if (consent?.userId === userId) return consent.value;
+    const started = savesStarted;
+    const query = supabase.from('analytics_consents').select('user_id').eq('user_id', userId);
+    const { data } = await (signal ? query.abortSignal(signal) : query).throwOnError();
+    const value = (data ?? []).length > 0;
+    if (savesStarted === started) {
+      consent = { userId, value };
+      return value;
+    }
+  }
 }
 
-export async function setAnalyticsOptOut(value: boolean): Promise<void> {
-  const userId = await signedInUserId();
-  if (!userId) throw new Error('not signed in');
-  if (value) await supabase.from('analytics_opt_outs').upsert({ user_id: userId }, { ignoreDuplicates: true }).throwOnError();
-  else await supabase.from('analytics_opt_outs').delete().eq('user_id', userId).throwOnError();
-  optOut = { userId, value };
+export function setAnalyticsConsent(value: boolean): Promise<void> {
+  savesStarted += 1;
+  // Nothing is cached until a save is known to have worked, so a failed save is read again next time.
+  consent = null;
+  const save = saving.then(async () => {
+    const userId = await signedInUserId();
+    if (!userId) throw new Error('not signed in');
+    consent = null;
+    if (value) await supabase.from('analytics_consents').upsert({ user_id: userId }, { ignoreDuplicates: true }).throwOnError();
+    else await supabase.from('analytics_consents').delete().eq('user_id', userId).throwOnError();
+    consent = { userId, value };
+  });
+  saving = save.catch(() => undefined);
+  return save;
 }
 
+/** Records an event, only if the reader said yes; before that (and signed out) nothing is sent. */
 export async function track(name: AnalyticsEvent, props: Record<string, Value> = {}): Promise<boolean> {
   try {
-    if (!(await signedInUserId()) || (await analyticsOptOut())) return false;
+    if (!(await signedInUserId()) || !(await analyticsConsent())) return false;
     const { error } = await supabase
       .from('analytics_events')
       .insert({ name, props: cleanProps(props), app_version: APP_VERSION, platform });

@@ -1,10 +1,10 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { useHeaderOffset } from '@/lib/headerOffset';
 import { requestRemoval } from '@/lib/safety';
 import { normaliseAo3Link } from '@/lib/sources';
 import { space, useTheme } from '@/theme';
@@ -12,7 +12,7 @@ import { space, useTheme } from '@/theme';
 export default function Authors() {
   const { c, fonts } = useTheme();
   const t = useT();
-  const router = useRouter();
+  const headerOffset = useHeaderOffset();
   const [storyUrl, setStoryUrl] = useState('');
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
@@ -46,12 +46,9 @@ export default function Authors() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
         <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
-          <View style={{ alignItems: 'flex-start' }}>
-            <Button variant="link" title={t('safety.back')} onPress={() => router.back()} />
-          </View>
           <T v="h1">{t('safety.authorsTitle')}</T>
           <T v="moment">{t('safety.authorsQuote')}</T>
           <View style={{ gap: space.s }}>

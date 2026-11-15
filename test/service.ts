@@ -1,5 +1,5 @@
 // A service-role client for the local stack, for tests of what only the server may do (the cover
-// sweep). The key comes from SUPABASE_SECRET_KEY (CI exports it from `supabase status`), or else from
+// sweep). The key comes from SUPABASE_SECRET_KEY (tools/teststack/env.sh exports it), or else from
 // asking the local stack itself.
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
