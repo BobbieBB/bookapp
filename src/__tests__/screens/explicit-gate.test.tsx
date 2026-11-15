@@ -286,10 +286,10 @@ describe('the dialog, when things go wrong', () => {
     await openStory(explicitId);
     const row = await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 });
     // The first reader's comment (saying yes, above) is hidden behind the question until now.
-    expect(within(row).queryByText(/comment/)).toBeNull();
+    expect(within(row).queryByLabelText(/comment/)).toBeNull();
     await fireEvent.press(screen.getByText(LINK));
     await fireEvent.press(within(dialog()).getByText(CONTINUE));
     await waitFor(() => expect(open).toHaveBeenCalledWith(explicitUrl), { timeout: 8000 });
-    expect(await within(screen.getByTestId('room-chapter-1')).findByText(/1 comment/, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await within(screen.getByTestId('room-chapter-1')).findByLabelText(/1 comment/, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });

@@ -105,6 +105,7 @@ export function RootStack() {
           <Stack.Screen name="notifications" options={pushed} />
           <Stack.Screen name="admin" options={pushed} />
           <Stack.Screen name="moderation" options={pushed} />
+          <Stack.Screen name="rooms/[storyId]" options={pushed} />
         </Stack.Protected>
         <Stack.Protected guard={hasProfile}>
           <Stack.Screen name="delete-account" options={pushed} />
