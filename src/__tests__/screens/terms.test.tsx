@@ -333,7 +333,7 @@ describe('terms that change on a date', () => {
 
   it('the notice links to the Terms', async () => {
     restore = before();
-    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     try {
       await signUp('earlyreader', OLD_VERSION);
       await renderScreen('en', homeApp, '/');
