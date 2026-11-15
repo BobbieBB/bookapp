@@ -36,7 +36,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npm run test:stack-scripts
       # Our own test stack (tools/teststack), the one local runs use, on slot 0. The images come
       # from public.ecr.aws, whose anonymous pulls are rate limited: retried with a backoff.
       - name: Pull the test stack images
@@ -52,6 +51,11 @@ jobs:
           tools/teststack/env.sh 0 | sed 's/^export //' >> "$GITHUB_ENV"
       - run: npm run typecheck
       - run: npm test
+      # After the app tests, so a failure here (an intermittent lease race, see #68) no longer stops
+      # Jest from running at all. It still fails the job.
+      - name: Lease script tests
+        if: success() || failure()
+        run: npm run test:stack-scripts
       - name: Test stack logs
         if: failure()
         run: tools/teststack/compose.sh 0 logs --tail 200
