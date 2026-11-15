@@ -1,14 +1,16 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommentCard } from '@/components/CommentCard';
+import { ExplicitDialog } from '@/components/ExplicitDialog';
 import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
+import { asksAdult } from '@/lib/explicit';
 import {
   deleteComment,
   loadComments,
@@ -43,14 +45,17 @@ export default function RoomScreen() {
   const { c } = useTheme();
   const t = useT();
   const headerOffset = useHeaderOffset();
-  const { session } = useAuth();
+  const { session, profile, profileState } = useAuth();
   const userId = session?.user.id;
   const params = useLocalSearchParams<{ storyId: string; room: string }>();
   const target = parseRoom(params.room);
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
 
-  const room = useLookup(target ? `${params.storyId}:${params.room}:${tick}` : null, () =>
+  // The room follows the reader's 18+ answer: after the yes it reloads, and the refusal it got before (an
+  // Explicit fic's room is "locked" until then) is never shown in the meantime.
+  const adult = profile?.adult_confirmed === true;
+  const room = useLookup(target ? `${params.storyId}:${params.room}:${tick}:${adult}` : null, () =>
     openRoom(params.storyId, target!.kind, target!.kind === 'chapter' ? target!.n : null),
   );
   const story = useLookup(userId ? `${params.storyId}:${userId}:${tick}` : null, () => loadStoryPage(params.storyId, userId!));
@@ -61,7 +66,9 @@ export default function RoomScreen() {
   const comments = useLookup(opened ? `${opened.id}:${commentsTick}` : null, () => loadComments(opened!.id));
   const list = comments.data ?? comments.previous;
 
-  if (!target || (!room.error && !opened) || (!page && story.loading) || (opened && !list && comments.loading)) {
+  // Until the profile is known, it is not known whether to ask: a "locked" refusal must not flash before the dialog.
+  const waiting = profileState === 'loading' || (!room.error && !opened) || (!page && story.loading) || (opened && !list && comments.loading);
+  if (!target || waiting) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, justifyContent: 'center', padding: space.xl }}>
         {!target ? <ErrorText>{t('room.error')}</ErrorText> : <ActivityIndicator color={c.signal} />}
@@ -73,6 +80,13 @@ export default function RoomScreen() {
   // Finished, so a next chapter there only shows up for an admin moderating it: no button then.
   const next = page?.entry && target.kind === 'chapter' ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
+  // An Explicit fic's room reached without the 18+ yes (a link, a notification): ask here. The server
+  // refuses the room until then (user_can_access_section); admins get in to moderate, so they are not asked.
+  const asking = !!profile && !profile.is_admin && asksAdult(page?.story.content_rating, profile);
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/story/${params.storyId}`);
+  };
   const finishAndTrack = async (chapter: NonNullable<typeof next>, uid: string) => {
     await finishChapter(params.storyId, uid, chapter);
     if (page) void track('chapter_finished', { kind: page.story.kind });
@@ -95,7 +109,9 @@ export default function RoomScreen() {
               onChanged={refresh}
             />
           ) : null}
-          {room.error ? (
+          {asking ? (
+            <ExplicitDialog onBack={leave} />
+          ) : room.error ? (
             locked ? (
               <T>{target.kind === 'epilogue' ? t('room.lockedEpilogue') : t('room.lockedChapter', { n: target.n })}</T>
             ) : (

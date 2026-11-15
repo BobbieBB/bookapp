@@ -6,12 +6,14 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } 
 import { BookReviews } from '@/components/BookReviews';
 import { RoomCounts, StoryRooms } from '@/components/StoryRooms';
 import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
+import { useExplicitGate } from '@/components/ExplicitDialog';
 import { ChoiceList, NumberWheel, Sheet } from '@/components/Sheet';
 import { Button, Card, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
 import { loadRooms } from '@/lib/discussions';
+import { asksAdult } from '@/lib/explicit';
 import { isAo3Link } from '@/lib/links';
 import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
@@ -233,6 +235,8 @@ function StoryBody({
 }) {
   const { c, fonts } = useTheme();
   const t = useT();
+  const { profile } = useAuth();
+  const gate = useExplicitGate();
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
   const [error, setError] = useState('');
@@ -286,9 +290,15 @@ function StoryBody({
   const next = entry ? nextChapter(story, entry.progress_section) : null;
   const statuses = STATUSES.filter((s) => s !== 'on_hold' || isFic);
   const link = isAo3Link(story.source_url) ? story.source_url : null;
+  // An Explicit fic asks the 18+ question before its link opens; nothing else on the page is hidden.
+  const openLink = (url: string) =>
+    gate.ask(asksAdult(story.content_rating, profile), () => {
+      Linking.openURL(url).catch(() => setError(t('story.linkFailed')));
+    });
 
   return (
     <>
+      {gate.dialog}
       <View style={{ flexDirection: 'row', gap: space.l }}>
         <View style={{ width: 96, gap: space.xs }}>
           <View>
@@ -322,7 +332,7 @@ function StoryBody({
             ))}
           </View>
           {link ? (
-            <Pressable accessibilityRole="link" onPress={() => Linking.openURL(link).catch(() => setError(t('story.linkFailed')))} style={{ minHeight: 44, justifyContent: 'center' }}>
+            <Pressable accessibilityRole="link" onPress={() => openLink(link)} style={{ minHeight: 44, justifyContent: 'center' }}>
               <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('story.allTags')}</Text>
             </Pressable>
           ) : null}

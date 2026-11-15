@@ -491,6 +491,50 @@ same rule: readers' comments, reviews, reports and moderation e-mails are never 
 chats or tools (the same rule as for real fics). When a moderation case needs help, describe it in your own words
 without the readers' text or names.
 
+## Explicit works: an 18+ confirmation (PO, 15 Nov 2026)
+
+The minimum age is 16 (`MIN_AGE`), but readers add AO3 works rated Explicit. The first time a reader opens
+the **AO3 link** or a **discussion room** (a chapter room or The Epilogue) of a work rated **Explicit**, a
+dialog asks (`src/components/ExplicitDialog.tsx`):
+
+- "Explicit content" / „Explicit съдържание“
+- "This work is rated Explicit on AO3, and its discussion may include adult content." / „Тази творба е с
+  рейтинг Explicit в AO3 и обсъждането може да съдържа съдържание за възрастни.“
+- "I'm 18 or over, continue" / „Аз съм на 18+, продължи“ and "Back" / „Назад“.
+
+Continue records the yes on the account (`profiles.adult_confirmed`, a yes/no only, never a birth date) and
+then opens the link or enters the room. Back does nothing and the reader stays where they were. The answer
+lives on the account, so the dialog shows once per reader, on every device. There is no Profile switch, and the
+answer only goes from no to yes: the reader cannot take it back in the app, and nobody can set it for someone
+else.
+
+Nothing else is hidden: the story page shows the rating, the archive warnings and the link as before, Discover
+and the library are unchanged, and "You finished it!" sends Open on AO3 and Join The Epilogue through the same
+dialog. Mature and the other ratings never ask. A room reached some other way (a link, a notification) asks on
+the room screen itself, and Back there leaves the room.
+
+**Where it is enforced.** The rooms are enforced on the server: `user_can_access_section`, the single spoiler
+wall, also requires the yes for an Explicit fic, so the comments read/insert policies, reactions, @mentions and
+push all follow it (admins still get in for moderation and are not asked for rooms; they are asked before the
+AO3 link like everyone). The story page's room list (`story_rooms`) still shows a reached Explicit room as open,
+marked `adult_only`, with no comment count, so the reader can tap it and get the dialog; the list reloads with
+its counts as soon as the reader says yes, on any door of the same screen. The answer is a private profile column, read through `my_profile()`, with
+no column grant; the only way to set it is `confirm_adult()`, which sets the caller's own row to yes. The link
+is **not** protected by the server: `stories.source_url` stays readable to any signed-in reader through the API.
+The dialog is an **in-app** question, backed by AO3's own adult-content interstitial before any Explicit work;
+the link only points to AO3. Whether a click-through 18+ confirmation is enough for Explicit works is an open
+item for the lawyer (docs/legal/README.md).
+
+If the profile cannot be loaded, the app shows its usual "couldn't load your profile / Try again" screen
+(`app/_layout.tsx`). Restoring a backup, loading data with `adult_confirmed = true`, or turning a yes back into
+a no on a reader's request needs the `profiles_guard_adult` trigger disabled deliberately for that change
+(`alter table public.profiles disable trigger profiles_guard_adult`, then enable it again): the trigger refuses
+a new profile at yes, a yes for anyone but the reader, and any yes turned into a no, the database owner included.
+
+**Known limit.** The rating is self-declared: the reader who adds the fic picks it, and its creator can edit it
+later, so the dialog is only as strong as that rating (a fic added as Mature never asks). The PO accepted a
+click-through confirmation, not age verification.
+
 ## Analytics: opt-in (14 Nov 2026)
 
 Recording which features a reader uses reads from and stores on their device, so under ePrivacy art. 5(3) (EDPB

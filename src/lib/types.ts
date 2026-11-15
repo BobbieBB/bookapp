@@ -13,6 +13,8 @@ export type Profile = {
   is_admin: boolean; // sees Profile > Numbers (set only in the database)
   /** The terms version this reader accepted; null for readers from before the terms (src/lib/legal.ts). */
   terms_version: string | null;
+  /** Said they are 18 or over, in the dialog before an Explicit work's AO3 link or discussion. Private (my_profile()). */
+  adult_confirmed: boolean;
 };
 
 export type Story = {

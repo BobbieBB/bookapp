@@ -29,6 +29,7 @@ psql -v ON_ERROR_STOP=1 -d $DB -f tests/private_library.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/suspend.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/profile_privacy.test.sql
 psql -v ON_ERROR_STOP=1 -d $DB -f tests/account_cleanup.test.sql
+psql -v ON_ERROR_STOP=1 -d $DB -f tests/adult_confirmed.test.sql
 bash tests/account_race.test.sh
 bash tests/bump_race.test.sh
 bash tests/push_race.test.sh

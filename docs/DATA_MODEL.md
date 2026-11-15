@@ -193,6 +193,15 @@ database.
   (it is still hidden).
 - The app reads them through `my_notifications_v2`; `my_notifications` never returns them (older app builds).
 
+`profiles.adult_confirmed` (boolean, not null, default false) is the reader's yes to "I'm 18 or over", given
+in the dialog before an Explicit work's AO3 link or discussion (docs/DECISIONS.md, "Explicit works: an 18+
+confirmation"). It is private: no column grant, the reader reads it through `my_profile()`. It is set only by
+`confirm_adult()` (security definer, the caller's own row, to yes), and the trigger `profiles_guard_adult`
+refuses a new profile at yes, a yes without the reader's own session, and any change from yes back to no, the
+owner and `service_role` included (`LV001`). `user_can_access_section` requires it for the rooms of a story
+whose `content_rating` is `Explicit` (through `user_reached_section`, the reading-progress rule, and
+`user_needs_adult`); `story_rooms` returns `adult_only` for such a room the reader has reached, so the app can ask.
+
 ## Push notifications
 
 When a reply or @mention notification is created, `notifications_send_push` builds one Expo push per
