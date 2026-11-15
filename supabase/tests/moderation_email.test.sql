@@ -168,6 +168,21 @@ select public.moderation_digest();
 select test.ok((select count(*) from test.mail_calls) = 1 and (select body ->> 'subject' from test.mail_calls) = '[Livami] Moderation digest: 2 feedback, 0 chapter-count requests'
   and (select body ->> 'text' not like '%Chapter-count%' from test.mail_calls), 'feedback alone gets a digest without the empty section');
 
+-- "I'd like a reply by e-mail" (20261115000200_feedback_reply.sql): only then the account's address, under that feedback.
+delete from test.mail_calls;
+delete from public.feedback;
+update public.moderation_email_settings set digest_sent_through = null;
+update auth.users set email = 'mailer@example.test' where id = '00000000-0000-0000-0000-0000000009a1';
+update auth.users set email = 'quiet@example.test' where id = '00000000-0000-0000-0000-0000000009a2';
+insert into public.feedback (user_id, kind, body, created_at, status, wants_reply) values
+  ('00000000-0000-0000-0000-0000000009a1', 'problem', 'please answer', now() - interval '1 hour', 'open', true),
+  ('00000000-0000-0000-0000-0000000009a2', 'idea', 'no reply needed', now() - interval '1 hour', 'open', false);
+select public.moderation_digest();
+select test.ok((select body ->> 'text' like E'%- problem: please answer\n  Reply to: mailer@example.test\n%' from test.mail_calls),
+  'feedback that asks for a reply shows the account address under it');
+select test.ok((select body ->> 'text' not like '%quiet@example.test%' from test.mail_calls),
+  'feedback that did not ask shows no address');
+
 update public.moderation_email_settings set enabled = false, digest_sent_through = null;
 delete from test.mail_calls;
 select public.moderation_digest();

@@ -172,7 +172,29 @@ describe('feedback', () => {
     await fireEvent.changeText(screen.getByLabelText('Your feedback'), 'Let me sort my library by author');
     await fireEvent.press(screen.getByText('Send feedback'));
     expect(await screen.findByText('Thank you! We read every message.', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect((await rows('feedback', 'user_id')).map((r) => [r.kind, r.body])).toEqual([['idea', 'Let me sort my library by author']]);
+    expect((await rows('feedback', 'user_id')).map((r) => [r.kind, r.body, r.wants_reply])).toEqual([['idea', 'Let me sort my library by author', false]]);
+  });
+
+  it('can ask for a reply by e-mail, to the account address it shows (unticked by default)', async () => {
+    await as(me);
+    await renderScreen('en', { feedback: Feedback }, '/feedback');
+    const box = await screen.findByRole('checkbox', { name: 'I’d like a reply by e-mail' }, { timeout: 8000 });
+    expect(box).not.toBeChecked();
+    expect(screen.queryByText(`We’ll write to ${me.email}`)).toBeNull();
+    await fireEvent.press(box);
+    expect(screen.getByText(`We’ll write to ${me.email}`)).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Your feedback'), 'Please write back');
+    await fireEvent.press(screen.getByText('Send feedback'));
+    expect(await screen.findByText('Thank you! We read every message.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const sent = (await rows('feedback', 'user_id')).find((r) => r.body === 'Please write back');
+    expect(sent?.wants_reply).toBe(true);
+  });
+
+  it('in Bulgarian, in the first person', async () => {
+    await as(me);
+    await renderScreen('bg', { feedback: Feedback }, '/feedback');
+    expect(await screen.findByRole('checkbox', { name: 'Искам отговор по имейл' }, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByText('Кажи ни какво не работи или какво ти липсва в приложението.')).toBeOnTheScreen();
   });
 });
 

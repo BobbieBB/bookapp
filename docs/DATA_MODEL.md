@@ -21,7 +21,7 @@ table. Anonymous users (`anon`) have no access at all.
 | `reviews` | Book reviews, with a *contains spoilers* flag (no recs for fanfiction: they belong on AO3); `user_id` is empty once the author deleted their account | Everyone (spoilers blurred in the app) |
 | `reports` | Reports on comments, reviews or users | Reporter and admins |
 | `removal_requests` | Author opt-out requests | Requester and admins |
-| `feedback` | In-app feedback; `status` (open / actioned / dismissed) is set only by `moderation_resolve` | Author and admins |
+| `feedback` | In-app feedback; `status` (open / actioned / dismissed) is set only by `moderation_resolve`; `wants_reply` ("I’d like a reply by e-mail", default false) puts the account e-mail under it in the daily digest | Author and admins |
 | `chapter_count_requests` | A reader's "Wrong chapter count?" for a book that has a count: the proposed number (1–5000) and a status; one open request per reader and book; no update or delete | You and admins |
 | `push_tokens` | Your devices for push notifications (Expo token, language, platform) | Only you |
 | `push_settings` | Whether pushes are sent and where (one row; off until set up) | Admins |
