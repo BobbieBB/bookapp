@@ -62,7 +62,7 @@ Before launch:
   (force-upgrade) check: older builds meet a profile on a newer version, cannot write their own older one
   (the database refuses the downgrade) and loop on the terms gate (docs/DECISIONS.md, "Terms changes take
   effect on a date"). The effective-date check is phone-side UX only; the acceptance record is the proof.
-- **Analytics consent:** apply `20261114000500_analytics_consent.sql` to the hosted database **before**
+- **Analytics consent:** apply `20261115000200_analytics_consent.sql` to the hosted database **before**
   shipping an app build that includes it. The new build reads `analytics_consents`; without the table its
   "Help us improve the app" switch shows an error and nothing is recorded. Older builds keep working, but
   record nothing once the migration is in (their switch shows an error: the opt-out table is gone).
