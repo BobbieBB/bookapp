@@ -280,9 +280,6 @@ function StoryBody({
       setPending((p) => ({ base: loaded, patch: { ...(p.base === loaded ? p.patch : {}), ...patch } }));
     });
 
-    await act(() => setPage(story.id, userId, n));
-  }
-
   const libraryEntry: LibraryEntry | null = entry
     ? { ...entry, story_id: story.id, updated_at: '', story }
     : null;
