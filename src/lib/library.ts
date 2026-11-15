@@ -27,7 +27,8 @@ export function useMyLibrary(userId: string | undefined, status?: LibraryStatus)
       return;
     }
     setLoading(true);
-    // Filter by user: other readers' public entries are readable too (for counts and profiles).
+    // Filter by user anyway: the read policy returns only the signed-in reader's own entries (library
+    // entries are always private), so another reader's id yields nothing.
     // `!inner` drops entries whose story is hidden (author opt-out): the story row is
     // invisible to us then, and the entry would arrive with `story: null`.
     let query = supabase.from('library_entries').select(SELECT).eq('user_id', userId);

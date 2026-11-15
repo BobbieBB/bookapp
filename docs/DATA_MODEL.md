@@ -7,9 +7,9 @@ table. Anonymous users (`anon`) have no access at all.
 
 | Table | What it holds | Who can read |
 |---|---|---|
-| `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick | Logged-in users |
+| `profiles` | Username, display name, what you read (books / fanfic), favourite genres and fandoms, which terms version you accepted and when, the age tick, the admin and suspension flags | Logged-in users read the public columns (`id`, `username`, `display_name`, `avatar_url`, `reads_books`, `reads_fanfic`, `favourite_genres`, `favourite_fandoms`, `created_at`); the terms columns, the age tick and the admin and suspension flags only you, through `my_profile()` (14 Nov 2026) |
 | `stories` | One catalogue for books and fics (`kind`), metadata only, link to source | Logged-in users; hidden stories only for their creator and admins |
-| `library_entries` | Your status, progress, favourite flag and visibility per story | You; others only when `visibility = public`, which is never set today: entries are private by default (13 Nov 2026) |
+| `library_entries` | Your status, progress, favourite flag and visibility per story | Only you: `visibility` can only be `private` (constraint `library_entries_private`, 14 Nov 2026); counts across readers go through security definer functions |
 | `discussions` | One per chapter (or 25-page range) per story, plus one Epilogue room | Logged-in users (existence is not a spoiler) |
 | `comments` | Comments and replies (one level of `parent_id`); `author_id` is empty once the author deleted their account | Only readers who unlocked that discussion |
 | `reactions` | ❤️ 😭 😱 😂 🔥 👀 on comments | Whoever can see the comment |
@@ -124,6 +124,38 @@ author can never be changed, except to empty by that `set null`. Queries compare
 Storage files can't be removed from SQL: the app removes the reader's `covers/<user id>/` files before
 calling the function, and goes on if that fails.
 
+## Who reads which profile columns
+
+Postgres has no per-row column rights, so `profiles` grants `select` only on its public columns (see
+Tables) to every signed-in reader, and nobody can read `is_admin`, `is_suspended`, `terms_version`,
+`terms_accepted_at` or `age_confirmed` from the table, not even their own: `select('*')` on `profiles`
+is refused (42501), so every query names its columns, and filtering on a hidden column is refused too.
+A reader's whole own row comes from `my_profile()` (security definer, the caller's row or none); the app
+loads the signed-in profile through it (`src/lib/auth.tsx`). Security definer functions (`is_admin()`,
+`is_active_user()`, moderation, Discover) and RLS policies read every column as before. Updates are
+unchanged (column grants, as before); an update that returns rows may return only public columns.
+
+## Accounts without a profile
+
+Signing up creates the `auth.users` row (with the e-mail address); the `profiles` row comes only when the
+reader accepts the terms. An account that never gets a profile is deleted once 30 days have passed since
+its sign-up and its last sign-in (docs/DECISIONS.md, "Retention: accounts that never finish signing up"):
+every day at 03:41 UTC `pg_cron` (job `sweep-profileless-accounts`) runs
+`sweep_profileless_accounts(older_than = '30 days')`, which deletes `auth.users` rows with no `profiles`
+row whose `greatest(created_at, coalesce(last_sign_in_at, created_at))` is older than that, and returns
+how many it deleted. So a confirmed reader who keeps signing in without accepting the terms is kept, while
+an unconfirmed account (never signed in) goes 30 days after sign-up; accounts created by an admin are
+swept the same way. The 30 days are the function's default and nowhere else. Only the database owner
+runs it (the cron job); `anon`, `authenticated` and `service_role` cannot. Accounts with neither date are
+kept. Accounts with a profile are
+never swept, however old or inactive (a PO decision). What such an account can have made goes with it
+through `on delete cascade`: analytics events and the analytics opt-out (both reference `auth.users`;
+everything else needs a profile, so there are no cover files in Storage). A reader accepting the terms
+at that very moment keeps the account: the function locks its candidates `for update skip locked` (a
+profile insert in progress holds a lock on the user row, so that account is skipped), then deletes
+with a fresh `not exists` check on `profiles`; a profile insert that starts after the lock waits and
+then fails on the missing user.
+
 ## Terms and age
 
 `profiles.terms_version` is the version of the terms and privacy policy the reader accepted (the app's
@@ -133,12 +165,16 @@ trigger `profiles_guard_terms` stamps `terms_accepted_at` with the server's time
 set or changes, on insert too, and ignores any time the app sends; otherwise the time never changes,
 not even for the database owner (and readers have no update grant on it). A version needs
 `age_confirmed`, and neither the version nor the age tick can be taken back; leaving means deleting
-the account. Versions are 1–40 characters and date-prefixed (`YYYY-MM-…`, e.g. `2026-11-draft`), so a
+the account. Versions are 1–40 characters and date-prefixed (`YYYY-MM-DD`, optionally `-suffix`, e.g. `2026-11-03`), so a
 newer one sorts later (byte order); a version that sorts before the accepted one is refused, so nobody
 can re-stamp the time with an old or invented version. Refusals use SQLSTATE `LV001`. The rules hold
 for every role, the owner and `service_role` included: a backfill must set `terms_version` and
 `age_confirmed` together, or it gets `LV001` too. Profiles from before this have no version, and the app
-asks those readers once, like everyone after a `TERMS_VERSION` bump.
+asks those readers once. After a `TERMS_VERSION` bump the app asks readers on an older version from
+`TERMS_EFFECTIVE` on and only shows a notice before that (docs/DECISIONS.md, "Terms changes take effect on
+a date"); accepting early is an ordinary forward move of the version. Dismissing that notice is kept on the
+phone, per reader (AsyncStorage `livami.terms.noticeDismissed.<user id>` = the dismissed version), not in the
+database.
 
 ## Moderation notices
 
@@ -218,6 +254,7 @@ migrations or the service role can change `moderation_email_settings`.
 | `mark_notifications_read()` | Mark all your notifications read |
 | `delete_my_account(erase_comments)` | Delete your own account for good (see Deleting an account) |
 | `continue_reading_hints()` | "N new comments in chapter X" for stories you're reading (your latest finished chapter only) |
+| `my_profile()` | Your own profile row, every column (the admin flag and the terms columns are not readable from the table); no row before onboarding |
 | `my_fandoms()` | Discover's YOUR FANDOMS: picked ones, then fandoms of fics in your library (max 6); the starter list if none |
 | `suggested_fandoms()` | Fandoms of fics in your library you haven't picked (Profile's "+" chips) |
 | `search_fandoms(text)` | All fandoms in the app matching the text, most discussed this week first |
@@ -238,5 +275,7 @@ migrations or the service role can change `moderation_email_settings`.
 `supabase/tests/spoiler_rules.test.sql` checks the locks (chapters, 25-page ranges, WIP fics,
 The Epilogue, moving progress back), blocking, notifications, private fic ratings, admin-only fields,
 anonymous access and author opt-out.
+`supabase/tests/account_cleanup.test.sql` checks the profileless-account sweep (age, profiles kept,
+last sign-in, cascade, who may run it, the cron job) and `account_cleanup_race.test.sh` a profile created during it.
 `supabase/tests/moderation.test.sql` checks the moderation queue, every resolve action and its effect, and each
 rule for chapter-count requests.
