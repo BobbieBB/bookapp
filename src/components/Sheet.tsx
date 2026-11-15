@@ -1,5 +1,5 @@
 import Feather from '@expo/vector-icons/Feather';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ComponentRef, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -55,7 +55,7 @@ export function NumberWheel({
   testIDPrefix: string;
 }) {
   const { c, fonts } = useTheme();
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const count = Math.max(0, max - min + 1);
   const index = Math.min(Math.max(value - min, 0), Math.max(count - 1, 0));
   const pad = ((VISIBLE - 1) / 2) * ROW;
