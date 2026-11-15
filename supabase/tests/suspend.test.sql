@@ -53,11 +53,17 @@ insert into public.reviews (id, user_id, story_id, body) values
 insert into public.ratings (user_id, story_id, rating) values
   ('00000000-0000-0000-0000-0000000005e1', 'e1000000-0000-0000-0000-000000000001', 3);
 
+-- is_suspended is hidden from other readers since 20261114000000_profile_privacy, so the checks below
+-- read it through this helper, whoever is signed in.
+create or replace function test.suspended(p_user uuid) returns boolean language sql stable security definer set search_path = ''
+  as $$ select is_suspended from public.profiles where id = p_user $$;
+grant execute on function test.suspended(uuid) to authenticated;
+
 -- Only admins -------------------------------------------------------------------------------------
 select test.login('00000000-0000-0000-0000-0000000005e2');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005e1', true, 'spam')$$) = '42501',
   'a reader cannot suspend anyone');
-select test.ok(not (select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005e1'), '... and nothing changed');
+select test.ok(not test.suspended('00000000-0000-0000-0000-0000000005e1'), '... and nothing changed');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005e2', false, null)$$) = '42501',
   'a reader cannot lift a suspension either');
 select test.ok(test.code_of($$insert into public.suspensions (user_id, suspended, reason) values ('00000000-0000-0000-0000-0000000005e1', true, 'x')$$) is not null,
@@ -81,13 +87,13 @@ select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-
   'an admin cannot suspend themselves');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005eb', true, 'power struggle')$$) = '22023',
   'an admin cannot suspend another admin (the operator removes admins)');
-select test.ok(not (select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005eb'), '... and the other admin is not suspended');
+select test.ok(not test.suspended('00000000-0000-0000-0000-0000000005eb'), '... and the other admin is not suspended');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005ff', true, 'nobody')$$) = 'P0002',
   'an unknown reader is refused');
-select test.ok(not (select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005e1'), 'none of these suspended anyone');
+select test.ok(not test.suspended('00000000-0000-0000-0000-0000000005e1'), 'none of these suspended anyone');
 
 select public.set_reader_suspended('00000000-0000-0000-0000-0000000005e1', true, '  Repeated spoilers in chapter rooms  ');
-select test.ok((select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005e1'), 'an admin suspends a reader');
+select test.ok(test.suspended('00000000-0000-0000-0000-0000000005e1'), 'an admin suspends a reader');
 select test.ok((select count(*) from public.suspensions where user_id = '00000000-0000-0000-0000-0000000005e1') = 1
   and (select suspended and reason = 'Repeated spoilers in chapter rooms' and by_admin = '00000000-0000-0000-0000-0000000005ea'
               and created_at is not null
@@ -193,7 +199,7 @@ select test.login('00000000-0000-0000-0000-0000000005ea');
 select test.ok(test.code_of($$select public.set_reader_suspended('00000000-0000-0000-0000-0000000005e2', false, null)$$) = '55000',
   'lifting a suspension nobody has is refused');
 select public.set_reader_suspended('00000000-0000-0000-0000-0000000005e1', false, null);
-select test.ok(not (select is_suspended from public.profiles where id = '00000000-0000-0000-0000-0000000005e1'), 'an admin lifts it');
+select test.ok(not test.suspended('00000000-0000-0000-0000-0000000005e1'), 'an admin lifts it');
 select test.ok((select count(*) from public.suspensions where user_id = '00000000-0000-0000-0000-0000000005e1' and not suspended
                 and by_admin = '00000000-0000-0000-0000-0000000005ea') = 1, 'the lifting is logged too');
 select test.login('00000000-0000-0000-0000-0000000005e1');
