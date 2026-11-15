@@ -1,6 +1,7 @@
-// The e-mails the local Supabase stack "sent", read from its mail catcher (Mailpit, the
-// [local_smtp] port in supabase/config.toml). Real mail, real codes: nothing here is faked.
-const MAILPIT = 'http://127.0.0.1:54324/api/v1';
+// The e-mails the local Supabase stack "sent", read from its mail catcher (Mailpit). Real mail, real
+// codes: nothing here is faked. MAILPIT_URL points at the test stack's Mailpit (tools/teststack/env.sh);
+// without it, the [local_smtp] port of `supabase start` in supabase/config.toml.
+const MAILPIT = `${process.env.MAILPIT_URL ?? 'http://127.0.0.1:54324'}/api/v1`;
 
 type Summary = { ID: string };
 
