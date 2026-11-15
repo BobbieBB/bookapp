@@ -65,7 +65,8 @@ function Finished({
   const gate = useExplicitGate();
   const [error, setError] = useState('');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
-  // An Explicit fic asks the 18+ question before its link or The Epilogue opens; admins enter rooms to moderate.
+  // An Explicit fic asks the 18+ question before its AO3 link or The Epilogue opens. Admins skip the dialog for
+  // rooms, The Epilogue included (they moderate them), but are asked before the AO3 link like everyone.
   const explicit = asksAdult(story.content_rating, profile);
   // A WIP fic marked Finished: you're caught up, but The Epilogue (spoilers for the whole story)
   // only opens once it is complete, so don't offer a door that is locked.

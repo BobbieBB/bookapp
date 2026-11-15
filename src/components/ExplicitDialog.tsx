@@ -1,7 +1,7 @@
 // "Explicit content": asked once, the first time a reader opens the AO3 link or a discussion room of a work
 // rated Explicit (docs/DECISIONS.md, "Explicit works: an 18+ confirmation"). A sheet of our own, like the
 // push offer. Continue records the yes on the account and carries on; Back changes nothing.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Modal, Pressable, View } from 'react-native';
 
 import { Button, ErrorText, T } from '@/components/ui';
@@ -10,29 +10,36 @@ import { useAuth } from '@/lib/auth';
 import { confirmAdult } from '@/lib/explicit';
 import { radius, space, useTheme } from '@/theme';
 
-export function ExplicitDialog({ onConfirmed, onBack }: { onConfirmed: () => void; onBack: () => void }) {
+/** `onConfirmed` runs after the yes is saved and the profile reloaded; a screen that follows the profile needs none. */
+export function ExplicitDialog({ onConfirmed, onBack }: { onConfirmed?: () => void; onBack: () => void }) {
   const { c, card } = useTheme();
   const t = useT();
   const { refreshProfile } = useAuth();
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  // A second tap can land before `saving` re-renders the button: the ref lets only one yes through, so the
+  // pending door (a link, a room) opens once.
+  const inFlight = useRef(false);
 
   async function confirm() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setFailed(false);
     setSaving(true);
     try {
       await confirmAdult();
       if (!(await refreshProfile())) throw new Error('could not reload the profile');
       setSaving(false);
-      onConfirmed();
+      onConfirmed?.();
     } catch {
+      inFlight.current = false;
       setFailed(true);
       setSaving(false);
     }
   }
 
   const back = () => {
-    if (!saving) onBack();
+    if (!inFlight.current) onBack();
   };
 
   return (

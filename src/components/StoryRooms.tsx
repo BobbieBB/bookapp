@@ -18,13 +18,16 @@ import { radius, softShadow, space, useTheme } from '@/theme';
 export function StoryRooms({ storyId, version }: { storyId: string; version: number }) {
   const { c } = useTheme();
   const t = useT();
-  const rooms = useLookup(`${storyId}:${version}`, () => loadRooms(storyId));
-  const list = rooms.data ?? rooms.previous;
   const { profile } = useAuth();
+  // The list follows the reader's 18+ answer: an Explicit fic's reached rooms only count their comments after
+  // the yes, which may be given on this screen (the AO3 link) after the list loaded.
+  const adult = profile?.adult_confirmed === true;
+  const rooms = useLookup(`${storyId}:${version}:${adult}`, () => loadRooms(storyId));
+  const list = rooms.data ?? rooms.previous;
   const gate = useExplicitGate();
-  // The room list may predate the reader's yes (given on another door): the profile has the latest answer.
+  // While the list reloads after a yes, `previous` still says adult_only: the profile has the latest answer.
   const enter = (room: Room) =>
-    gate.ask(room.adult_only && profile?.adult_confirmed !== true, () =>
+    gate.ask(room.adult_only && !adult, () =>
       router.push(`/room/${storyId}/${room.kind === 'epilogue' ? 'epilogue' : room.section_number}`),
     );
 

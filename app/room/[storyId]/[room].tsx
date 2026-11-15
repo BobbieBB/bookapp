@@ -45,14 +45,17 @@ export default function RoomScreen() {
   const { c } = useTheme();
   const t = useT();
   const headerOffset = useHeaderOffset();
-  const { session, profile } = useAuth();
+  const { session, profile, profileState } = useAuth();
   const userId = session?.user.id;
   const params = useLocalSearchParams<{ storyId: string; room: string }>();
   const target = parseRoom(params.room);
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
 
-  const room = useLookup(target ? `${params.storyId}:${params.room}:${tick}` : null, () =>
+  // The room follows the reader's 18+ answer: after the yes it reloads, and the refusal it got before (an
+  // Explicit fic's room is "locked" until then) is never shown in the meantime.
+  const adult = profile?.adult_confirmed === true;
+  const room = useLookup(target ? `${params.storyId}:${params.room}:${tick}:${adult}` : null, () =>
     openRoom(params.storyId, target!.kind, target!.kind === 'chapter' ? target!.n : null),
   );
   const story = useLookup(userId ? `${params.storyId}:${userId}:${tick}` : null, () => loadStoryPage(params.storyId, userId!));
@@ -63,7 +66,9 @@ export default function RoomScreen() {
   const comments = useLookup(opened ? `${opened.id}:${commentsTick}` : null, () => loadComments(opened!.id));
   const list = comments.data ?? comments.previous;
 
-  if (!target || (!room.error && !opened) || (!page && story.loading) || (opened && !list && comments.loading)) {
+  // Until the profile is known, it is not known whether to ask: a "locked" refusal must not flash before the dialog.
+  const waiting = profileState === 'loading' || (!room.error && !opened) || (!page && story.loading) || (opened && !list && comments.loading);
+  if (!target || waiting) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, justifyContent: 'center', padding: space.xl }}>
         {!target ? <ErrorText>{t('room.error')}</ErrorText> : <ActivityIndicator color={c.signal} />}
@@ -105,7 +110,7 @@ export default function RoomScreen() {
             />
           ) : null}
           {asking ? (
-            <ExplicitDialog onConfirmed={refresh} onBack={leave} />
+            <ExplicitDialog onBack={leave} />
           ) : room.error ? (
             locked ? (
               <T>{target.kind === 'epilogue' ? t('room.lockedEpilogue') : t('room.lockedChapter', { n: target.n })}</T>
