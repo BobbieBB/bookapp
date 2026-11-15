@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import FinishedScreen from '../../../app/finished/[id]';
@@ -10,21 +11,26 @@ import type { Language } from '../../i18n';
 import { addToLibrary, createFic } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
-// Explicit works behind an 18+ yes/no (docs/DECISIONS.md, "Explicit works: an 18+ yes/no"): the
-// minimum age is 16, so until a reader says they are 18 or over, a fic rated Explicit shows its
-// rating but not its AO3 link or its archive warnings. Mature and the other ratings are unaffected.
+// Explicit works (docs/DECISIONS.md, "Explicit works: an 18+ confirmation"): the minimum age is 16, so
+// the first time a reader opens the AO3 link or a discussion room of a work rated Explicit, a dialog asks
+// whether they are 18 or over. The answer is kept on the account, so it is asked once. Nothing else is
+// hidden: the story shows its rating, warnings and link as before. Mature and the other ratings never ask.
 const password = 'test-password-1234';
 const run = Date.now().toString(36);
-const GATE = 'Rated Explicit on AO3. Confirm you’re 18 or over in Profile to see the link.';
-const ROOM_GATE = 'Rated Explicit on AO3. Confirm you’re 18 or over in Profile to join this discussion.';
+const TITLE = 'Explicit content';
+const BODY = 'This work is rated Explicit on AO3, and its discussion may include adult content.';
+const CONTINUE = 'I’m 18 or over, continue';
 let me = '';
 let explicitId = '';
+let explicitUrl = '';
 let matureId = '';
+let matureUrl = '';
 let n = 0;
 
 async function fic(rating: 'Explicit' | 'Mature', warnings: string[]) {
+  const ao3Link = `https://archiveofourown.org/works/${(parseInt(run, 36) % 1_000_000_000) + 1800 + n++}`;
   const story = await createFic({
-    ao3Link: `https://archiveofourown.org/works/${(parseInt(run, 36) % 1_000_000_000) + 1800 + n++}`,
+    ao3Link,
     title: `${rating} Fic`,
     author: 'gate_writer',
     fandom: 'Good Omens',
@@ -35,153 +41,202 @@ async function fic(rating: 'Explicit' | 'Mature', warnings: string[]) {
     warnings,
   });
   await addToLibrary(story.id, 'finished');
-  return story.id;
+  return { id: story.id, url: ao3Link };
 }
 
+// The answer is private: the reader reads it through my_profile(), like the other private columns.
 const confirmed = async () =>
-  (await supabase.from('profiles').select('adult_confirmed').eq('id', me).single().throwOnError()).data!.adult_confirmed as boolean;
+  (await supabase.rpc('my_profile').select('adult_confirmed').single().throwOnError()).data!.adult_confirmed as boolean;
+
+const dialog = () => screen.getByTestId('explicit-dialog');
 
 beforeAll(async () => {
   const { data, error } = await supabase.auth.signUp({ email: `gate-${run}@example.test`, password });
   if (error || !data.user) throw error ?? new Error('could not sign up');
   me = data.user.id;
   await supabase.from('profiles').insert({ id: me, username: `gate_${run}` }).throwOnError();
-  explicitId = await fic('Explicit', ['Graphic Depictions Of Violence']);
-  matureId = await fic('Mature', ['Major Character Death']);
+  ({ id: explicitId, url: explicitUrl } = await fic('Explicit', ['Graphic Depictions Of Violence']));
+  ({ id: matureId, url: matureUrl } = await fic('Mature', ['Major Character Death']));
 });
 
 afterAll(async () => {
   await supabase.auth.signOut();
 });
 
+let open: jest.SpyInstance;
+beforeEach(() => {
+  open = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+});
+afterEach(() => {
+  open.mockRestore();
+});
+
 async function openStory(id: string, language: Language = 'en') {
-  await renderScreen(language, { 'story/[id]': StoryScreen }, `/story/${id}`);
+  await renderScreen(language, { 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomScreen }, `/story/${id}`);
   await screen.findByTestId('story-title', {}, { timeout: 8000 });
 }
 
 async function openFinished(id: string) {
-  await renderScreen('en', { 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen }, `/finished/${id}`);
+  await renderScreen('en', { 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomScreen }, `/finished/${id}`);
   await screen.findByText('You finished it!', {}, { timeout: 8000 });
 }
 
-async function openRoom(id: string, room: string, language: Language = 'en') {
-  await renderScreen(language, { 'room/[storyId]/[room]': RoomScreen }, `/room/${id}/${room}`);
+async function openRoom(id: string, room: string) {
+  await renderScreen('en', { 'room/[storyId]/[room]': RoomScreen, 'story/[id]': StoryScreen }, `/room/${id}/${room}`);
   await screen.findByTestId('room-title', {}, { timeout: 20_000 });
 }
 
-async function setSwitch(on: boolean) {
-  await renderScreen('en', { profile: Profile }, '/profile');
-  await screen.findByLabelText('I’m 18 or over', {}, { timeout: 8000 });
-  expect(screen.getByText('Shows links to works rated Explicit on AO3.')).toBeOnTheScreen();
-  // The switch stays disabled until the profile has loaded: wait for the saved answer.
-  await waitFor(
-    () => {
-      expect(screen.getByLabelText('I’m 18 or over')).toBeEnabled();
-      expect(screen.getByLabelText('I’m 18 or over').props.value).toBe(!on);
-    },
-    { timeout: 8000 },
-  );
-  await fireEvent(screen.getByLabelText('I’m 18 or over'), 'valueChange', on);
-  await waitFor(async () => expect(await confirmed()).toBe(on), { timeout: 8000 });
-  await waitFor(() => expect(screen.getByLabelText('I’m 18 or over').props.value).toBe(on), { timeout: 8000 });
-}
-
 describe('a reader who has not said they are 18 or over', () => {
-  it('starts unconfirmed', async () => {
+  it('starts unconfirmed, and Profile has no 18+ switch', async () => {
+    expect(await confirmed()).toBe(false);
+    await renderScreen('en', { profile: Profile }, '/profile');
+    await screen.findByText('Help us improve the app', {}, { timeout: 8000 });
+    expect(screen.queryByText('I’m 18 or over')).toBeNull();
+    expect(screen.queryByText('Shows links to works rated Explicit on AO3.')).toBeNull();
+  });
+
+  it('an Explicit fic shows its rating, archive warnings and AO3 link as before', async () => {
+    await openStory(explicitId);
+    expect(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByText('Explicit')).toBeOnTheScreen();
+    expect(screen.getByText('Graphic violence')).toBeOnTheScreen();
+    expect(screen.queryByText(TITLE)).toBeNull();
+  });
+
+  it('opening the AO3 link of an Explicit fic asks first; Back opens nothing and stays', async () => {
+    await openStory(explicitId);
+    await fireEvent.press(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 }));
+    expect(within(dialog()).getByText(TITLE)).toBeOnTheScreen();
+    expect(within(dialog()).getByText(BODY)).toBeOnTheScreen();
+    expect(within(dialog()).getByText(CONTINUE)).toBeOnTheScreen();
+    await fireEvent.press(within(dialog()).getByText('Back'));
+    await waitFor(() => expect(screen.queryByTestId('explicit-dialog')).toBeNull());
+    expect(screen.getByTestId('story-title')).toBeOnTheScreen();
+    expect(open).not.toHaveBeenCalled();
     expect(await confirmed()).toBe(false);
   });
 
-  it('an Explicit fic keeps its rating but hides the AO3 link and the archive warnings', async () => {
-    await openStory(explicitId);
-    await waitFor(() => expect(screen.getByText(GATE)).toBeOnTheScreen(), { timeout: 8000 });
-    expect(screen.getByText('Explicit')).toBeOnTheScreen();
-    expect(screen.queryByText('Graphic violence')).toBeNull();
-    expect(screen.queryByText('All tags on AO3 ↗')).toBeNull();
-    expect(screen.queryByRole('link')).toBeNull();
-  });
-
-  it('a Mature fic is unaffected', async () => {
+  it('a Mature fic\'s link opens without asking', async () => {
     await openStory(matureId);
-    expect(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByText('Mature')).toBeOnTheScreen();
-    expect(screen.getByText('Major character death')).toBeOnTheScreen();
-    expect(screen.queryByText(GATE)).toBeNull();
+    await fireEvent.press(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 }));
+    expect(open).toHaveBeenCalledWith(matureUrl);
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
   });
 
-  it('"You finished it!" has no AO3 button for an Explicit fic, and keeps it for a Mature one', async () => {
+  it('entering an Explicit fic\'s room from the story asks first; Back stays on the story', async () => {
+    await openStory(explicitId);
+    const room = await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 });
+    expect(room).toBeEnabled();
+    await fireEvent.press(room);
+    expect(await screen.findByTestId('explicit-dialog', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.press(within(dialog()).getByText('Back'));
+    await waitFor(() => expect(screen.queryByTestId('explicit-dialog')).toBeNull());
+    expect(screen.getByTestId('story-title')).toBeOnTheScreen();
+    expect(screen.queryByTestId('room-title')).toBeNull();
+    expect(await confirmed()).toBe(false);
+  });
+
+  it('"You finished it!": Open on AO3 and The Epilogue ask first for an Explicit fic, not for a Mature one', async () => {
     await openFinished(explicitId);
-    expect(screen.getByText(GATE)).toBeOnTheScreen();
-    expect(screen.queryByText('Open on AO3 ↗')).toBeNull();
+    await fireEvent.press(screen.getByText('Open on AO3 ↗'));
+    expect(within(dialog()).getByText(TITLE)).toBeOnTheScreen();
+    await fireEvent.press(within(dialog()).getByText('Back'));
+    await waitFor(() => expect(screen.queryByTestId('explicit-dialog')).toBeNull());
+    await fireEvent.press(screen.getByText('Join The Epilogue'));
+    expect(within(dialog()).getByText(TITLE)).toBeOnTheScreen();
+    await fireEvent.press(within(dialog()).getByText('Back'));
+    await waitFor(() => expect(screen.queryByTestId('explicit-dialog')).toBeNull());
+    expect(screen.getByText('You finished it!')).toBeOnTheScreen();
+    expect(open).not.toHaveBeenCalled();
+
     await openFinished(matureId);
-    expect(screen.getByText('Open on AO3 ↗')).toBeOnTheScreen();
-    expect(screen.queryByText(GATE)).toBeNull();
+    await fireEvent.press(screen.getByText('Open on AO3 ↗'));
+    expect(open).toHaveBeenCalledWith(matureUrl);
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
   });
 
-  it('an Explicit fic\'s rooms say why instead of showing the discussion; a Mature fic\'s rooms are open', async () => {
-    await openRoom(explicitId, '1');
-    expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+  it('an Explicit fic\'s room reached directly (a link) asks before showing the discussion; Back leaves it', async () => {
     await openRoom(explicitId, 'epilogue');
-    expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByTestId('explicit-dialog', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    await fireEvent.press(within(dialog()).getByText('Back'));
+    expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await confirmed()).toBe(false);
+  });
+
+  it('a Mature fic\'s room opens without asking', async () => {
     await openRoom(matureId, '1');
     expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByText(ROOM_GATE)).toBeNull();
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
   });
 
   it('in Bulgarian', async () => {
     await openStory(explicitId, 'bg');
+    await fireEvent.press(await screen.findByText('Всички тагове в AO3 ↗', {}, { timeout: 8000 }));
+    expect(within(dialog()).getByText('Explicit съдържание')).toBeOnTheScreen();
     expect(
-      await screen.findByText('Рейтинг „Експлицитно“ в AO3. Потвърди в Профил, че си на 18 или повече, за да видиш линка.', {}, { timeout: 8000 }),
+      within(dialog()).getByText('Тази творба е с рейтинг Explicit в AO3 и обсъждането може да съдържа съдържание за възрастни.'),
     ).toBeOnTheScreen();
-    await renderScreen('bg', { profile: Profile }, '/profile');
-    expect(await screen.findByLabelText('На 18 или повече съм', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByText('Показва линковете към работи с рейтинг „Експлицитно“ в AO3.')).toBeOnTheScreen();
-    await openRoom(explicitId, '1', 'bg');
-    expect(
-      await screen.findByText('Рейтинг „Експлицитно“ в AO3. Потвърди в Профил, че си на 18 или повече, за да се включиш в обсъждането.', {}, { timeout: 8000 }),
-    ).toBeOnTheScreen();
-  });
-});
-
-describe('the switch in Profile', () => {
-  it('turning it on shows the link and warnings; turning it off hides them again', async () => {
-    await setSwitch(true);
-
-    await openStory(explicitId);
-    expect(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByText('Graphic violence')).toBeOnTheScreen();
-    expect(screen.getByText('Explicit')).toBeOnTheScreen();
-    expect(screen.queryByText(GATE)).toBeNull();
-    await openFinished(explicitId);
-    expect(screen.getByText('Open on AO3 ↗')).toBeOnTheScreen();
-    await openRoom(explicitId, '1');
-    await fireEvent.changeText(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 }), 'Old enough to talk about it');
-    await fireEvent.press(screen.getByText('Post'));
-    expect(await screen.findByText('Old enough to talk about it', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByText(ROOM_GATE)).toBeNull();
-
-    await setSwitch(false);
-    await openStory(explicitId);
-    await waitFor(() => expect(screen.getByText(GATE)).toBeOnTheScreen(), { timeout: 8000 });
-    expect(screen.queryByText('All tags on AO3 ↗')).toBeNull();
-    expect(screen.queryByText('Graphic violence')).toBeNull();
-    await openRoom(explicitId, '1');
-    expect(await screen.findByText(ROOM_GATE, {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByText('Old enough to talk about it')).toBeNull();
+    expect(within(dialog()).getByText('Аз съм на 18+, продължи')).toBeOnTheScreen();
+    await fireEvent.press(within(dialog()).getByText('Назад'));
+    await waitFor(() => expect(screen.queryByTestId('explicit-dialog')).toBeNull());
+    expect(open).not.toHaveBeenCalled();
   });
 });
 
 describe('an admin who has not said they are 18 or over', () => {
-  it('can still read an Explicit fic\'s room, to moderate it (the server lets admins in)', async () => {
+  it('enters an Explicit fic\'s room without the dialog, to moderate it (the server lets admins in)', async () => {
     expect(await confirmed()).toBe(false);
     setAdmin(me, true);
     try {
       await openRoom(explicitId, '1');
       expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
-      expect(screen.queryByText(ROOM_GATE)).toBeNull();
+      expect(screen.queryByTestId('explicit-dialog')).toBeNull();
     } finally {
       setAdmin(me, false);
     }
+  });
+});
+
+describe('saying yes', () => {
+  it('Continue records the answer on the account and enters the room', async () => {
+    await openStory(explicitId);
+    await fireEvent.press(await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 }));
+    await fireEvent.press(within(dialog()).getByText(CONTINUE));
+    await fireEvent.changeText(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 }), 'Old enough to talk about it');
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
+    expect(await confirmed()).toBe(true);
+    await fireEvent.press(screen.getByText('Post'));
+    expect(await screen.findByText('Old enough to talk about it', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('is asked only once: the link, Open on AO3 and the rooms go straight through afterwards', async () => {
+    await openStory(explicitId);
+    await fireEvent.press(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 }));
+    await waitFor(() => expect(open).toHaveBeenCalledWith(explicitUrl), { timeout: 8000 });
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
+
+    await openFinished(explicitId);
+    await fireEvent.press(screen.getByText('Open on AO3 ↗'));
+    await waitFor(() => expect(open).toHaveBeenCalledTimes(2), { timeout: 8000 });
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
+
+    await openRoom(explicitId, 'epilogue');
+    expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
+  });
+
+  it('Continue from the AO3 link opens the link (a fresh reader)', async () => {
+    await supabase.auth.signOut();
+    const { data, error } = await supabase.auth.signUp({ email: `gate2-${run}@example.test`, password });
+    if (error || !data.user) throw error ?? new Error('could not sign up');
+    await supabase.from('profiles').insert({ id: data.user.id, username: `gate2_${run}` }).throwOnError();
+    await addToLibrary(explicitId, 'finished');
+    await openStory(explicitId);
+    await fireEvent.press(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 }));
+    await fireEvent.press(within(dialog()).getByText(CONTINUE));
+    await waitFor(() => expect(open).toHaveBeenCalledWith(explicitUrl), { timeout: 8000 });
+    expect(screen.queryByTestId('explicit-dialog')).toBeNull();
+    expect(await confirmed()).toBe(true);
   });
 });

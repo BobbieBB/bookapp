@@ -1,6 +1,8 @@
--- The 18+ self-declaration (docs/DECISIONS.md, "Explicit works: an 18+ yes/no"): a yes/no on the
--- profile, off by default, that only the reader can turn on or off again. Runs after
--- terms_acceptance.test.sql (needs test.failure_of).
+-- The 18+ confirmation (docs/DECISIONS.md, "Explicit works: an 18+ confirmation"): a yes/no on the
+-- profile, no by default, private to the reader (read through my_profile()). The reader sets it once,
+-- with confirm_adult(), from the dialog before an Explicit work's AO3 link or discussion; it only ever
+-- goes from no to yes, and nobody can set it for someone else. Runs after terms_acceptance.test.sql
+-- (needs test.failure_of) and spoiler_rules.test.sql (test.error_of).
 \set ON_ERROR_STOP 1
 \set QUIET 1
 \o /dev/null
@@ -20,31 +22,38 @@ select test.ok((select not adult_confirmed from public.profiles where username =
 select test.ok((select is_nullable = 'NO' and column_default = 'false' and data_type = 'boolean'
   from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'adult_confirmed'),
   'the flag is a yes/no that is never null and defaults to no');
+select test.ok(not exists (select from information_schema.column_privileges
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'adult_confirmed'
+      and grantee in ('authenticated', 'anon') and privilege_type in ('SELECT', 'UPDATE', 'INSERT')),
+  'the flag is private: no reader can select, update or insert the column directly');
 
--- Mira confirms, then changes her mind.
+-- Mira reads her own answer through my_profile(); Niko cannot read hers at all.
 select test.login('00000000-0000-0000-0000-0000000a1801');
-update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1801';
-select test.ok((select adult_confirmed from public.profiles where username = 'adult_mira'), 'the reader can confirm');
-update public.profiles set adult_confirmed = false where id = '00000000-0000-0000-0000-0000000a1801';
-select test.ok((select not adult_confirmed from public.profiles where username = 'adult_mira'), 'the reader can take it back');
-
--- Niko cannot change Mira's answer, either way.
+select test.ok((select not adult_confirmed from public.my_profile()), 'the reader reads her own answer through my_profile()');
 select test.login('00000000-0000-0000-0000-0000000a1802');
-update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1801';
-select test.logout();
-select test.ok((select not adult_confirmed from public.profiles where username = 'adult_mira'),
-  'another reader cannot confirm for someone else');
+select test.ok(test.error_of($q$select adult_confirmed from public.profiles where username = 'adult_mira'$q$)
+  like 'permission denied%', 'another reader cannot read the answer');
+
+-- Mira confirms from the dialog.
 select test.login('00000000-0000-0000-0000-0000000a1801');
-update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1801';
-select test.login('00000000-0000-0000-0000-0000000a1802');
-update public.profiles set adult_confirmed = false where id = '00000000-0000-0000-0000-0000000a1801';
-select test.logout();
-select test.ok((select adult_confirmed from public.profiles where username = 'adult_mira'),
-  'another reader cannot take it back for someone else');
+select test.ok(test.failure_of($q$update public.profiles set adult_confirmed = true where id = auth.uid()$q$)
+  like '42501: permission denied%', 'the reader cannot write the column directly, only through confirm_adult()');
+select public.confirm_adult();
+select test.ok((select adult_confirmed from public.my_profile()), 'confirm_adult() records the reader''s yes');
+select public.confirm_adult();
+select test.ok((select adult_confirmed from public.my_profile()), 'confirming again is harmless');
+select test.ok(test.failure_of($q$update public.profiles set adult_confirmed = false where id = auth.uid()$q$)
+  like '42501: permission denied%', 'the reader cannot write a no over it');
 
--- Nor can anyone without the reader's session: not the database owner, not a server key.
+-- Confirming only ever touches the caller's own row: Mira's yes left Niko's answer alone.
+select test.logout();
+select test.ok((select not adult_confirmed from public.profiles where username = 'adult_niko'),
+  'one reader confirming does not confirm another');
+
+-- Without a reader's session, nobody sets it, and nobody turns a yes back into a no: not the database
+-- owner, not a server key.
 select test.ok(test.failure_of($$update public.profiles set adult_confirmed = false where id = '00000000-0000-0000-0000-0000000a1801'$$)
-  = 'LV001: only the reader can say they are 18 or over', 'the database owner cannot take it back');
+  = 'LV001: the 18+ confirmation cannot be taken back', 'the database owner cannot take it back');
 select test.ok(test.failure_of($$update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1802'$$)
   = 'LV001: only the reader can say they are 18 or over', 'the database owner cannot confirm for a reader');
 select test.ok(test.failure_of($$insert into public.profiles (id, username, adult_confirmed)
@@ -52,6 +61,10 @@ select test.ok(test.failure_of($$insert into public.profiles (id, username, adul
   = 'LV001: only the reader can say they are 18 or over', 'nobody can create a profile that is already confirmed');
 select test.ok((select adult_confirmed from public.profiles where username = 'adult_mira')
   and (select not adult_confirmed from public.profiles where username = 'adult_niko'), 'both answers are unchanged');
+
+-- Signed out, confirm_adult() is not callable.
+select test.ok(test.failure_of($q$select public.confirm_adult()$q$) like '42501: permission denied for function confirm_adult',
+  'anon cannot call confirm_adult()');
 
 -- Other edits by the database owner (e.g. moderation) still work.
 update public.profiles set display_name = 'Mira' where id = '00000000-0000-0000-0000-0000000a1801';
@@ -137,18 +150,25 @@ select test.ok((select count(*) > 0 from public.comments where body = 'mira on t
   'an admin reads an Explicit fic''s room without the confirmation');
 select test.login('00000000-0000-0000-0000-0000000a1802');
 
+-- The story page still lists the Explicit fic's rooms as reached, so the reader can tap one and get the
+-- dialog; story_rooms says the room asks for the 18+ confirmation and shows no comment count until then.
+select test.ok((select bool_and(unlocked and adult_only and comments is null)
+    from public.story_rooms('18000000-0000-0000-0000-000000000001')),
+  'an unconfirmed reader sees the Explicit fic''s reached rooms, marked as asking for the confirmation');
+select test.ok((select bool_and(unlocked and not adult_only and comments is not null)
+    from public.story_rooms('18000000-0000-0000-0000-000000000002')),
+  'a Mature fic''s rooms never ask');
+
 -- Niko confirms: the Explicit room opens.
-update public.profiles set adult_confirmed = true where id = '00000000-0000-0000-0000-0000000a1802';
+select public.confirm_adult();
 select test.ok((select count(*) = 1 from public.comments where body = 'mira on the explicit fic'), 'once confirmed, the comments are readable');
 insert into public.comments (discussion_id, body)
   select id, 'niko on the explicit fic' from public.discussions where story_id = '18000000-0000-0000-0000-000000000001' and kind = 'chapter';
 select test.ok((select count(*) = 1 from public.comments where body = 'niko on the explicit fic'), 'once confirmed, the reader can post');
+select test.ok((select bool_and(unlocked and not adult_only and comments is not null)
+    from public.story_rooms('18000000-0000-0000-0000-000000000001')),
+  'once confirmed, the rooms no longer ask');
 
--- Mira takes it back: the room closes, her own comments included.
-select test.login('00000000-0000-0000-0000-0000000a1801');
-update public.profiles set adult_confirmed = false where id = '00000000-0000-0000-0000-0000000a1801';
-select test.ok((select count(*) = 0 from public.comments c join public.discussions d on d.id = c.discussion_id
-  where d.story_id = '18000000-0000-0000-0000-000000000001'), 'taking it back closes the room again');
 select test.logout();
 
 \o
