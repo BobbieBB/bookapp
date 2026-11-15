@@ -1,11 +1,11 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 
 import Profile from '../../../app/(tabs)/profile';
 import FinishedScreen from '../../../app/finished/[id]';
 import RoomScreen from '../../../app/room/[storyId]/[room]';
 import StoryScreen from '../../../app/story/[id]';
-import { setAdmin } from '../../../test/database';
+import { setAdmin, sql } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
 import type { Language } from '../../i18n';
 import { addToLibrary, createFic } from '../../lib/stories';
@@ -20,6 +20,8 @@ const run = Date.now().toString(36);
 const TITLE = 'Explicit content';
 const BODY = 'This work is rated Explicit on AO3, and its discussion may include adult content.';
 const CONTINUE = 'I’m 18 or over, continue';
+const FAILED = 'Could not save your answer. Please try again.';
+const LINK = 'All tags on AO3 ↗';
 let me = '';
 let explicitId = '';
 let explicitUrl = '';
@@ -49,6 +51,15 @@ const confirmed = async () =>
   (await supabase.rpc('my_profile').select('adult_confirmed').single().throwOnError()).data!.adult_confirmed as boolean;
 
 const dialog = () => screen.getByTestId('explicit-dialog');
+
+// A new reader who has not answered yet, with the Explicit fic finished (every room reached).
+async function freshReader(tag: string) {
+  await supabase.auth.signOut();
+  const { data, error } = await supabase.auth.signUp({ email: `${tag}-${run}@example.test`, password });
+  if (error || !data.user) throw error ?? new Error('could not sign up');
+  await supabase.from('profiles').insert({ id: data.user.id, username: `${tag}_${run}` }).throwOnError();
+  await addToLibrary(explicitId, 'finished');
+}
 
 beforeAll(async () => {
   const { data, error } = await supabase.auth.signUp({ email: `gate-${run}@example.test`, password });
@@ -227,16 +238,58 @@ describe('saying yes', () => {
   });
 
   it('Continue from the AO3 link opens the link (a fresh reader)', async () => {
-    await supabase.auth.signOut();
-    const { data, error } = await supabase.auth.signUp({ email: `gate2-${run}@example.test`, password });
-    if (error || !data.user) throw error ?? new Error('could not sign up');
-    await supabase.from('profiles').insert({ id: data.user.id, username: `gate2_${run}` }).throwOnError();
-    await addToLibrary(explicitId, 'finished');
+    await freshReader('gate2');
     await openStory(explicitId);
     await fireEvent.press(await screen.findByText('All tags on AO3 ↗', {}, { timeout: 8000 }));
     await fireEvent.press(within(dialog()).getByText(CONTINUE));
     await waitFor(() => expect(open).toHaveBeenCalledWith(explicitUrl), { timeout: 8000 });
     expect(screen.queryByTestId('explicit-dialog')).toBeNull();
     expect(await confirmed()).toBe(true);
+  });
+});
+
+describe('the dialog, when things go wrong', () => {
+  it('a double tap on Continue opens the link once', async () => {
+    await freshReader('gate3');
+    await openStory(explicitId);
+    await fireEvent.press(await screen.findByText(LINK, {}, { timeout: 8000 }));
+    const go = within(dialog()).getByText(CONTINUE);
+    // Both taps land before the dialog re-renders as saving (one act: nothing renders in between).
+    await act(async () => {
+      void fireEvent.press(go);
+      void fireEvent.press(go);
+    });
+    await waitFor(() => expect(open).toHaveBeenCalledWith(explicitUrl), { timeout: 8000 });
+    await waitFor(() => expect(screen.queryByTestId('explicit-dialog')).toBeNull());
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it('when the answer cannot be saved, the dialog says so, nothing opens and Continue can be tried again', async () => {
+    await freshReader('gate4');
+    await openStory(explicitId);
+    await fireEvent.press(await screen.findByText(LINK, {}, { timeout: 8000 }));
+    // The server refuses the real call: confirm_adult() is revoked from readers for the length of the tap.
+    sql('revoke execute on function public.confirm_adult() from authenticated;');
+    try {
+      await fireEvent.press(within(dialog()).getByText(CONTINUE));
+      expect(await within(dialog()).findByText(FAILED, {}, { timeout: 8000 })).toBeOnTheScreen();
+    } finally {
+      sql('grant execute on function public.confirm_adult() to authenticated;');
+    }
+    expect(within(dialog()).getByText(CONTINUE)).toBeOnTheScreen();
+    expect(open).not.toHaveBeenCalled();
+    expect(await confirmed()).toBe(false);
+  });
+
+  it('a yes given at the AO3 link shows the rooms\' comment counts on the same story screen', async () => {
+    await freshReader('gate5');
+    await openStory(explicitId);
+    const row = await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 });
+    // The first reader's comment (saying yes, above) is hidden behind the question until now.
+    expect(within(row).queryByText(/comment/)).toBeNull();
+    await fireEvent.press(screen.getByText(LINK));
+    await fireEvent.press(within(dialog()).getByText(CONTINUE));
+    await waitFor(() => expect(open).toHaveBeenCalledWith(explicitUrl), { timeout: 8000 });
+    expect(await within(screen.getByTestId('room-chapter-1')).findByText(/1 comment/, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });
