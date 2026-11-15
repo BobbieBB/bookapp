@@ -515,9 +515,10 @@ the room screen itself, and Back there leaves the room.
 
 **Where it is enforced.** The rooms are enforced on the server: `user_can_access_section`, the single spoiler
 wall, also requires the yes for an Explicit fic, so the comments read/insert policies, reactions, @mentions and
-push all follow it (admins still get in for moderation and are never asked). The story page's room list
-(`story_rooms`) still shows a reached Explicit room as open, marked `adult_only`, with no comment count, so the
-reader can tap it and get the dialog. The answer is a private profile column, read through `my_profile()`, with
+push all follow it (admins still get in for moderation and are not asked for rooms; they are asked before the
+AO3 link like everyone). The story page's room list (`story_rooms`) still shows a reached Explicit room as open,
+marked `adult_only`, with no comment count, so the reader can tap it and get the dialog; the list reloads with
+its counts as soon as the reader says yes, on any door of the same screen. The answer is a private profile column, read through `my_profile()`, with
 no column grant; the only way to set it is `confirm_adult()`, which sets the caller's own row to yes. The link
 is **not** protected by the server: `stories.source_url` stays readable to any signed-in reader through the API.
 The dialog is an **in-app** question, backed by AO3's own adult-content interstitial before any Explicit work;
@@ -529,6 +530,10 @@ If the profile cannot be loaded, the app shows its usual "couldn't load your pro
 a no on a reader's request needs the `profiles_guard_adult` trigger disabled deliberately for that change
 (`alter table public.profiles disable trigger profiles_guard_adult`, then enable it again): the trigger refuses
 a new profile at yes, a yes for anyone but the reader, and any yes turned into a no, the database owner included.
+
+**Known limit.** The rating is self-declared: the reader who adds the fic picks it, and its creator can edit it
+later, so the dialog is only as strong as that rating (a fic added as Mature never asks). The PO accepted a
+click-through confirmation, not age verification.
 
 ## Analytics: opt-in (14 Nov 2026)
 
