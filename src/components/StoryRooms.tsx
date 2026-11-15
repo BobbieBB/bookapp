@@ -2,32 +2,43 @@ import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
+import { useExplicitGate } from '@/components/ExplicitDialog';
 import { ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
+import { useAuth } from '@/lib/auth';
 import { loadRooms, type Room } from '@/lib/discussions';
 import { useLookup } from '@/lib/useLookup';
 import { radius, softShadow, space, useTheme } from '@/theme';
 
 /**
  * The story page's rooms: every chapter (or 25-page part) and The Epilogue. Locked rooms say what
- * opens them and can't be entered; the database refuses them anyway (Spoiler Safe Mode).
+ * opens them and can't be entered; the database refuses them anyway (Spoiler Safe Mode). An Explicit fic's
+ * rooms ask the 18+ question before the first one opens (docs/DECISIONS.md, "Explicit works: an 18+ confirmation").
  */
 export function StoryRooms({ storyId, version }: { storyId: string; version: number }) {
   const { c } = useTheme();
   const t = useT();
   const rooms = useLookup(`${storyId}:${version}`, () => loadRooms(storyId));
   const list = rooms.data ?? rooms.previous;
+  const { profile } = useAuth();
+  const gate = useExplicitGate();
+  // The room list may predate the reader's yes (given on another door): the profile has the latest answer.
+  const enter = (room: Room) =>
+    gate.ask(room.adult_only && profile?.adult_confirmed !== true, () =>
+      router.push(`/room/${storyId}/${room.kind === 'epilogue' ? 'epilogue' : room.section_number}`),
+    );
 
   return (
     <View style={{ gap: space.s }}>
+      {gate.dialog}
       <T v="overline">{t('story.discussions')}</T>
       {rooms.error ? <ErrorText>{t('story.roomsFailed')}</ErrorText> : null}
-      {list ? list.map((room) => <RoomRow key={room.kind + (room.section_number ?? '')} storyId={storyId} room={room} />) : <ActivityIndicator color={c.signal} />}
+      {list ? list.map((room) => <RoomRow key={room.kind + (room.section_number ?? '')} room={room} onEnter={() => enter(room)} />) : <ActivityIndicator color={c.signal} />}
     </View>
   );
 }
 
-function RoomRow({ storyId, room }: { storyId: string; room: Room }) {
+function RoomRow({ room, onEnter }: { room: Room; onEnter: () => void }) {
   const { c, mode, fonts } = useTheme();
   const t = useT();
   const epilogue = room.kind === 'epilogue';
@@ -44,7 +55,7 @@ function RoomRow({ storyId, room }: { storyId: string; room: Room }) {
       accessibilityRole="button"
       accessibilityState={{ disabled: !room.unlocked }}
       disabled={!room.unlocked}
-      onPress={() => router.push(`/room/${storyId}/${epilogue ? 'epilogue' : room.section_number}`)}
+      onPress={onEnter}
       style={{
         flexDirection: 'row',
         alignItems: 'center',

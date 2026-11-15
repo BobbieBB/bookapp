@@ -1,15 +1,16 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommentCard } from '@/components/CommentCard';
+import { ExplicitDialog } from '@/components/ExplicitDialog';
 import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
-import { hidesExplicit } from '@/lib/links';
+import { asksAdult } from '@/lib/explicit';
 import {
   deleteComment,
   loadComments,
@@ -74,9 +75,13 @@ export default function RoomScreen() {
   // Finished, so a next chapter there only shows up for an admin moderating it: no button then.
   const next = page?.entry && target.kind === 'chapter' ? nextChapter(page.story, page.entry.progress_section ?? 0) : null;
   const locked = isLocked(room.error);
-  // An Explicit fic's rooms: the server refuses them too (user_can_access_section); this says why.
-  // Admins get in on the server (can_access_section), so they can read what they moderate.
-  const explicitHidden = !profile?.is_admin && hidesExplicit(page?.story.content_rating, profile?.adult_confirmed);
+  // An Explicit fic's room reached without the 18+ yes (a link, a notification): ask here. The server
+  // refuses the room until then (user_can_access_section); admins get in to moderate, so they are not asked.
+  const asking = !!profile && !profile.is_admin && asksAdult(page?.story.content_rating, profile);
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/story/${params.storyId}`);
+  };
   const finishAndTrack = async (chapter: NonNullable<typeof next>, uid: string) => {
     await finishChapter(params.storyId, uid, chapter);
     if (page) void track('chapter_finished', { kind: page.story.kind });
@@ -99,8 +104,8 @@ export default function RoomScreen() {
               onChanged={refresh}
             />
           ) : null}
-          {explicitHidden ? (
-            <T>{t('room.explicitGate')}</T>
+          {asking ? (
+            <ExplicitDialog onConfirmed={refresh} onBack={leave} />
           ) : room.error ? (
             locked ? (
               <T>{target.kind === 'epilogue' ? t('room.lockedEpilogue') : t('room.lockedChapter', { n: target.n })}</T>

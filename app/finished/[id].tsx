@@ -2,10 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useExplicitGate } from '@/components/ExplicitDialog';
 import { Button, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { hidesExplicit, isAo3Link } from '@/lib/links';
+import { asksAdult } from '@/lib/explicit';
+import { isAo3Link } from '@/lib/links';
 import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/reviews';
 import { canComplete, loadStoryPage, markComplete, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
@@ -60,9 +62,11 @@ function Finished({
   const { fonts, c } = useTheme();
   const t = useT();
   const { profile } = useAuth();
+  const gate = useExplicitGate();
   const [error, setError] = useState('');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
-  const explicitHidden = hidesExplicit(story.content_rating, profile?.adult_confirmed);
+  // An Explicit fic asks the 18+ question before its link or The Epilogue opens; admins enter rooms to moderate.
+  const explicit = asksAdult(story.content_rating, profile);
   // A WIP fic marked Finished: you're caught up, but The Epilogue (spoilers for the whole story)
   // only opens once it is complete, so don't offer a door that is locked.
   const wip = story.kind === 'fanfic' && story.status === 'ongoing';
@@ -100,6 +104,7 @@ function Finished({
 
   return (
     <>
+      {gate.dialog}
       <View accessible accessibilityRole="header" style={{ gap: space.s, paddingVertical: space.xl }}>
         <Text style={{ fontFamily: fonts.moment, fontSize: 44, lineHeight: 50, color: c.ink }}>
           {wip ? t('finishing.caughtUpTitle') : t('finishing.title')}
@@ -110,14 +115,15 @@ function Finished({
       {story.kind === 'fanfic' ? (
         <View style={{ gap: space.s }}>
           <T v="body">{t('finishing.ficHint')}</T>
-          {explicitHidden ? <T v="muted">{t('story.explicitGate')}</T> : null}
-          {link && !explicitHidden ? (
+          {link ? (
             <Button
               variant="secondary"
               title={t('finishing.openAo3')}
               onPress={() => {
                 setError('');
-                Linking.openURL(link).catch(() => setError(t('finishing.linkFailed')));
+                gate.ask(explicit, () => {
+                  Linking.openURL(link).catch(() => setError(t('finishing.linkFailed')));
+                });
               }}
             />
           ) : null}
@@ -139,7 +145,10 @@ function Finished({
           <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={backToStory} />
         </>
       ) : (
-        <Button title={t('finishing.epilogue')} onPress={() => router.replace(`/room/${story.id}/epilogue`)} />
+        <Button
+          title={t('finishing.epilogue')}
+          onPress={() => gate.ask(explicit && !profile?.is_admin, () => router.replace(`/room/${story.id}/epilogue`))}
+        />
       )}
     </>
   );

@@ -11,6 +11,8 @@ export type Room = {
   kind: RoomKind;
   section_number: number | null;
   unlocked: boolean;
+  /** An Explicit fic's room that asks the 18+ question first (story_rooms; never for admins). */
+  adult_only: boolean;
   readers: number;
   comments: number | null; // null for rooms you haven't unlocked
 };

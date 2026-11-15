@@ -14,6 +14,9 @@ insert into auth.users (id) values
 select test.login('00000000-0000-0000-0000-0000000a1801');
 insert into public.profiles (id, username) values ('00000000-0000-0000-0000-0000000a1801', 'adult_mira');
 select test.login('00000000-0000-0000-0000-0000000a1802');
+select test.ok(test.failure_of($q$insert into public.profiles (id, username, adult_confirmed)
+  values ('00000000-0000-0000-0000-0000000a1802', 'adult_niko', true)$q$)
+  = 'LV001: a new profile starts without the 18+ confirmation', 'a reader cannot start a profile already confirmed');
 insert into public.profiles (id, username) values ('00000000-0000-0000-0000-0000000a1802', 'adult_niko');
 select test.logout();
 
@@ -24,8 +27,8 @@ select test.ok((select is_nullable = 'NO' and column_default = 'false' and data_
   'the flag is a yes/no that is never null and defaults to no');
 select test.ok(not exists (select from information_schema.column_privileges
     where table_schema = 'public' and table_name = 'profiles' and column_name = 'adult_confirmed'
-      and grantee in ('authenticated', 'anon') and privilege_type in ('SELECT', 'UPDATE', 'INSERT')),
-  'the flag is private: no reader can select, update or insert the column directly');
+      and grantee in ('authenticated', 'anon') and privilege_type in ('SELECT', 'UPDATE')),
+  'the flag is private: no reader can select or update the column directly');
 
 -- Mira reads her own answer through my_profile(); Niko cannot read hers at all.
 select test.login('00000000-0000-0000-0000-0000000a1801');
@@ -58,13 +61,15 @@ select test.ok(test.failure_of($$update public.profiles set adult_confirmed = tr
   = 'LV001: only the reader can say they are 18 or over', 'the database owner cannot confirm for a reader');
 select test.ok(test.failure_of($$insert into public.profiles (id, username, adult_confirmed)
   values ('00000000-0000-0000-0000-0000000a1803', 'adult_ghost', true)$$)
-  = 'LV001: only the reader can say they are 18 or over', 'nobody can create a profile that is already confirmed');
+  = 'LV001: a new profile starts without the 18+ confirmation', 'nobody can create a profile that is already confirmed');
 select test.ok((select adult_confirmed from public.profiles where username = 'adult_mira')
   and (select not adult_confirmed from public.profiles where username = 'adult_niko'), 'both answers are unchanged');
 
 -- Signed out, confirm_adult() is not callable.
-select test.ok(test.failure_of($q$select public.confirm_adult()$q$) like '42501: permission denied for function confirm_adult',
+set role anon;
+select test.ok(test.error_of($q$select public.confirm_adult()$q$) like 'permission denied for function confirm_adult',
   'anon cannot call confirm_adult()');
+reset role;
 
 -- Other edits by the database owner (e.g. moderation) still work.
 update public.profiles set display_name = 'Mira' where id = '00000000-0000-0000-0000-0000000a1801';

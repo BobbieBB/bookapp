@@ -13,7 +13,6 @@ import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { useLegalUrl } from '@/lib/legalLinks';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { disablePush, enablePush, pushIsOn, type PushStatus } from '@/lib/pushDevice';
-import { supabase } from '@/lib/supabase';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
 
@@ -198,38 +197,6 @@ function HelpUsImprove() {
   );
 }
 
-// "I'm 18 or over": shows Explicit works' AO3 links, warnings and rooms (docs/DECISIONS.md, "Explicit
-// works: an 18+ yes/no"). A yes/no on the account, never a birth date; the reader can take it back.
-function AdultConfirmed() {
-  const t = useT();
-  const { profile, refreshProfile } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function change(on: boolean) {
-    if (!profile) return;
-    setFailed(false);
-    setSaving(true);
-    try {
-      const { error } = await supabase.from('profiles').update({ adult_confirmed: on }).eq('id', profile.id);
-      if (error) throw error;
-      if (!(await refreshProfile())) throw new Error('could not reload the profile');
-    } catch {
-      setFailed(true);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Card>
-      <Toggle label={t('profile.adult')} value={profile?.adult_confirmed ?? false} onChange={change} disabled={!profile || saving} />
-      <T v="muted">{t('profile.adultHint')}</T>
-      <ErrorText>{failed ? t('profile.analyticsError') : null}</ErrorText>
-    </Card>
-  );
-}
-
 export default function Profile() {
   const { c } = useTheme();
   const t = useT();
@@ -281,8 +248,6 @@ export default function Profile() {
         <PhoneNotifications />
 
         <HelpUsImprove />
-
-        <AdultConfirmed />
 
         <Card tone="mine">
           <T v="moment" style={{ fontSize: 26 }}>{t('profile.authorsWelcome')}</T>

@@ -5,11 +5,13 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } 
 import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
 import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
+import { useExplicitGate } from '@/components/ExplicitDialog';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
-import { hidesExplicit, isAo3Link } from '@/lib/links';
+import { asksAdult } from '@/lib/explicit';
+import { isAo3Link } from '@/lib/links';
 import { progressLine, statusKey } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
@@ -229,6 +231,7 @@ function StoryBody({
   const { c, mode, fonts } = useTheme();
   const t = useT();
   const { profile } = useAuth();
+  const gate = useExplicitGate();
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
   const [error, setError] = useState('');
@@ -289,10 +292,15 @@ function StoryBody({
   const percent = entry ? pagePercent(entry.progress_page, story.page_count) : null;
   const statuses = STATUSES.filter((s) => s !== 'on_hold' || isFic);
   const link = isAo3Link(story.source_url) ? story.source_url : null;
-  const explicitHidden = hidesExplicit(story.content_rating, profile?.adult_confirmed);
+  // An Explicit fic asks the 18+ question before its link opens; nothing else on the page is hidden.
+  const openLink = (url: string) =>
+    gate.ask(asksAdult(story.content_rating, profile), () => {
+      Linking.openURL(url).catch(() => setError(t('story.linkFailed')));
+    });
 
   return (
     <>
+      {gate.dialog}
       <View style={{ flexDirection: 'row', gap: space.l }}>
         <View style={{ width: 96, gap: space.xs }}>
           <View>
@@ -320,17 +328,13 @@ function StoryBody({
           </View>
           {story.fandoms.length ? <LabelledLine label={t('story.fandom')} value={story.fandoms.join(', ')} /> : null}
           {story.ships.length ? <LabelledLine label={t('story.ship')} value={story.ships.join(', ')} /> : null}
-          {explicitHidden ? (
-            <T v="muted">{t('story.explicitGate')}</T>
-          ) : (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
-              {story.warnings.map((w) => (
-                <Tag key={w} label={isWarning(w) ? t(WARNING_LABEL[w]) : w} />
-              ))}
-            </View>
-          )}
-          {link && !explicitHidden ? (
-            <Pressable accessibilityRole="link" onPress={() => Linking.openURL(link).catch(() => setError(t('story.linkFailed')))} style={{ minHeight: 44, justifyContent: 'center' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+            {story.warnings.map((w) => (
+              <Tag key={w} label={isWarning(w) ? t(WARNING_LABEL[w]) : w} />
+            ))}
+          </View>
+          {link ? (
+            <Pressable accessibilityRole="link" onPress={() => openLink(link)} style={{ minHeight: 44, justifyContent: 'center' }}>
               <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.ink, textDecorationLine: 'underline' }}>{t('story.allTags')}</Text>
             </Pressable>
           ) : null}
