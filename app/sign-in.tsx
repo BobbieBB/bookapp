@@ -4,7 +4,6 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, ErrorText, Field, T } from '@/components/ui';
-import { track } from '@/lib/analytics';
 import { APP_NAME } from '@/lib/config';
 import { passwordLongEnough } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
@@ -36,7 +35,6 @@ export default function SignIn() {
         const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
         if (error) setError(friendly(error.message, t));
         else {
-          void track('sign_up');
           if (!data.session) {
             // Email confirmation is switched on in Supabase: the user must click the link first.
             setNotice(t('auth.confirmNotice'));

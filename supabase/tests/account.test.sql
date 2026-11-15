@@ -52,7 +52,7 @@ insert into public.reactions (comment_id, user_id, emoji) values
   ('a3000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000dd002', '🔥');
 insert into public.blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-0000000dd001', '00000000-0000-0000-0000-0000000dd004');
 insert into public.analytics_events (user_id, name) values ('00000000-0000-0000-0000-0000000dd001', 'app_open');
-insert into public.analytics_opt_outs (user_id) values ('00000000-0000-0000-0000-0000000dd001');
+insert into public.analytics_consents (user_id) values ('00000000-0000-0000-0000-0000000dd001');
 insert into public.push_tokens (token, user_id, language, platform) values
   ('ExponentPushToken[dora]', '00000000-0000-0000-0000-0000000dd001', 'en', 'ios');
 insert into public.reports (reporter_id, comment_id, reason) values
@@ -107,7 +107,7 @@ select test.ok(not exists (select 1 from public.blocks where blocker_id = '00000
 select test.ok(not exists (select 1 from public.notifications where user_id = '00000000-0000-0000-0000-0000000dd001'), 'notifications are gone');
 select test.ok(not exists (select 1 from public.custom_covers where user_id = '00000000-0000-0000-0000-0000000dd001'), 'custom covers are gone');
 select test.ok(not exists (select 1 from public.analytics_events where user_id = '00000000-0000-0000-0000-0000000dd001'), 'analytics events are gone');
-select test.ok(not exists (select 1 from public.analytics_opt_outs where user_id = '00000000-0000-0000-0000-0000000dd001'), 'the analytics opt-out is gone');
+select test.ok(not exists (select 1 from public.analytics_consents where user_id = '00000000-0000-0000-0000-0000000dd001'), 'the analytics consent is gone');
 select test.ok(not exists (select 1 from public.push_tokens where user_id = '00000000-0000-0000-0000-0000000dd001'), 'push tokens are gone');
 select test.ok(not exists (select 1 from public.reports where reporter_id = '00000000-0000-0000-0000-0000000dd001'), 'her reports are gone');
 select test.ok((select created_by is null from public.stories where id = 'a1000000-0000-0000-0000-000000000001'),

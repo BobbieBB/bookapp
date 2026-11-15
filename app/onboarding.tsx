@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { TermsConsent } from '@/components/TermsConsent';
+import { Checkbox, TermsConsent } from '@/components/TermsConsent';
 import { Button, Card, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useT } from '@/i18n';
-import { track } from '@/lib/analytics';
+import { setAnalyticsConsent, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +20,8 @@ export default function Onboarding() {
   const [readsFanfic, setReadsFanfic] = useState(true);
   const [acceptsTerms, setAcceptsTerms] = useState(false);
   const [oldEnough, setOldEnough] = useState(false);
+  // Analytics are opt-in (docs/DECISIONS.md, "Analytics: opt-in"): unticked, and not needed to start.
+  const [helpsImprove, setHelpsImprove] = useState(false);
   const ticked = acceptsTerms && oldEnough;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -58,7 +60,14 @@ export default function Onboarding() {
       );
       return;
     }
-    void track('onboarding_done', { source: readsBooks && readsFanfic ? 'both' : readsBooks ? 'books' : 'fanfic' });
+    // Consent needs the account, and the first events need consent: profile, then consent, then the events.
+    // A failed consent save doesn't hold the reader up; they can switch it on in Profile.
+    const source = readsBooks && readsFanfic ? 'both' : readsBooks ? 'books' : 'fanfic';
+    void (async () => {
+      if (helpsImprove) await setAnalyticsConsent(true).catch(() => undefined);
+      await track('sign_up');
+      await track('onboarding_done', { source });
+    })();
     await refreshProfile();
   }
 
@@ -98,6 +107,7 @@ export default function Onboarding() {
           )}
 
           <TermsConsent terms={acceptsTerms} age={oldEnough} onTerms={setAcceptsTerms} onAge={setOldEnough} disabled={busy} />
+          <Checkbox label={t('legal.analyticsConsent')} checked={helpsImprove} onChange={setHelpsImprove} disabled={busy} />
 
           <ErrorText>{error}</ErrorText>
           {ticked ? null : <T v="muted">{t('legal.tickBoth')}</T>}

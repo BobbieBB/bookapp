@@ -64,6 +64,10 @@ Before launch:
   (force-upgrade) check: older builds meet a profile on a newer version, cannot write their own older one
   (the database refuses the downgrade) and loop on the terms gate (docs/DECISIONS.md, "Terms changes take
   effect on a date"). The effective-date check is phone-side UX only; the acceptance record is the proof.
+- **Analytics consent:** apply `20261114000500_analytics_consent.sql` to the hosted database **before**
+  shipping an app build that includes it. The new build reads `analytics_consents`; without the table its
+  "Help us improve the app" switch shows an error and nothing is recorded. Older builds keep working, but
+  record nothing once the migration is in (their switch shows an error: the opt-out table is gone).
 - **Store release (drafts, PO to decide):** `docs/STORE_LISTING.md` has the App Store and Google Play
   listing in English and Bulgarian; `app.json` has the bundle id / package `app.livami` (confirmed by the PO, 5 Nov 2026) and the
   `livami` scheme; `eas.json` has the development, preview and production builds. Still needed from a
