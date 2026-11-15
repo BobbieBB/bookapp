@@ -35,11 +35,15 @@ function TabIcon({ name, label, focused }: { name: IconName; label: string; focu
 }
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
+type TabNavigation = {
+  emit: (event: { type: string; target: string; canPreventDefault?: boolean }) => { defaultPrevented?: boolean };
+  navigate: (name: string, params?: object) => void;
+};
 
 // Our own bar instead of the library's, because the library's tab items stopped honouring a wider
 // active item in SDK 58 and cut the pill's label ("Li…"). The active tab takes 2.4× the room, so its
 // pill (icon + label) fits, also with the longer Bulgarian labels ("Библиотека").
-function PillTabBar({ state, descriptors, navigation }: TabBarProps) {
+function PillTabBar({ state, descriptors }: TabBarProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -61,9 +65,11 @@ function PillTabBar({ state, descriptors, navigation }: TabBarProps) {
       {state.routes.map((route, i) => {
         const focused = state.index === i;
         const { options } = descriptors[route.key];
+        // Each tab's own navigation object (the bar's props stopped carrying one in SDK 58).
+        const navigation = descriptors[route.key].navigation as unknown as TabNavigation;
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!focused && !event.defaultPrevented) navigation.navigate(route.name as never, route.params as never);
+          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
         };
         return (
           <Pressable
