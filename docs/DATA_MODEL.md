@@ -149,7 +149,7 @@ swept the same way. The 30 days are the function's default and nowhere else. Onl
 runs it (the cron job); `anon`, `authenticated` and `service_role` cannot. Accounts with neither date are
 kept. Accounts with a profile are
 never swept, however old or inactive (a PO decision). What such an account can have made goes with it
-through `on delete cascade`: analytics events and the analytics opt-out (both reference `auth.users`;
+through `on delete cascade`: analytics events and the analytics consent (both reference `auth.users`;
 everything else needs a profile, so there are no cover files in Storage). A reader accepting the terms
 at that very moment keeps the account: the function locks its candidates `for update skip locked` (a
 profile insert in progress holds a lock on the user row, so that account is skipped), then deletes

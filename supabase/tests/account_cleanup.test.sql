@@ -14,8 +14,8 @@ insert into auth.users (id, email, created_at, last_sign_in_at) values
   -- Confirmed and signing in, but has not accepted the terms yet: active, so kept.
   ('00000000-0000-0000-0000-0000000ac005', 'active-ghost@example.com', now() - interval '400 days', now() - interval '2 days');
 insert into public.profiles (id, username) values ('00000000-0000-0000-0000-0000000ac003', 'oldreader');
--- What a profileless account can already have made: analytics (sign_up, the first app_open) and an opt-out.
-insert into public.analytics_opt_outs (user_id) values ('00000000-0000-0000-0000-0000000ac001');
+-- What a profileless account can already have made: analytics (sign_up, the first app_open) and a consent.
+insert into public.analytics_consents (user_id) values ('00000000-0000-0000-0000-0000000ac001');
 insert into public.analytics_events (user_id, name) values ('00000000-0000-0000-0000-0000000ac001', 'sign_up');
 
 -- 1. Only the service side may sweep ---------------------------------------------------------------
@@ -31,7 +31,7 @@ select test.ok(public.sweep_profileless_accounts() = 1, 'one account is swept, a
 select test.ok(not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000ac001'),
   'a profileless account older than 30 days is deleted');
 select test.ok(not exists (select 1 from public.analytics_events where user_id = '00000000-0000-0000-0000-0000000ac001')
-  and not exists (select 1 from public.analytics_opt_outs where user_id = '00000000-0000-0000-0000-0000000ac001'),
+  and not exists (select 1 from public.analytics_consents where user_id = '00000000-0000-0000-0000-0000000ac001'),
   'with what it made before it had a profile');
 select test.ok(exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000ac002'),
   'a profileless account younger than 30 days is kept');
