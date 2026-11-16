@@ -76,14 +76,14 @@ describe('a chapter you finished', () => {
   it('you can post a comment and reply to one', async () => {
     await open('en', '2');
     await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 });
-    await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'My first thought');
+    await fireEvent.changeText(screen.getByLabelText('Write a comment…'), 'My first thought');
     await fireEvent.press(screen.getByText('Post'));
     expect(await screen.findByText('My first thought', {}, { timeout: 8000 })).toBeOnTheScreen();
 
     const topId = await firstCommentId('That ending of chapter 2!');
     const thread = screen.getByTestId(`thread-${topId}`);
     await fireEvent.press(within(thread).getAllByText('Reply')[0]);
-    await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'A reply from me');
+    await fireEvent.changeText(screen.getByLabelText('Write a comment…'), 'A reply from me');
     await fireEvent.press(screen.getByText('Post'));
     await waitFor(() => expect(within(screen.getByTestId(`thread-${topId}`)).getByText('A reply from me')).toBeOnTheScreen(), { timeout: 8000 });
   });
@@ -150,7 +150,7 @@ describe('the spoiler wall', () => {
     await open('en', '3');
     expect(screen.getByText('Finish chapter 3 to join this discussion.')).toBeOnTheScreen();
     expect(screen.queryByText('CHAPTER 3 SPOILER')).toBeNull();
-    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    expect(screen.queryByLabelText('Write a comment…')).toBeNull();
   });
 
   it('The Epilogue opens only when you finish the story', async () => {

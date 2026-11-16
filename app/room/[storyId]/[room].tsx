@@ -360,7 +360,7 @@ function Discussion({
             onFocus={() => onComposerFocus(true)}
             onBlur={() => onComposerFocus(false)}
             multiline
-            placeholder={t('room.add')}
+            placeholder={replyTo ? t('room.addReply', { name: replyTo.username }) : t('room.add')}
             placeholderTextColor={c.muted}
             style={{
               minHeight: 50,

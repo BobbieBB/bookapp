@@ -129,7 +129,7 @@ describe('a suspended reader', () => {
     expect(await screen.findByText('A fine comment', {}, { timeout: 8000 })).toBeOnTheScreen();
     // The suspension is looked up alongside the comments; once known, the comment box gives way to why.
     expect(await screen.findByText('Your account is suspended, so you can’t post or react until this is lifted.', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    expect(screen.queryByLabelText('Write a comment…')).toBeNull();
 
     await fireEvent.press(screen.getByLabelText(`React 🔥 to comment ${commentId}`));
     expect(await screen.findByRole('alert')).toHaveTextContent('Your account is suspended, so you can’t post or react until this is lifted.');
