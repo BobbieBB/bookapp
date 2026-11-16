@@ -61,6 +61,12 @@ async function open(language: Language, storyId: string) {
   await screen.findByTestId('story-title', {}, { timeout: 8000 });
 }
 
+// Stands in for a discussion room: shows which room was opened.
+function RoomStub() {
+  const { room } = useLocalSearchParams<{ room: string }>();
+  return <Text>{`room ${room}`}</Text>;
+}
+
 describe('a book you are reading', () => {
   it('shows the story and your progress', async () => {
     await open('en', bookId);
@@ -191,10 +197,6 @@ describe('a story not in your library', () => {
 describe('the discussion rooms on a story page', () => {
   let roomsBookId: string;
 
-  function RoomStub() {
-    const { room } = useLocalSearchParams<{ room: string }>();
-    return <Text>{`room ${room}`}</Text>;
-  }
 
   beforeAll(async () => {
     roomsBookId = (await createManualBook({ title: 'Three Rooms', author: 'C. Writer', chapters: 3, language: 'en' })).id;
