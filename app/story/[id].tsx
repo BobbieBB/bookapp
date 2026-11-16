@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BookReviews } from '@/components/BookReviews';
-import { RoomCounts, StoryRooms } from '@/components/StoryRooms';
+import { StoryRooms } from '@/components/StoryRooms';
 import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
 import { useExplicitGate } from '@/components/ExplicitDialog';
 import { ChoiceList, NumberWheel, Sheet } from '@/components/Sheet';
@@ -12,10 +12,9 @@ import { Button, Card, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
-import { loadRooms } from '@/lib/discussions';
 import { asksAdult } from '@/lib/explicit';
 import { isAo3Link } from '@/lib/links';
-import { FINISH, OPTION, ROOM_NAME, sectionLabel } from '@/lib/sections';
+import { FINISH, OPTION, sectionLabel } from '@/lib/sections';
 import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
@@ -249,7 +248,7 @@ function StoryBody({
   const [statusOpen, setStatusOpen] = useState(false);
   // The value on the chapter (or page) wheel while its sheet is open.
   const [wheel, setWheel] = useState<number | null>(null);
-  // The chapter whose room "I finished chapter N" just opened on this visit: it glows until you do something else.
+  // The chapter just finished on this visit: its progress glows until you do something else.
   const [justOpened, setJustOpened] = useState<number | null>(null);
 
   const myCover = useCustomCover(story.id, loaded !== null);
@@ -405,13 +404,16 @@ function StoryBody({
                     await finishChapter(story.id, userId, next);
                     void track('chapter_finished', { kind: story.kind });
                   },
-                  () => setJustOpened(next.chapter),
+                  () => {
+                    // Finishing a chapter opens its discussion (PO, 16 Nov); back here, the progress glows.
+                    setJustOpened(next.chapter);
+                    router.push(`/room/${story.id}/${next.chapter}`);
+                  },
                 )
               }
             />
           ) : null}
 
-          {justOpened !== null ? <OpenedRoom storyId={story.id} chapter={justOpened} name={t(ROOM_NAME[sectionLabel(story)], { n: justOpened })} /> : null}
 
           {canComplete(story, entry.progress_section) ? (
             <Button variant="secondary" title={t('story.markComplete')} onPress={() => act(() => markComplete(story.id))} />
@@ -539,43 +541,6 @@ function ProgressLine({
   );
 }
 
-/** The room "I finished chapter N" just opened, glowing, one tap from the discussion. */
-function OpenedRoom({ storyId, chapter, name }: { storyId: string; chapter: number; name: string }) {
-  const { c, mode, fonts } = useTheme();
-  const t = useT();
-  const rooms = useLookup(`opened:${storyId}:${chapter}`, () => loadRooms(storyId));
-  const room = rooms.data?.find((r) => r.kind === 'chapter' && r.section_number === chapter);
-  return (
-    <Pressable
-      testID="opened-room"
-      accessibilityRole="button"
-      accessibilityLabel={t('story.openRoom', { room: name })}
-      onPress={() => router.push(`/room/${storyId}/${chapter}`)}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space.m,
-        padding: space.m,
-        borderRadius: radius.s,
-        backgroundColor: c.surface,
-        borderWidth: 2,
-        borderColor: c.secondary,
-        shadowColor: c.secondary,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: mode === 'dark' ? 0.6 : 0.45,
-        shadowRadius: 12,
-        elevation: 4,
-      }}
-    >
-      <View style={{ width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: c.band }}>
-        <Feather name="message-circle" size={18} color={c.ink} />
-      </View>
-      <Text style={{ flex: 1, fontFamily: fonts.bodyBold, fontSize: 17, color: c.ink }}>{name}</Text>
-      {room ? <RoomCounts comments={room.comments} readers={room.readers} /> : null}
-      <Feather name="chevron-right" size={20} color={c.muted} />
-    </Pressable>
-  );
-}
 
 /** A fic added without a link (decision G): "Add the AO3 link", once a reader has it. */
 function AddFicLink({ storyId, onAdded }: { storyId: string; onAdded: () => void }) {

@@ -17,9 +17,8 @@ type Words = Record<SectionLabel, MessageKey>;
 export const ROOM_NAME: Words = { chapter: 'room.chapter', part: 'room.part', act: 'room.act' };
 /** "I finished chapter 3" on the story page. */
 export const FINISH: Words = { chapter: 'story.finishChapter', part: 'story.finishPart', act: 'story.finishAct' };
-/** The same in a room (pill and row). */
+/** The same in a room still closed to you. */
 export const FINISH_PILL: Words = { chapter: 'room.finishedPill', part: 'room.finishedPillPart', act: 'room.finishedPillAct' };
-export const FINISH_ROW: Words = { chapter: 'room.finishedRow', part: 'room.finishedRowPart', act: 'room.finishedRowAct' };
 /** "Finish chapter 3 to join this discussion." */
 export const LOCKED_ROOM: Words = { chapter: 'room.lockedChapter', part: 'room.lockedPart', act: 'room.lockedAct' };
 /** "Finish chapter 3 to open" on a locked row. */

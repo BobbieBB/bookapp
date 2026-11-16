@@ -169,7 +169,7 @@ describe('a reader who has not said they are 18 or over', () => {
   it('an Explicit fic\'s room reached directly (a link) asks before showing the discussion; Back leaves it', async () => {
     await openRoom(explicitId, 'epilogue');
     expect(await screen.findByTestId('explicit-dialog', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    expect(screen.queryByLabelText('Write a comment…')).toBeNull();
     await fireEvent.press(within(dialog()).getByText('Back'));
     expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(await confirmed()).toBe(false);
@@ -177,7 +177,7 @@ describe('a reader who has not said they are 18 or over', () => {
 
   it('a Mature fic\'s room opens without asking', async () => {
     await openRoom(matureId, '1');
-    expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Write a comment…', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByTestId('explicit-dialog')).toBeNull();
   });
 
@@ -201,7 +201,7 @@ describe('an admin who has not said they are 18 or over', () => {
     setAdmin(me, true);
     try {
       await openRoom(explicitId, '1');
-      expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
+      expect(await screen.findByLabelText('Write a comment…', {}, { timeout: 8000 })).toBeOnTheScreen();
       expect(screen.queryByTestId('explicit-dialog')).toBeNull();
     } finally {
       setAdmin(me, false);
@@ -214,7 +214,7 @@ describe('saying yes', () => {
     await openStory(explicitId);
     await fireEvent.press(await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 }));
     await fireEvent.press(within(dialog()).getByText(CONTINUE));
-    await fireEvent.changeText(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 }), 'Old enough to talk about it');
+    await fireEvent.changeText(await screen.findByLabelText('Write a comment…', {}, { timeout: 8000 }), 'Old enough to talk about it');
     expect(screen.queryByTestId('explicit-dialog')).toBeNull();
     expect(await confirmed()).toBe(true);
     await fireEvent.press(screen.getByText('Post'));
@@ -233,7 +233,7 @@ describe('saying yes', () => {
     expect(screen.queryByTestId('explicit-dialog')).toBeNull();
 
     await openRoom(explicitId, 'epilogue');
-    expect(await screen.findByLabelText('Add to the discussion', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Write a comment…', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByTestId('explicit-dialog')).toBeNull();
   });
 

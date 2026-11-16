@@ -175,7 +175,7 @@ export function Chip({ label, active, onPress, big }: { label: string; active: b
         ...(active ? {} : softShadow(mode, 'small')),
       }}
     >
-      <Text style={{ fontSize: big ? 16 : 14, fontFamily: active ? fonts.bodyBold : fonts.body, color: active ? c.onPrimary : c.inkSoft }}>
+      <Text style={{ fontSize: big ? 16 : 14, fontFamily: fonts.body, color: active ? c.onPrimary : c.inkSoft }}>
         {label}
       </Text>
     </Pressable>

@@ -60,7 +60,7 @@ async function postIn(language: Language) {
   await renderScreen(language, { 'room/[storyId]/[room]': RoomScreen }, `/room/${storyId}/1`);
   await screen.findByTestId('room-title', {}, { timeout: 20_000 });
   const text = `comment ${run} ${n++}`;
-  await fireEvent.changeText(screen.getByLabelText(language === 'en' ? 'Add to the discussion' : 'Добави към обсъждането'), text);
+  await fireEvent.changeText(screen.getByLabelText(language === 'en' ? 'Write a comment…' : 'Напиши коментар…'), text);
   await fireEvent.press(screen.getByText(language === 'en' ? 'Post' : 'Публикувай'));
   await screen.findByText(text, {}, { timeout: 8000 });
 }

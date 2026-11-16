@@ -76,14 +76,14 @@ describe('a chapter you finished', () => {
   it('you can post a comment and reply to one', async () => {
     await open('en', '2');
     await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 });
-    await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'My first thought');
+    await fireEvent.changeText(screen.getByLabelText('Write a comment…'), 'My first thought');
     await fireEvent.press(screen.getByText('Post'));
     expect(await screen.findByText('My first thought', {}, { timeout: 8000 })).toBeOnTheScreen();
 
     const topId = await firstCommentId('That ending of chapter 2!');
     const thread = screen.getByTestId(`thread-${topId}`);
     await fireEvent.press(within(thread).getAllByText('Reply')[0]);
-    await fireEvent.changeText(screen.getByLabelText('Add to the discussion'), 'A reply from me');
+    await fireEvent.changeText(screen.getByLabelText('Write a comment…'), 'A reply from me');
     await fireEvent.press(screen.getByText('Post'));
     await waitFor(() => expect(within(screen.getByTestId(`thread-${topId}`)).getByText('A reply from me')).toBeOnTheScreen(), { timeout: 8000 });
   });
@@ -96,15 +96,24 @@ describe('a chapter you finished', () => {
     await waitFor(() => expect(within(screen.getByTestId(`reactions-${id}`)).getByText('🔥 1')).toBeOnTheScreen(), { timeout: 8000 });
   });
 
-  it('offers the next chapter as a small pill, never the main button', async () => {
+  it('an open room is only its discussion: no next-chapter prompts, no spoiler line under the title', async () => {
     await open('en', '2');
-    expect(screen.getByText('I finished chapter 3')).toBeOnTheScreen();
+    expect(screen.queryByText('I finished chapter 3')).toBeNull();
+    expect(screen.queryByText(/Done with chapter 3/)).toBeNull();
+    expect(screen.queryByText(/spoilers and all/)).toBeNull();
   });
 
   it('in Bulgarian', async () => {
     await open('bg', '2');
     expect(screen.getByTestId('room-title')).toHaveTextContent('Глава 2');
-    expect(screen.getByText('Прочетох глава 3')).toBeOnTheScreen();
+  });
+
+  it('a room still closed to you offers "I finished chapter 3" as the way in, and opens', async () => {
+    await open('en', '3');
+    expect(screen.getByText('Finish chapter 3 to join this discussion.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('I finished chapter 3'));
+    expect(await screen.findByText('CHAPTER 3 SPOILER', {}, { timeout: 8000 })).toBeOnTheScreen();    // Back to chapter 2 for the tests below.
+    await supabase.from('library_entries').update({ progress_section: 2 }).eq('story_id', storyId).eq('user_id', reader.id).throwOnError();
   });
 });
 
@@ -141,7 +150,7 @@ describe('the spoiler wall', () => {
     await open('en', '3');
     expect(screen.getByText('Finish chapter 3 to join this discussion.')).toBeOnTheScreen();
     expect(screen.queryByText('CHAPTER 3 SPOILER')).toBeNull();
-    expect(screen.queryByLabelText('Add to the discussion')).toBeNull();
+    expect(screen.queryByLabelText('Write a comment…')).toBeNull();
   });
 
   it('The Epilogue opens only when you finish the story', async () => {
