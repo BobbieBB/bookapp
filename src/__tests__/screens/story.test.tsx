@@ -69,14 +69,11 @@ describe('a book you are reading', () => {
     expect(screen.getByText('Finished chapter 3 of 10')).toBeOnTheScreen();
   });
 
-  it('"I finished chapter 4" moves progress on', async () => {
-    await open('en', bookId);
-    await fireEvent.press(screen.getByText('I finished chapter 4'));
-    expect(await screen.findByText('Finished chapter 4 of 10', {}, { timeout: 8000 })).toBeOnTheScreen();
+  it('"I finished chapter 4" moves progress on and opens its discussion', async () => {
+    await renderScreen('en', { 'story/[id]': StoryScreen, 'room/[storyId]/[room]': RoomStub }, `/story/${bookId}`);
+    await fireEvent.press(await screen.findByText('I finished chapter 4', {}, { timeout: 8000 }));
+    expect(await screen.findByText('room 4', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(bookId)).progress_section).toBe(4);
-    // The room it opened glows under the button, one tap from the discussion; the button moves on.
-    expect(within(await screen.findByTestId('opened-room')).getByText('Chapter 4')).toBeOnTheScreen();
-    expect(screen.getByText('I finished chapter 5')).toBeOnTheScreen();
   });
 
   it('the chapter picker can move progress back', async () => {
@@ -135,9 +132,10 @@ describe('a play split into acts', () => {
     const id = (await createManualBook({ title: `In Four Acts ${run}`, author: 'D. Writer', chapters: 4, language: 'en', split: 'act' })).id;
     await addToLibrary(id, 'currently_reading');
     await open('en', id);
-    await fireEvent.press(screen.getByText('I finished act 1'));
-    expect(await screen.findByText('Finished act 1 of 4', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(within(await screen.findByTestId('opened-room')).getByText('Act 1')).toBeOnTheScreen();
+    expect(screen.getByText('I finished act 1')).toBeOnTheScreen();
+    await supabase.from('library_entries').update({ progress_section: 1 }).eq('story_id', id).eq('user_id', me).throwOnError();
+    await open('en', id);
+    expect(screen.getByText('Finished act 1 of 4')).toBeOnTheScreen();
     expect(within(await screen.findByTestId('room-chapter-1', {}, { timeout: 8000 })).getByText('Act 1')).toBeOnTheScreen();
   });
 

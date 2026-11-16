@@ -11,7 +11,7 @@ import { useT } from '@/i18n';
 import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
 import { asksAdult } from '@/lib/explicit';
-import { FINISH_PILL, FINISH_ROW, LOCKED_ROOM, ROOM_NAME, sectionLabel } from '@/lib/sections';
+import { FINISH_PILL, LOCKED_ROOM, ROOM_NAME, sectionLabel } from '@/lib/sections';
 import {
   deleteComment,
   loadComments,
@@ -94,6 +94,10 @@ export default function RoomScreen() {
     await finishChapter(params.storyId, uid, chapter);
     if (page) void track('chapter_finished', { kind: page.story.kind });
   };
+  // Finishing a chapter opens its discussion (PO, 16 Nov): straight into the new room, in place of this one.
+  // A closed room's own chapter just reloads it, open.
+  const goToNext = (chapter: NonNullable<typeof next>) => () =>
+    target.kind === 'chapter' && chapter.chapter === target.n ? refresh() : router.replace(`/room/${params.storyId}/${chapter.chapter}`);
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
@@ -103,13 +107,15 @@ export default function RoomScreen() {
             <T v="moment">
               <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t(ROOM_NAME[label], { n: target.n })}</Text>
             </T>
-            <T v="muted">{t('room.subtitle')}</T>
+            {target.kind === 'epilogue' ? <T v="muted">{t('room.subtitle')}</T> : null}
           </View>
-          {next && userId ? (
+          {/* An open room is only its discussion (PO, 16 Nov: no "next chapter" prompts in it). A room still
+              closed to you offers "I finished chapter N" as the way in. */}
+          {next && userId && locked ? (
             <FinishPill
               label={t(FINISH_PILL[label], { n: next.chapter })}
               onDone={() => finishAndTrack(next, userId)}
-              onChanged={refresh}
+              onChanged={goToNext(next)}
             />
           ) : null}
           {asking ? (
@@ -127,7 +133,6 @@ export default function RoomScreen() {
               loadFailed={!!comments.error}
               reload={reloadComments}
               userId={userId}
-              finishRow={next && userId ? { label: t(FINISH_ROW[label], { n: next.chapter }), onDone: () => finishAndTrack(next, userId), onChanged: refresh } : null}
             />
           ) : null}
         </ScrollView>
@@ -157,22 +162,18 @@ function FinishPill({ label, onDone, onChanged }: { label: string; onDone: () =>
   );
 }
 
-type FinishRow = { label: string; onDone: () => Promise<void>; onChanged: () => void };
-
 function Discussion({
   discussionId,
   list,
   loadFailed,
   reload,
   userId,
-  finishRow,
 }: {
   discussionId: string;
   list: Comment[] | undefined;
   loadFailed: boolean;
   reload: () => void;
   userId: string | undefined;
-  finishRow: FinishRow | null;
 }) {
   const { c, fonts } = useTheme();
   const t = useT();
@@ -313,7 +314,6 @@ function Discussion({
         );
       })}
 
-      {finishRow ? <FinishRowButton {...finishRow} /> : null}
       {failed ? <ErrorText>{t('room.error')}</ErrorText> : null}
       {blockedNotice ? (
         <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
@@ -364,23 +364,3 @@ function Discussion({
   );
 }
 
-function FinishRowButton({ label, onDone, onChanged }: FinishRow) {
-  const { c, fonts } = useTheme();
-  const t = useT();
-  const [error, setError] = useState(false);
-  return (
-    <View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {
-          setError(false);
-          onDone().then(onChanged, () => setError(true));
-        }}
-        style={{ minHeight: 44, justifyContent: 'center' }}
-      >
-        <Text style={{ fontFamily: fonts.body, fontSize: 15, color: c.muted }}>{label}</Text>
-      </Pressable>
-      {error ? <ErrorText>{t('room.error')}</ErrorText> : null}
-    </View>
-  );
-}
