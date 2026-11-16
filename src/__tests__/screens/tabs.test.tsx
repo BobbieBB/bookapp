@@ -7,7 +7,11 @@ import { renderScreen } from '../../../test/router';
 // The pill tab bar (#63). On the PO's iPhone (SDK 58, 16 Nov) every tab tap threw "undefined is not a
 // function": a tab's own navigation has no emit. Tapping a tab must switch to it, whichever navigation
 // object the router hands the bar.
-const stub = (name: string) => () => <Text>{`${name} screen`}</Text>;
+const stub = (name: string) => {
+  const Screen = () => <Text>{`${name} screen`}</Text>;
+  Screen.displayName = `${name}Stub`;
+  return Screen;
+};
 const app = {
   '(tabs)/_layout': TabsLayout,
   '(tabs)/index': stub('home'),
