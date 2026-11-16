@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useEffectEvent, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useEffect, useEffectEvent, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommentCard } from '@/components/CommentCard';
@@ -52,6 +52,20 @@ export default function RoomScreen() {
   const target = parseRoom(params.room);
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
+  // The comment box sits at the end of the discussion: when the keyboard opens for it, scroll down so
+  // the box stays in sight above the keyboard (PO's iPhone, 16 Nov: the keyboard covered it).
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const writing = useRef(false);
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      if (writing.current) scroll.current?.scrollToEnd({ animated: true });
+    });
+    return () => sub.remove();
+  }, []);
+  const onComposerFocus = (focused: boolean) => {
+    writing.current = focused;
+    if (focused) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 300);
+  };
 
   // The room follows the reader's 18+ answer: after the yes it reloads, and the refusal it got before (an
   // Explicit fic's room is "locked" until then) is never shown in the meantime.
@@ -102,7 +116,7 @@ export default function RoomScreen() {
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
-        <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View style={{ gap: space.xs }}>
             <T v="moment">
               <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t(ROOM_NAME[label], { n: target.n })}</Text>
@@ -133,6 +147,7 @@ export default function RoomScreen() {
               loadFailed={!!comments.error}
               reload={reloadComments}
               userId={userId}
+              onComposerFocus={onComposerFocus}
             />
           ) : null}
         </ScrollView>
@@ -168,12 +183,14 @@ function Discussion({
   loadFailed,
   reload,
   userId,
+  onComposerFocus,
 }: {
   discussionId: string;
   list: Comment[] | undefined;
   loadFailed: boolean;
   reload: () => void;
   userId: string | undefined;
+  onComposerFocus: (focused: boolean) => void;
 }) {
   const { c, fonts } = useTheme();
   const t = useT();
@@ -340,6 +357,8 @@ function Discussion({
             accessibilityLabel={t('room.add')}
             value={draft}
             onChangeText={setDraft}
+            onFocus={() => onComposerFocus(true)}
+            onBlur={() => onComposerFocus(false)}
             multiline
             placeholder={t('room.add')}
             placeholderTextColor={c.muted}
