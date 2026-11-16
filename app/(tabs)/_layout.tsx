@@ -43,7 +43,8 @@ type TabNavigation = {
 // Our own bar instead of the library's, because the library's tab items stopped honouring a wider
 // active item in SDK 58 and cut the pill's label ("Li…"). The active tab takes 2.4× the room, so its
 // pill (icon + label) fits, also with the longer Bulgarian labels ("Библиотека").
-function PillTabBar({ state, descriptors }: TabBarProps) {
+function PillTabBar(props: TabBarProps) {
+  const { state, descriptors } = props;
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -65,11 +66,15 @@ function PillTabBar({ state, descriptors }: TabBarProps) {
       {state.routes.map((route, i) => {
         const focused = state.index === i;
         const { options } = descriptors[route.key];
-        // Each tab's own navigation object (the bar's props stopped carrying one in SDK 58).
-        const navigation = descriptors[route.key].navigation as unknown as TabNavigation;
+        // The bar's own navigation (it has emit) when the router passes it; on a phone with SDK 58 it
+        // may not, and each tab's descriptor navigation has no emit (PO's iPhone, 16 Nov: "undefined is
+        // not a function" on every tab tap). Without emit there is no tabPress event: just switch tabs.
+        const bar = (props as unknown as { navigation?: Partial<TabNavigation> }).navigation;
+        const own = descriptors[route.key].navigation as unknown as Partial<TabNavigation>;
+        const nav = bar?.emit ? bar : own;
         const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+          const event = nav.emit?.({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!focused && !event?.defaultPrevented) nav.navigate?.(route.name, route.params);
         };
         return (
           <Pressable
@@ -78,7 +83,7 @@ function PillTabBar({ state, descriptors }: TabBarProps) {
             accessibilityState={{ selected: focused }}
             accessibilityLabel={options.tabBarAccessibilityLabel}
             onPress={onPress}
-            onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+            onLongPress={() => nav.emit?.({ type: 'tabLongPress', target: route.key })}
             style={{ flex: focused ? 2.4 : 1, height: 48, alignItems: 'center', justifyContent: 'center' }}
           >
             {options.tabBarIcon?.({ focused, color: focused ? c.onPrimary : c.muted, size: 22 })}
