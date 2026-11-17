@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Claims a free test-stack slot and prints it. Slots 1..TEST_STACK_POOL (default 4) are leased;
 # slot 0 is left for CI and manual use. A lease is a directory holding the PID of its owner: the
-# process given as $1, else the caller. The taker that creates the owner file wins (lib.sh). A stale lease (its owner has died, or it has
-# had no owner file for 10 s) is taken back under a separate guard (lib.sh), so a killed test run
-# never keeps its slot and two runs never win the same one. Free it with release.sh <slot>.
+# process given as $1, else the caller. The taker that creates the owner file wins (lib.sh). A
+# stale lease (its owner has died, or it has had no owner file for 10 s) is taken back under a
+# separate guard (lib.sh), so a killed test run never keeps its slot and two runs never win the
+# same one. Free it with release.sh <slot>.
 #   TEST_STACK_LEASE_WAIT  seconds to wait for a free slot (default 1800), polling every 2 s.
 source "$(dirname "$0")/lib.sh"
 owner="${1:-$PPID}"

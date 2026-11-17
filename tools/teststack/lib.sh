@@ -95,6 +95,7 @@ lease_stale() {
   local holder age
   [ -d "$1" ] || return 1
   holder="$(cat "$1/owner" 2>/dev/null || true)"
+  stale_holder="$holder"
   if [ -n "$holder" ]; then
     ! pid_alive "$holder"
   else
@@ -109,10 +110,14 @@ remove_lease() {
   rmdir "$1" 2>/dev/null || true
 }
 
-# Takes stale lease $1 back (frees it), if no one else is doing so right now.
+# Takes stale lease $1 back (frees it), if no one else is doing so right now. One judged stale for
+# having no owner goes with rmdir alone: if its slow taker writes the owner file after all, rmdir
+# fails and the lease stays theirs. (A dead owner's file blocks any new owner, so it can go first.)
 reclaim_if_stale() {
   take_guard "$1" 1 || return 0
-  lease_stale "$1" && remove_lease "$1"
+  if lease_stale "$1"; then
+    if [ -n "$stale_holder" ]; then remove_lease "$1"; else rmdir "$1" 2>/dev/null || true; fi
+  fi
   drop_guard "$1"
 }
 
