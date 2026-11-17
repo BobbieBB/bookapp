@@ -28,7 +28,7 @@ it('never says how far you have read', () => {
 });
 
 it('opens the phone’s share sheet with that message', async () => {
-  const spy = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
+  const spy = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
   try {
     await shareStory({ id, title: 'Iron Flame', kind: 'book' }, en);
     expect(spy).toHaveBeenCalledWith({ message: shareMessage({ id, title: 'Iron Flame', kind: 'book' }, en) });
