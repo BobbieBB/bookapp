@@ -10,7 +10,8 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/lease-test.XXXXXX")"
 cleanup() {
   [ -s "$work/owners" ] && kill $(cat "$work/owners") 2>/dev/null || true
   # Only what this test creates: owner files and empty directories (rmdir refuses anything else).
-  rm -f "$work/owners" "$work"/out.*/* "$work"/leases.*/slot-*/owner
+  rm -f "$work/owners" "$work"/out.*/* "$work"/leases.*/slot-*/owner 2>/dev/null || true
+  rm -f "$work"/leases.*/*.reclaim 2>/dev/null || true
   rmdir "$work"/out.* "$work"/leases.*/*.reclaim "$work"/leases.*/slot-* "$work"/leases.* "$work" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -107,6 +108,30 @@ race 4 >/dev/null
 "$dir/release.sh" 3
 expect_slots "after release" "3" "$(race 2)"
 check_tidy "after release"
+
+# 5. A mkdir that reports success for a directory that already exists, as uutils' mkdir (Ubuntu 26.04)
+#    does for the loser of a race: neither a lease nor a reclaim guard may change hands because of it.
+#    The stand-in makes the race certain instead of rare.
+real_mkdir="$(command -v mkdir)"
+shim="$work/shim"
+"$real_mkdir" "$shim"
+printf '#!/usr/bin/env bash\nfor a in "$@"; do [ -d "$a" ] && exit 0; done\nexec %q "$@"\n' "$real_mkdir" >"$shim/mkdir"
+chmod +x "$shim/mkdir"
+fresh_leases
+first="$(PATH="$shim:$PATH" "$dir/lease.sh" "$(live_owner)" 2>/dev/null || true)"
+second="$(PATH="$shim:$PATH" "$dir/lease.sh" "$(live_owner)" 2>/dev/null || true)"
+expect_slots "racy mkdir, two takers" "1 2" "$first $second"
+fresh_leases
+# Slot 1 is stale (dead owner) but someone else is reclaiming it right now (its guard is held).
+"$real_mkdir" "$TEST_STACK_LEASE_DIR/slot-1" "$TEST_STACK_LEASE_DIR/slot-1.reclaim"
+dead="$(dead_pid)"
+echo "$dead" >"$TEST_STACK_LEASE_DIR/slot-1/owner"
+expect_slots "racy mkdir, held guard" "2" "$(PATH="$shim:$PATH" "$dir/lease.sh" "$(live_owner)" 2>/dev/null || true)"
+[ "$(cat "$TEST_STACK_LEASE_DIR/slot-1/owner" 2>/dev/null)" = "$dead" ] ||
+  fail "racy mkdir, held guard: slot 1 was taken back while another process held its guard"
+rmdir "$TEST_STACK_LEASE_DIR/slot-1.reclaim" 2>/dev/null || true
+rm -f "$shim/mkdir"
+rmdir "$shim"
 
 if [ $failures -gt 0 ]; then
   echo "lease tests: $failures failed" >&2
