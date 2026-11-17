@@ -43,9 +43,11 @@ TESTSTACK_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1k
 TESTSTACK_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 export TESTSTACK_ANON_KEY TESTSTACK_SERVICE_KEY
 
-# A lease is the directory $LEASE_DIR/slot-<n> (mkdir is atomic) holding an owner file with the PID
-# of its owner. Taking a stale lease back, and freeing one, happen under a second, separate guard
-# directory slot-<n>.reclaim, so the lease directory never changes hands while it is being judged.
+# A lease is the directory $LEASE_DIR/slot-<n> holding an owner file with the PID of its owner.
+# Taking a stale lease back, and freeing one, happen under a second, separate guard file
+# slot-<n>.reclaim, so the lease directory never changes hands while it is being judged.
+# Who wins a lease or a guard is decided by creating a file with O_EXCL (bash's noclobber), never by
+# mkdir alone: uutils' mkdir (Ubuntu 26.04) reports success to the loser of a race for one directory.
 # Seconds after which a lease directory that still has no owner file counts as abandoned.
 ORPHAN_AGE="${TEST_STACK_ORPHAN_AGE:-10}"
 
@@ -64,25 +66,31 @@ age_of() {
   echo $(($(date +%s) - mtime))
 }
 
+# Creates file $1 holding $2, only if no file of that name exists yet (O_EXCL): exactly one of any
+# number of concurrent callers succeeds.
+create_exclusive() {
+  (set -C && echo "${2:-}" >"$1") 2>/dev/null
+}
+
 # Takes the guard of lease $1, trying $2 times 0.1 s apart. A guard left by a process killed inside
 # it (held for milliseconds otherwise) is removed once it is a minute old.
 take_guard() {
   local guard="$1.reclaim" tries="${2:-1}" i age
   for i in $(seq 1 "$tries"); do
-    mkdir "$guard" 2>/dev/null && return 0
+    create_exclusive "$guard" && return 0
     age="$(age_of "$guard" || echo 0)"
-    [ "$age" -gt 60 ] && rmdir "$guard" 2>/dev/null && continue
+    [ "$age" -gt 60 ] && { rm -f "$guard" || rmdir "$guard"; } 2>/dev/null && continue
     [ "$i" -lt "$tries" ] && sleep 0.1
   done
   return 1
 }
 
 drop_guard() {
-  rmdir "$1.reclaim" 2>/dev/null || true
+  rm -f "$1.reclaim" 2>/dev/null || true
 }
 
 # Whether lease $1 is stale: its owner is dead, or it has had no owner for ORPHAN_AGE seconds (its
-# taker died between mkdir and writing the owner). Call it only while holding the guard.
+# taker died between creating it and writing the owner). Call it only while holding the guard.
 lease_stale() {
   local holder age
   [ -d "$1" ] || return 1
