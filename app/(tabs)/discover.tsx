@@ -68,25 +68,35 @@ function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }
   );
 }
 
-function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
+/** Fandoms and ships (by the characters' names or a nickname such as "dramione"), from 3 letters. */
+function FandomSearch({ onPick, onPickShip }: { onPick: (fandom: string) => void; onPickShip: (ship: string) => void }) {
   const t = useT();
   const [query, setQuery] = useState('');
   const trimmed = query.trim();
   // Like book search: from 3 characters, after a pause in typing.
-  const { loading, data, error } = useLookup(trimmed.length >= 3 ? trimmed : null, () => searchFandoms(trimmed), SEARCH_DELAY_MS);
+  const { loading, data, error } = useLookup(
+    trimmed.length >= 3 ? trimmed : null,
+    async () => {
+      const [fandoms, ships] = await Promise.all([searchFandoms(trimmed), searchShips(trimmed)]);
+      return { fandoms, ships };
+    },
+    SEARCH_DELAY_MS,
+  );
+  const nothing = data && data.fandoms.length === 0 && data.ships.length === 0;
   return (
     <View style={{ gap: space.s }}>
       <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} autoFocus />
       {trimmed !== '' && loading && <T v="muted">{t('discover.searching')}</T>}
       {error !== undefined && <ErrorText>{t('discover.error')}</ErrorText>}
-      {data?.length === 0 && (
-        // Cold start: Livami only knows fandoms of fics readers have added, so invite them to add one.
+      {nothing && (
+        // Cold start: Livami only knows fandoms and ships of fics readers have added, so invite them to add one.
         <Card style={{ gap: space.s }}>
           <T v="muted">{t('discover.noHits')}</T>
           <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
         </Card>
       )}
-      {data?.map((hit) => (
+      {data && data.fandoms.length > 0 && data.ships.length > 0 && <T v="overline">{t('discover.fandomsHeading')}</T>}
+      {data?.fandoms.map((hit) => (
         <Pressable
           key={hit.fandom}
           testID={`fandom-hit-${hit.fandom}`}
@@ -96,6 +106,23 @@ function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
         >
           <T v="label">{hit.fandom}</T>
           <T v="muted">{t('discover.hitStories', { count: hit.stories })}</T>
+        </Pressable>
+      ))}
+      {data && data.ships.length > 0 && <T v="overline">{t('discover.shipsHeading')}</T>}
+      {data?.ships.map((hit) => (
+        <Pressable
+          key={hit.ship}
+          testID={`ship-hit-${hit.ship}`}
+          accessibilityRole="button"
+          onPress={() => onPickShip(hit.ship)}
+          style={{ minHeight: 44, justifyContent: 'center', paddingVertical: space.xs }}
+        >
+          <T v="label">{hit.ship}</T>
+          <T v="muted">
+            {[hit.nickname ? hit.nickname.replace(/^./, (c) => c.toUpperCase()) : null, t('discover.hitStories', { count: hit.stories })]
+              .filter(Boolean)
+              .join(' · ')}
+          </T>
         </Pressable>
       ))}
     </View>
@@ -108,6 +135,8 @@ export default function Discover() {
   const router = useRouter();
   const { profile } = useAuth();
   const [selected, setSelected] = useState<string | null>(null);
+  // A ship picked in the search: the list shows fics with that ship instead of the fandoms'.
+  const [ship, setShip] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   // Tabs stay mounted: reload whenever Discover comes back into view (fandoms or library may have changed).
   const [version, setVersion] = useState(0);
@@ -132,8 +161,8 @@ export default function Discover() {
   const scope = selected ? [selected] : chips;
   const [completeOnly, setCompleteOnly] = useCompleteOnly();
   const feed = useLookup(
-    mine.data && completeOnly !== null ? `${version}:${completeOnly}:${JSON.stringify(scope)}` : null,
-    () => lively(scope, completeOnly === true),
+    mine.data && completeOnly !== null ? `${version}:${completeOnly}:${ship ?? ''}:${JSON.stringify(scope)}` : null,
+    () => (ship ? ficsWithShip(ship, completeOnly === true) : lively(scope, completeOnly === true)),
   );
   const loadedTier = feed.data?.[0]?.tier;
   useEffect(() => {
@@ -142,6 +171,13 @@ export default function Discover() {
 
   function pick(fandom: string) {
     setSelected(fandom);
+    setShip(null);
+    setSearching(false);
+  }
+
+  function pickShip(picked: string) {
+    setShip(picked);
+    setSelected(null);
     setSearching(false);
   }
 
@@ -169,24 +205,33 @@ export default function Discover() {
                     onPress={() => {
                       // One choice at a time: picking a fandom closes the search.
                       setSelected(selected === fandom ? null : fandom);
+                      setShip(null);
                       setSearching(false);
                     }}
                   />
                 ))}
+                {ship ? <Chip label={ship} active onPress={() => setShip(null)} /> : null}
                 <Chip
                   label={t('discover.allFandoms')}
                   active={searching}
                   onPress={() => {
                     setSearching(!searching);
                     setSelected(null);
+                    setShip(null);
                   }}
                 />
               </View>
-              {searching && <FandomSearch onPick={pick} />}
+              {searching && <FandomSearch onPick={pick} onPickShip={pickShip} />}
             </View>
 
             <View style={{ gap: space.s }}>
-              <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected.toUpperCase() }) : t('discover.lively')}</T>
+              <T v="overline">
+                {ship
+                  ? t('discover.withShip', { ship: ship.toUpperCase() })
+                  : selected
+                    ? t('discover.livelyIn', { fandom: selected.toUpperCase() })
+                    : t('discover.lively')}
+              </T>
               <View style={{ flexDirection: 'row' }}>
                 <Chip label={t('discover.completeOnly')} active={completeOnly === true} onPress={() => setCompleteOnly(!completeOnly)} />
               </View>

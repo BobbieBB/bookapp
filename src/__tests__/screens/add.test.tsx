@@ -338,3 +338,15 @@ describe('the story_added event', () => {
     );
   });
 });
+
+it('a ship nickname in the Ship field is offered as the full tag', async () => {
+  await open('en');
+  jest.useRealTimers();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'I don’t have a link' }, { timeout: 8000 }));
+  await fireEvent.changeText(await screen.findByLabelText('Ship (optional)', {}, { timeout: 8000 }), 'Dramione');
+  const offer = await screen.findByText(/^Use “.*Draco Malfoy.*”$/, {}, { timeout: 8000 });
+  await fireEvent.press(offer);
+  expect(screen.getByDisplayValue(/Draco Malfoy/)).toBeOnTheScreen();
+  expect(screen.queryByText(/^Use “/)).toBeNull();
+});

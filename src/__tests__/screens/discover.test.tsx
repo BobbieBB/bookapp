@@ -6,6 +6,7 @@ import { Text } from 'react-native';
 import Discover from '../../../app/(tabs)/discover';
 import Profile from '../../../app/(tabs)/profile';
 import { renderScreen } from '../../../test/router';
+import { serviceClient } from '../../../test/service';
 import { lively } from '../../lib/discover';
 import { addToLibrary, createFic } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
@@ -119,8 +120,8 @@ describe('Discover', () => {
   it('Search fandoms searches every fandom in the app', async () => {
     await as(reader);
     await renderScreen('en', { discover: Discover, 'story/[id]': StoryStub }, '/discover');
-    await fireEvent.press(await screen.findByText('Search fandoms', {}, { timeout: 8000 }));
-    await fireEvent.changeText(screen.getByLabelText('Fandom name, from 3 letters'), `library fandom ${run}`);
+    await fireEvent.press(await screen.findByText('Search fandoms and ships', {}, { timeout: 8000 }));
+    await fireEvent.changeText(screen.getByLabelText('Fandom or ship, from 3 letters'), `library fandom ${run}`);
     await fireEvent.press(await screen.findByTestId(`fandom-hit-${FROM_LIBRARY}`, {}, { timeout: 8000 }));
     expect(await screen.findByText('Library Fandom Fic', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
@@ -267,5 +268,42 @@ describe('Profile > Your fandoms', () => {
     expect(await screen.findByLabelText(`Remove ${FROM_LIBRARY} from your fandoms`, {}, { timeout: 8000 })).toBeOnTheScreen();
     const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', reader.id).single().throwOnError();
     expect(data!.favourite_fandoms).toEqual([PICKED, FROM_LIBRARY]);
+  });
+});
+
+describe('Discover: ships', () => {
+  const routes = { discover: Discover, 'story/[id]': StoryStub };
+  const SHIP = `Gamma${run}/Delta${run}`;
+  const NICK = `gamdel${run}`;
+
+  beforeAll(async () => {
+    await serviceClient().from('ship_nicknames').insert({ nickname: NICK, characters: [`Gamma${run}`, `Delta${run}`] }).throwOnError();
+    await as(bookReader); // anyone but `reader`, so the fic is not in their library
+    await createFic({
+      ao3Link: `https://archiveofourown.org/works/${(parseInt(run, 36) % 1_000_000_000) + 2900}`,
+      title: `Shipped fic ${run}`,
+      author: 'w',
+      fandom: PICKED,
+      ship: SHIP,
+      complete: true,
+      chapters: 2,
+      rating: 'Not Rated',
+      warnings: [],
+    });
+  });
+
+  afterAll(async () => {
+    await serviceClient().from('ship_nicknames').delete().eq('nickname', NICK);
+  });
+
+  it('a nickname finds the ship; tapping it lists its fics', async () => {
+    await as(reader);
+    await renderScreen('en', routes, '/discover');
+    await fireEvent.press(await screen.findByText('Search fandoms and ships', {}, { timeout: 8000 }));
+    await fireEvent.changeText(screen.getByLabelText('Fandom or ship, from 3 letters'), NICK);
+    expect(await screen.findByText('SHIPS', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId(`ship-hit-${SHIP}`));
+    expect(await screen.findByText(`FICS WITH ${SHIP.toUpperCase()}`, {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByText(`Shipped fic ${run}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });

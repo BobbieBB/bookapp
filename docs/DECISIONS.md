@@ -654,3 +654,12 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).
+
+## Search by ship, with nicknames (PO, 20 Oct 2026; built 17 Nov 2026)
+- Discover's search finds fandoms **and ships**: "Search fandoms and ships" / „Търси фендъм или ship“. Results come in two
+  groups, FANDOMS and SHIPS. A ship is found by its characters' names ("draco") or by its nickname ("dramione"), in either
+  order of the tag. Tapping a ship lists the fics with it that you don't read yet ("FICS WITH …"), most read first; Complete only works there too.
+- Nicknames live in a table (`ship_nicknames`, about 60 popular ones), so the list grows without a new app version. A
+  nickname lists the characters' names; a tag matches when it contains them all.
+- Adding a fic: a nickname typed in the Ship field offers the full tag ("Use “Draco Malfoy/Hermione Granger”"): the
+  spelling readers already use in Livami, else the names joined with "/".

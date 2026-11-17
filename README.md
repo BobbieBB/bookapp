@@ -95,6 +95,8 @@ Before launch:
 - **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
   **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
   but with the filter on, Discover's list fails to load until the migration is in.
+- **Ship search:** apply `20261117000300_ship_search.sql` **before** shipping a build with "Search fandoms and ships": the
+  new build calls `search_ships()`, `fics_with_ship()` and `ship_for_nickname()`.
 - **Moderation notices:** apply `20261114000300_moderation_notices.sql` to the hosted database **before** shipping an app
   build that includes them: the app reads notifications through the new `my_notifications_v2`,
   which fails until the migration is in. Older builds keep calling `my_notifications`, which never returns the new kinds.
