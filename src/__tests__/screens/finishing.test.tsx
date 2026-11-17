@@ -179,7 +179,11 @@ describe('finishing', () => {
     await as(me);
     const id = await book('finished');
     await renderScreen('en', finishedRoutes, `/finished/${id}`);
-    await fireEvent.press(await screen.findByLabelText('Rate 4.5 stars', {}, { timeout: 8000 }));
+    // Five stars: the fifth for 5, the same star again for half a star less.
+    await fireEvent.press(await screen.findByLabelText('Rate 5 stars', {}, { timeout: 8000 }));
+    expect(screen.getByText('5 stars')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Rate 5 stars'));
+    expect(screen.getByText('4.5 stars')).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Your review (optional)'), 'Beautiful and strange');
     await fireEvent.press(screen.getByText('Save'));
     expect(await screen.findByText('Saved', {}, { timeout: 8000 })).toBeOnTheScreen();
@@ -188,21 +192,24 @@ describe('finishing', () => {
     expect(screen.getByText('Join The Epilogue')).toBeOnTheScreen();
   });
 
-  it('rating labels are plural-aware and every rating button is at least 44 x 44', async () => {
+  it('five star buttons, plural-aware, each at least 44 x 44; tapping again toggles the half', async () => {
     await as(me);
     const id = await book('finished');
     await renderScreen('en', finishedRoutes, `/finished/${id}`);
-    await screen.findByLabelText('Rate 4.5 stars', {}, { timeout: 8000 });
+    await screen.findByLabelText('Rate 5 stars', {}, { timeout: 8000 });
     expect(screen.getByLabelText('Rate 1 star')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Rate 0.5 stars')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Rate 5 stars')).toBeOnTheScreen();
     const buttons = screen.getAllByLabelText(/^Rate /);
-    expect(buttons).toHaveLength(10);
+    expect(buttons).toHaveLength(5);
     for (const b of buttons) {
       const style = StyleSheet.flatten(b.props.style);
       expect(style.minWidth).toBeGreaterThanOrEqual(44);
       expect(style.minHeight).toBeGreaterThanOrEqual(44);
     }
+    await fireEvent.press(screen.getByLabelText('Rate 1 star'));
+    await fireEvent.press(screen.getByLabelText('Rate 1 star'));
+    expect(screen.getByText('0.5 stars')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Rate 1 star'));
+    expect(screen.getByText('1 star')).toBeOnTheScreen();
   });
 
   it('the Bulgarian rating labels', async () => {
@@ -210,7 +217,10 @@ describe('finishing', () => {
     const id = await book('finished');
     await renderScreen('bg', finishedRoutes, `/finished/${id}`);
     expect(await screen.findByLabelText('Оцени с 1 звезда', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByLabelText('Оцени с 4.5 звезди')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Оцени с 5 звезди')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Оцени с 5 звезди'));
+    await fireEvent.press(screen.getByLabelText('Оцени с 5 звезди'));
+    expect(screen.getByText('4.5 звезди')).toBeOnTheScreen();
   });
 
   it('Save is disabled while there is nothing to save', async () => {
