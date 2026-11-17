@@ -167,9 +167,9 @@ async function finish(
     router.push(`/finished/${story.id}`);
     return;
   }
-  // Opened from a link with nothing behind it: go Home instead of nowhere.
-  if (router.canGoBack()) router.back();
-  else router.replace('/');
+  // The new story's page takes Add's place (PO, phone test 16 Nov 2026): the next step, the chapter you are on,
+  // is there. Back from it lands on whatever was under Add.
+  router.replace(`/story/${story.id}`);
 }
 
 function friendly(e: unknown, t: Translate) {
