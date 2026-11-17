@@ -97,6 +97,9 @@ Before launch:
   but with the filter on, Discover's list fails to load until the migration is in.
 - **"[Fic] is complete" notice:** apply `20261117000100_story_completed_type.sql` and `20261117000200_story_completed_notice.sql`
   in order. Older builds never show the new notice (they skip kinds they don't know), so the order with a build doesn't matter.
+- **Search by title or author (Discover):** apply `20261117000000_search_stories.sql` to the hosted database **before**
+  shipping an app build that includes the search field: the app calls `search_stories()`, and the field shows an error
+  until the migration is in. Older builds don't call it.
 - **Moderation notices:** apply `20261114000300_moderation_notices.sql` to the hosted database **before** shipping an app
   build that includes them: the app reads notifications through the new `my_notifications_v2`,
   which fails until the migration is in. Older builds keep calling `my_notifications`, which never returns the new kinds.
