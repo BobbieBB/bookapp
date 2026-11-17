@@ -30,6 +30,23 @@ export const suggestedFandoms = async () => (await rpc<{ fandom: string }[]>('su
 export const searchFandoms = async (query: string) =>
   (await rpc<FandomHit[]>('search_fandoms', { p_query: query })).map((h) => ({ ...h, stories: Number(h.stories) }));
 
+/** A story already in Livami, found by its title or author (search_stories). */
+export type StoryHit = {
+  id: string;
+  kind: 'book' | 'fanfic';
+  title: string;
+  author_name: string;
+  fandoms: string[];
+  status: 'completed' | 'ongoing' | null;
+  language: string | null;
+  readers: number;
+  rank: number;
+};
+
+/** Searches only Livami's own stories (never AO3 or Open Library); from 3 characters, at most 20 hits. */
+export const searchStories = async (query: string) =>
+  (await rpc<StoryHit[]>('search_stories', { p_query: query })).map((h) => ({ ...h, readers: Number(h.readers) }));
+
 /**
  * Complete only narrows every fallback tier in the database, so the list widens the same way with it on.
  * It is sent only when on: with it off the call is the one a database without the filter also answers.
