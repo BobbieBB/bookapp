@@ -97,6 +97,9 @@ Before launch:
   but with the filter on, Discover's list fails to load until the migration is in.
 - **Ship search:** apply `20261117000300_ship_search.sql` **before** shipping a build with "Search fandoms and ships": the
   new build calls `search_ships()`, `fics_with_ship()` and `ship_for_nickname()`.
+- **Search by title or author (Discover):** apply `20261117000000_search_stories.sql` to the hosted database **before**
+  shipping an app build that includes the search field: the app calls `search_stories()`, and the field shows an error
+  until the migration is in. Older builds don't call it.
 - **Moderation notices:** apply `20261114000300_moderation_notices.sql` to the hosted database **before** shipping an app
   build that includes them: the app reads notifications through the new `my_notifications_v2`,
   which fails until the migration is in. Older builds keep calling `my_notifications`, which never returns the new kinds.

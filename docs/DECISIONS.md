@@ -663,3 +663,10 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   nickname lists the characters' names; a tag matches when it contains them all.
 - Adding a fic: a nickname typed in the Ship field offers the full tag ("Use “Draco Malfoy/Hermione Granger”"): the
   spelling readers already use in Livami, else the names joined with "/".
+## Search Livami by title or author (PO, 16 Nov 2026)
+- A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the
+  stories readers have already added, books and fics together, and never asks AO3 or Open Library.
+- From 3 letters, after a pause in typing, like every search. While there is text, the results take the place of the
+  rest of Discover. Exact titles first, then titles that start with the text, then other matches; the most read first.
+- Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
+- Nothing found, or at the end of the results: "Add a book" / "Add a fic".

@@ -45,6 +45,23 @@ export const ficsWithShip = async (ship: string, completeOnly = false) =>
 /** The full tag for a ship's nickname typed when adding a fic ("Dramione"), or null. */
 export const shipForNickname = (nickname: string) => rpc<string | null>('ship_for_nickname', { p_nickname: nickname });
 
+/** A story already in Livami, found by its title or author (search_stories). */
+export type StoryHit = {
+  id: string;
+  kind: 'book' | 'fanfic';
+  title: string;
+  author_name: string;
+  fandoms: string[];
+  status: 'completed' | 'ongoing' | null;
+  language: string | null;
+  readers: number;
+  rank: number;
+};
+
+/** Searches only Livami's own stories (never AO3 or Open Library); from 3 characters, at most 20 hits. */
+export const searchStories = async (query: string) =>
+  (await rpc<StoryHit[]>('search_stories', { p_query: query })).map((h) => ({ ...h, readers: Number(h.readers) }));
+
 /**
  * Complete only narrows every fallback tier in the database, so the list widens the same way with it on.
  * It is sent only when on: with it off the call is the one a database without the filter also answers.
