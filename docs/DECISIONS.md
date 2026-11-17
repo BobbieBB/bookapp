@@ -343,7 +343,9 @@ Choices made during development where the decisions above don't say. Each one is
   caught-up rule and 7-day undo as before) and opens The Epilogue directly. This is the usual case: the reader has just
   read the last chapter of a fic that was added while it was still being written.
 - **When someone else marks a fic complete**, everyone with it in their library gets an in-app notification
-  "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Card for v1.
+  "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Built 17 Nov 2026
+  (`20261117000200_story_completed_notice.sql`): never to the reader who marked it, never for a hidden fic, names no
+  one, opens the fic page; undo takes it back.
 - **Wording on a WIP:** the Finished status reads **"Caught up"** / „Стигнах докрай“ (same status in the database), with
   "Caught up · 16 of 16 chapters" under it. "Chapter 17 is out: I read it" is a secondary button there (you mostly wait),
   and when someone reports a new chapter the fic shows on Home again with "Chapter 17 is out".
@@ -654,3 +656,11 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).
+
+## Search Livami by title or author (PO, 16 Nov 2026)
+- A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the
+  stories readers have already added, books and fics together, and never asks AO3 or Open Library.
+- From 3 letters, after a pause in typing, like every search. While there is text, the results take the place of the
+  rest of Discover. Exact titles first, then titles that start with the text, then other matches; the most read first.
+- Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
+- Nothing found, or at the end of the results: "Add a book" / "Add a fic".

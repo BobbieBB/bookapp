@@ -9,10 +9,12 @@ export type ModerationNoticeType = 'content_hidden' | 'report_resolved';
 export type AccountNoticeType = 'account_suspended' | 'account_restored';
 export type SystemNoticeType = ModerationNoticeType | AccountNoticeType;
 type SocialType = 'reply' | 'reaction' | 'mention';
+/** "[Fic] is complete. The Epilogue is open.": about a fic in your library, names no one, opens the fic. */
+export type StoryNoticeType = 'story_completed';
 
 export type Notification = {
   id: string;
-  type: SocialType | SystemNoticeType;
+  type: SocialType | SystemNoticeType | StoryNoticeType;
   created_at: string;
   read_at: string | null;
   actor_username: string | null;
@@ -48,12 +50,19 @@ export async function myNotifications(limit = 50, types?: Notification['type'][]
   if (error) throw error;
   // Only kinds this build can show: a system notice, or a social kind with its story. Anything newer is
   // left out rather than shown wrong.
-  return (data as Notification[]).filter((n) => isSystemNotice(n) || (SOCIAL.includes(n.type) && n.story_id !== null));
+  return (data as Notification[]).filter(
+    (n) => isSystemNotice(n) || ((SOCIAL.includes(n.type) || isStoryNotice(n)) && n.story_id !== null),
+  );
 }
 
-/** Home's "REPLIES TO YOU": replies and mentions only (reactions live on the notifications screen). */
+export const isStoryNotice = (n: Pick<Notification, 'type'>): boolean => n.type === 'story_completed';
+
+/**
+ * Home's "REPLIES TO YOU": replies and mentions, and "[Fic] is complete" (docs/DECISIONS.md, Finishing a WIP
+ * fic). Reactions live on the notifications screen.
+ */
 export async function repliesToYou(limit = 3): Promise<Notification[]> {
-  return myNotifications(limit, ['reply', 'mention']);
+  return myNotifications(limit, ['reply', 'mention', 'story_completed']);
 }
 
 /** Home's notices: moderation decisions about you or your reports, while still unread. */
