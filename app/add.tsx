@@ -8,7 +8,7 @@ import { ChoiceList, Sheet } from '@/components/Sheet';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
-import { addFavouriteFandom } from '@/lib/discover';
+import { addFavouriteFandom, shipForNickname } from '@/lib/discover';
 import { statusKey } from '@/lib/library';
 import { chaptersError, finishStory } from '@/lib/story';
 import { supabase } from '@/lib/supabase';
@@ -167,9 +167,9 @@ async function finish(
     router.push(`/finished/${story.id}`);
     return;
   }
-  // Opened from a link with nothing behind it: go Home instead of nowhere.
-  if (router.canGoBack()) router.back();
-  else router.replace('/');
+  // The new story's page takes Add's place (PO, phone test 16 Nov 2026): the next step, the chapter you are on,
+  // is there. Back from it lands on whatever was under Add.
+  router.replace(`/story/${story.id}`);
 }
 
 function friendly(e: unknown, t: Translate) {
@@ -418,6 +418,19 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
 // filled in; not found → the reader types them (we never fetch from AO3).
 // ---------------------------------------------------------------------------
 
+/**
+ * A ship's nickname typed in the Ship field ("Dramione") is offered as its full tag, the one readers already use
+ * in Livami (Trello "Discover: търсене по ship"). Single words only: a full tag has a "/" and needs no help.
+ */
+function ShipNickname({ text, onUse }: { text: string; onUse: (ship: string) => void }) {
+  const t = useT();
+  const word = text.trim();
+  const asked = word.length >= 3 && !word.includes('/') ? word.toLowerCase() : null;
+  const { data } = useLookup(asked ? `nickname:${asked}` : null, () => shipForNickname(asked ?? ''), 350);
+  if (!asked || !data || data === word) return null;
+  return <Button variant="link" title={t('add.useShip', { ship: data })} onPress={() => onUse(data)} />;
+}
+
 function AddFic() {
   const { c } = useTheme();
   const t = useT();
@@ -563,6 +576,7 @@ function AddFic() {
             />
             <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} onBlur={fields.onBlur('fandom')} error={fields.show('fandom', errors.fandom)} />
             <Field label={t('add.ship')} value={ship} onChangeText={setShip} />
+            <ShipNickname text={ship} onUse={setShip} />
 
             <T v="label">{t('add.ficStatus')}</T>
             <View style={{ flexDirection: 'row', gap: space.s }}>

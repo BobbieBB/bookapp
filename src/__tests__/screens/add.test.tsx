@@ -212,6 +212,23 @@ it('a fic added as Finished: Back from "You\u2019re caught up" lands on the stor
   expect(screen.queryByText('home')).toBeNull();
 });
 
+it('after adding, the story page opens in place of Add; Back lands on what was under it', async () => {
+  jest.useRealTimers();
+  const routes = { index: () => <Text>home</Text>, add: AddStory, 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen };
+  await renderScreen('en', routes, '/');
+  await act(async () => router.push('/add'));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/8${Date.now() % 1e8}`);
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Opened After Add ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), `Opened Fandom ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+  await act(async () => router.back());
+  expect(await screen.findByText('home', {}, { timeout: 8000 })).toBeOnTheScreen();
+});
+
 it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"', async () => {
   const fandom = `Refused Fandom ${run}`;
   // The database refuses the library entry for this one story, as an honest failure would.
@@ -337,4 +354,16 @@ describe('the story_added event', () => {
       expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'open_library', status: 'currently_reading', language: 'en' }),
     );
   });
+});
+
+it('a ship nickname in the Ship field is offered as the full tag', async () => {
+  await open('en');
+  jest.useRealTimers();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'I don’t have a link' }, { timeout: 8000 }));
+  await fireEvent.changeText(await screen.findByLabelText('Ship (optional)', {}, { timeout: 8000 }), 'Dramione');
+  const offer = await screen.findByText(/^Use “.*Draco Malfoy.*”$/, {}, { timeout: 8000 });
+  await fireEvent.press(offer);
+  expect(screen.getByDisplayValue(/Draco Malfoy/)).toBeOnTheScreen();
+  expect(screen.queryByText(/^Use “/)).toBeNull();
 });

@@ -343,7 +343,9 @@ Choices made during development where the decisions above don't say. Each one is
   caught-up rule and 7-day undo as before) and opens The Epilogue directly. This is the usual case: the reader has just
   read the last chapter of a fic that was added while it was still being written.
 - **When someone else marks a fic complete**, everyone with it in their library gets an in-app notification
-  "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Card for v1.
+  "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Built 17 Nov 2026
+  (`20261117000200_story_completed_notice.sql`): never to the reader who marked it, never for a hidden fic, names no
+  one, opens the fic page; undo takes it back.
 - **Wording on a WIP:** the Finished status reads **"Caught up"** / „Стигнах докрай“ (same status in the database), with
   "Caught up · 16 of 16 chapters" under it. "Chapter 17 is out: I read it" is a secondary button there (you mostly wait),
   and when someone reports a new chapter the fic shows on Home again with "Chapter 17 is out".
@@ -664,3 +666,20 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   nothing, so it names nothing about the story; the app shows it, or says it isn't available (hidden by its author).
 - Next, once the store accounts exist: Android App Links (`assetlinks.json` with the signing key's fingerprint) and iOS
   Universal Links (`apple-app-site-association` with the Team ID), so the https link opens the app directly.
+
+## Search by ship, with nicknames (PO, 20 Oct 2026; built 17 Nov 2026)
+- Discover's search finds fandoms **and ships**: "Search fandoms and ships" / „Търси фендъм или ship“. Results come in two
+  groups, FANDOMS and SHIPS. A ship is found by its characters' names ("draco") or by its nickname ("dramione"), in either
+  order of the tag. Tapping a ship lists the fics with it that you don't read yet ("FICS WITH …"), most read first; Complete only works there too.
+- Nicknames live in a table (`ship_nicknames`, about 60 popular ones), so the list grows without a new app version. A
+  nickname lists the characters' names; a tag matches when it contains them all.
+- Adding a fic: a nickname typed in the Ship field offers the full tag ("Use “Draco Malfoy/Hermione Granger”"): the
+  spelling readers already use in Livami, else the names joined with "/".
+
+## Search Livami by title or author (PO, 16 Nov 2026)
+- A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the
+  stories readers have already added, books and fics together, and never asks AO3 or Open Library.
+- From 3 letters, after a pause in typing, like every search. While there is text, the results take the place of the
+  rest of Discover. Exact titles first, then titles that start with the text, then other matches; the most read first.
+- Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
+- Nothing found, or at the end of the results: "Add a book" / "Add a fic".
