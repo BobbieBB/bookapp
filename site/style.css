@@ -147,3 +147,15 @@ footer {
 footer a { color: inherit; min-height: 44px; display: inline-flex; align-items: center; }
 
 main > h1 { margin: 24px 0 20px; font-size: clamp(26px, 6vw, 36px); }
+
+/* The shared-story page (404.html, livami.app/s/<id>). */
+main[hidden] { display: none; }
+.button {
+  display: inline-block;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--ground, #fff);
+  font-weight: 800;
+  text-decoration: none;
+}

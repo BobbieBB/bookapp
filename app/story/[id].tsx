@@ -18,6 +18,7 @@ import { FINISH, OPTION, sectionLabel } from '@/lib/sections';
 import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
+import { shareStory } from '@/lib/share';
 import { addToLibrary, AO3_RATINGS, AO3_WARNINGS, setFicLink } from '@/lib/stories';
 import { normaliseAo3Link } from '@/lib/sources';
 import {
@@ -314,6 +315,12 @@ function StoryBody({
           <T v="body">{story.author_name}</T>
           {story.has_chapters && count ? <T v="muted">{t('common.chapters', { count })}</T> : null}
           {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCountLink wrong={wrongCount} /> : null}
+          {/* One story, never the library or how far you've read (PO, 16 Nov 2026). */}
+          <Button
+            variant="link"
+            title={t('story.share')}
+            onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
+          />
         </View>
       </View>
 

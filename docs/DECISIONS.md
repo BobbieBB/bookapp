@@ -654,3 +654,13 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).
+
+## Share a story with a friend (PO, 16 Nov 2026; built 17 Nov 2026)
+- "Share with a friend" / „Сподели с приятел“ under the author on every story page opens the phone's share sheet with
+  "I'm reading “…” on Livami. Come and talk about it with me!" and a link to livami.app/s/<id>. One story, never the
+  library, and never how far you've read.
+- livami.app/s/<id> is the site's 404 page (GitHub Pages has no routes): "A friend wants to read this with you",
+  "Open in Livami" (`livami://story/<id>`) and "coming soon to the App Store and Google Play". It asks the database
+  nothing, so it names nothing about the story; the app shows it, or says it isn't available (hidden by its author).
+- Next, once the store accounts exist: Android App Links (`assetlinks.json` with the signing key's fingerprint) and iOS
+  Universal Links (`apple-app-site-association` with the Team ID), so the https link opens the app directly.

@@ -20,10 +20,29 @@
     <button type="button" data-lang="en" aria-pressed="false">EN</button>
   </div>
 </header>
-<main>
+<main id="missing">
 <h1><span lang="en">This page isn't here</span><span lang="bg">Тази страница я няма</span></h1>
 <p><a href="/"><span lang="en">Back to Livami</span><span lang="bg">Обратно към Livami</span></a></p>
 </main>
+<!-- A shared story (livami.app/s/<id>, the app's "Share with a friend"). GitHub Pages has no routes of its own, so
+     every /s/<id> lands here. The page names nothing about the story (no request to the database): the app shows
+     it, or says it is no longer available. -->
+<main id="invite" hidden>
+<h1><span lang="en">A friend wants to read this with you</span><span lang="bg">Някой иска да чете това с теб</span></h1>
+<p><span lang="en">Livami is where readers talk about books and fanfiction chapter by chapter, without spoilers.</span><span lang="bg">В Livami читателите обсъждат книги и фенфикшън глава по глава, без спойлери.</span></p>
+<p><a id="open" class="button" href="livami://"><span lang="en">Open in Livami</span><span lang="bg">Отвори в Livami</span></a></p>
+<p><span lang="en">Don't have the app yet? Livami is coming soon to the App Store and Google Play.</span><span lang="bg">Още нямаш приложението? Livami скоро ще е в App Store и Google Play.</span></p>
+</main>
+<script>
+  (() => {
+    const m = /^\/s\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i.exec(location.pathname);
+    if (!m) return;
+    document.title = 'Livami';
+    document.getElementById('missing').hidden = true;
+    document.getElementById('invite').hidden = false;
+    document.getElementById('open').href = 'livami://story/' + m[1].toLowerCase();
+  })();
+</script>
 <footer>
   <span>© 2026 Livami</span>
   <a href="/terms/"><span lang="en">Terms</span><span lang="bg">Условия</span></a>
