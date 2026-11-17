@@ -95,6 +95,8 @@ Before launch:
 - **Discover's "Complete only" filter:** apply `20261106000000_discover_complete_only.sql` to the hosted database
   **before** shipping an app build that includes the filter. Readers with the filter off keep working without it,
   but with the filter on, Discover's list fails to load until the migration is in.
+- **"[Fic] is complete" notice:** apply `20261117000100_story_completed_type.sql` and `20261117000200_story_completed_notice.sql`
+  in order. Older builds never show the new notice (they skip kinds they don't know), so the order with a build doesn't matter.
 - **Moderation notices:** apply `20261114000300_moderation_notices.sql` to the hosted database **before** shipping an app
   build that includes them: the app reads notifications through the new `my_notifications_v2`,
   which fails until the migration is in. Older builds keep calling `my_notifications`, which never returns the new kinds.
