@@ -305,6 +305,9 @@ describe('Discover: ships', () => {
     await fireEvent.press(screen.getByTestId(`ship-hit-${SHIP}`));
     expect(await screen.findByText(`FICS WITH ${SHIP.toUpperCase()}`, {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(await screen.findByText(`Shipped fic ${run}`, {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+});
+
 describe('Discover: search Livami by title or author', () => {
   const routes = { discover: Discover, 'story/[id]': StoryStub };
   let searchableId: string;
