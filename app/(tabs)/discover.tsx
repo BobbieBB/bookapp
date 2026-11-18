@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useRouter } from 'expo-router';
 
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
-import { useT } from '@/i18n';
+import { useLanguage, useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { useCompleteOnly } from '@/lib/completeOnly';
+import { useDiscoverKind, type DiscoverKind } from '@/lib/discoverKind';
 import {
+  booksBeingRead,
   ficsWithShip,
   lively,
   myFandoms,
   searchFandoms,
   searchShips,
   searchStories,
+  type BookNow,
   type LivelyStory,
   type LivelyTier,
   type StoryHit,
@@ -32,10 +35,104 @@ const TIER_KEY = {
   starter: 'discover.tier.starter',
 } as const satisfies Record<LivelyTier, string>;
 
+const COVER = { width: 64, height: 92, borderRadius: 10 };
+
+/** Title and author on the story's colour: every fic, and books without an Open Library cover. Decorative. */
+function TypographicCover({ id, title, author }: { id: string; title: string; author: string }) {
+  const t = useTheme();
+  const cover = coverColor(id, t.mode);
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ ...COVER, backgroundColor: cover.bg, ...softShadow(t.mode, 'small'), justifyContent: 'space-between', padding: 6 }}
+    >
+      <Text numberOfLines={4} style={{ fontFamily: t.fonts.moment, fontSize: 15, lineHeight: 15, color: cover.fg }}>
+        {title}
+      </Text>
+      <Text numberOfLines={2} style={{ fontFamily: t.fonts.bodyBold, fontSize: 8, lineHeight: 9, letterSpacing: 0.2, color: cover.fg }}>
+        {author.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+/** A book being read now: its Open Library cover if it has one, the edition's language, and how many read it. */
+function BookNowRow({ book, onOpen }: { book: BookNow; onOpen: () => void }) {
+  const t = useTheme();
+  const tr = useT();
+  const [coverFailed, setCoverFailed] = useState(false);
+  const subtitle = [book.author_name, book.language ? book.language.toUpperCase() : null].filter(Boolean).join(' · ');
+  const count = book.reading > 0 ? tr('discover.readingNow', { count: book.reading }) : tr('discover.readers', { count: book.readers });
+  return (
+    <Pressable
+      testID={`book-now-${book.id}`}
+      accessibilityRole="button"
+      onPress={onOpen}
+      style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
+    >
+      {book.cover_url && !coverFailed ? (
+        <Image
+          source={{ uri: book.cover_url }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          onError={() => setCoverFailed(true)}
+          style={{ ...COVER, ...softShadow(t.mode, 'small') }}
+        />
+      ) : (
+        <TypographicCover id={book.id} title={book.title} author={book.author_name} />
+      )}
+      <View style={{ flex: 1, gap: 3 }}>
+        <T v="h2" numberOfLines={2}>
+          {book.title}
+        </T>
+        <T v="muted" numberOfLines={2}>
+          {subtitle}
+        </T>
+        <T v="label">{count}</T>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Discover for books (decision F): one list, "Being read now", no genres yet. */
+function BooksBeingRead({ version }: { version: number }) {
+  const { c } = useTheme();
+  const t = useT();
+  const { language } = useLanguage();
+  const books = useLookup(`books:${version}:${language}`, () => booksBeingRead(language));
+  const shown = books.data ?? books.previous;
+  return (
+    <View style={{ gap: space.s }}>
+      <T v="overline">{t('discover.booksNow')}</T>
+      {books.error !== undefined ? (
+        <ErrorText>{t('discover.error')}</ErrorText>
+      ) : !shown ? (
+        <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
+      ) : shown.length === 0 ? (
+        <Card style={{ gap: space.s }}>
+          <T v="muted">{t('discover.booksEmpty')}</T>
+          <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book' } })} />
+        </Card>
+      ) : (
+        <>
+          {shown[0].tier === 'readers' ? <T v="muted">{t('discover.tier.readers')}</T> : null}
+          {shown.map((book, i) => (
+            <View key={book.id} style={{ gap: space.s }}>
+              {/* Where nobody is reading anything new right now, the most read follow, under their own line. */}
+              {i > 0 && book.tier === 'readers' && shown[i - 1].tier === 'reading' ? <T v="muted">{t('discover.tier.readers')}</T> : null}
+              <BookNowRow book={book} onOpen={() => router.push(`/story/${book.id}`)} />
+            </View>
+          ))}
+        </>
+      )}
+    </View>
+  );
+}
+
 function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }) {
   const t = useTheme();
   const tr = useT();
-  const cover = coverColor(story.id, t.mode);
   const subtitle = [story.author_name, story.fandoms[0]].filter(Boolean).join(' · ');
   const tag = story.status === 'completed' ? tr('add.complete') : story.status === 'ongoing' ? tr('add.wip') : null;
   return (
@@ -45,26 +142,7 @@ function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }
       style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
     >
       {/* Typographic cover: fics never have covers. Decorative: the title is read from the row. */}
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{
-          width: 64,
-          height: 92,
-          borderRadius: 10,
-          backgroundColor: cover.bg,
-          ...softShadow(t.mode, 'small'),
-          justifyContent: 'space-between',
-          padding: 6,
-        }}
-      >
-        <Text numberOfLines={4} style={{ fontFamily: t.fonts.moment, fontSize: 15, lineHeight: 15, color: cover.fg }}>
-          {story.title}
-        </Text>
-        <Text numberOfLines={2} style={{ fontFamily: t.fonts.bodyBold, fontSize: 8, lineHeight: 9, letterSpacing: 0.2, color: cover.fg }}>
-          {story.author_name.toUpperCase()}
-        </Text>
-      </View>
+      <TypographicCover id={story.id} title={story.title} author={story.author_name} />
       <View style={{ flex: 1, gap: 3 }}>
         <T v="h2" numberOfLines={2}>
           {story.title}
@@ -203,6 +281,17 @@ function FandomSearch({ onPick, onPickShip }: { onPick: (fandom: string) => void
   );
 }
 
+/** "Books | Fanfiction": two separate sections, never one mixed feed (docs/DECISIONS.md, "Fandom etiquette"). */
+function KindSwitch({ kind, onPick }: { kind: DiscoverKind; onPick: (kind: DiscoverKind) => void }) {
+  const t = useT();
+  return (
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: space.s }}>
+      <Chip big label={t('discover.kindBooks')} active={kind === 'book'} onPress={() => onPick('book')} />
+      <Chip big label={t('discover.kindFanfic')} active={kind === 'fanfic'} onPress={() => onPick('fanfic')} />
+    </View>
+  );
+}
+
 export default function Discover() {
   const { c } = useTheme();
   const t = useT();
@@ -232,6 +321,12 @@ export default function Discover() {
   // The profile default is reads_fanfic = false, so a reader who has picked a fandom or shelved a fic
   // is a fanfiction reader whatever the flag says; only a reader with neither is told it is not for them.
   const fanficReader = profile?.reads_fanfic !== false || (mine.data ?? []).some((f) => f.source !== 'starter');
+  // Decision F: readers of both get "Books | Fanfiction" at the top; readers of one kind see theirs directly. A reader
+  // who said neither sees books (reads_books defaults to true, so that is rare).
+  const bookReader = profile?.reads_books !== false;
+  const [kindChoice, setKind] = useDiscoverKind();
+  const both = bookReader && fanficReader;
+  const showing: DiscoverKind | null = both ? kindChoice : fanficReader ? 'fanfic' : 'book';
   const chips = (mine.data ?? []).slice(0, MAX_CHIPS).map((f) => f.fandom);
   // Say where the chips come from, so Discover and Profile tell the same story: only fandoms the reader
   // picked are "yours"; before that they come from the library, or are popular ones to start with.
@@ -241,7 +336,7 @@ export default function Discover() {
   const scope = selected ? [selected] : chips;
   const [completeOnly, setCompleteOnly] = useCompleteOnly();
   const feed = useLookup(
-    mine.data && completeOnly !== null ? `${version}:${completeOnly}:${ship ?? ''}:${JSON.stringify(scope)}` : null,
+    mine.data && completeOnly !== null && showing === 'fanfic' ? `${version}:${completeOnly}:${ship ?? ''}:${JSON.stringify(scope)}` : null,
     () => (ship ? ficsWithShip(ship, completeOnly === true) : lively(scope, completeOnly === true)),
   );
   const loadedTier = feed.data?.[0]?.tier;
@@ -264,7 +359,7 @@ export default function Discover() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
-        {/* For every reader, books too: the rest of Discover is fanfiction only for now. */}
+        {/* For every reader, books and fics together: the one place they share. */}
         <Field
           label={t('discover.storySearchLabel')}
           placeholder={t('discover.storySearchPlaceholder')}
@@ -284,14 +379,16 @@ export default function Discover() {
           <StorySearchResults query={storyQuery} />
         ) : mine.error !== undefined ? (
           <ErrorText>{t('discover.error')}</ErrorText>
-        ) : !mine.data ? (
+        ) : !mine.data || showing === null ? (
           <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
-        ) : !fanficReader ? (
-          <Card>
-            <T v="h2">{t('discover.fanficOnly')}</T>
-          </Card>
+        ) : showing === 'book' ? (
+          <>
+            {both ? <KindSwitch kind={showing} onPick={setKind} /> : null}
+            <BooksBeingRead version={version} />
+          </>
         ) : (
           <>
+            {both ? <KindSwitch kind={showing} onPick={setKind} /> : null}
             <View style={{ gap: space.s }}>
               <T v="overline">{t(chipsTitle)}</T>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>

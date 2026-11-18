@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from 'react-native';
 
@@ -8,7 +8,7 @@ import Profile from '../../../app/(tabs)/profile';
 import { renderScreen } from '../../../test/router';
 import { serviceClient } from '../../../test/service';
 import { lively } from '../../lib/discover';
-import { addToLibrary, createFic } from '../../lib/stories';
+import { addToLibrary, createFic, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
 // Discover (docs/DECISIONS.md, 14 Oct 2026) and Profile > Your fandoms. Real readers on local
@@ -21,6 +21,7 @@ const TOGGLE = `Toggle Fandom ${run}`;
 const ONLY_WIPS = `Only Wips Fandom ${run}`;
 // The "Complete only" choice, remembered per device (the in-memory AsyncStorage is shared by this file's tests).
 const COMPLETE_ONLY_KEY = 'livami.discover.completeOnly';
+const KIND_KEY = 'livami.discover.kind';
 type User = { email: string; id: string };
 
 async function signUp(name: string, profile: Record<string, unknown> = {}): Promise<User> {
@@ -132,10 +133,53 @@ describe('Discover', () => {
     expect(await screen.findByText('ТВОИТЕ ФЕНДЪМИ', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
-  it('readers who only read books are told Discover is for fanfiction for now', async () => {
+});
+
+describe('Discover for books (decision F)', () => {
+  const routes = { discover: Discover, 'story/[id]': StoryStub };
+  let nowId: string;
+
+  beforeAll(async () => {
+    await as(filterReader);
+    nowId = (await createManualBook({ title: `Being Read ${run}`, author: 'A. Writer', chapters: 4, language: 'en' })).id;
+    await addToLibrary(nowId, 'currently_reading');
+  });
+
+  // The switch is remembered in the in-memory AsyncStorage every test in this file shares: leave it as found.
+  beforeEach(() => AsyncStorage.removeItem(KIND_KEY));
+  afterEach(() => AsyncStorage.removeItem(KIND_KEY));
+
+  it('readers of books only see "Being read now" directly, without the switch; tapping a book opens it', async () => {
     await as(bookReader);
-    await renderScreen('en', { discover: Discover }, '/discover');
-    expect(await screen.findByText('Discover is for fanfiction for now.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await renderScreen('en', routes, '/discover');
+    expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Fanfiction' })).toBeNull();
+    await fireEvent.press(await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 }));
+    expect(await screen.findByText(`story ${nowId}`, {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('readers of both: Fanfiction as before, Books one tap away, and the choice is remembered on this phone', async () => {
+    await as(reader);
+    await renderScreen('en', routes, '/discover');
+    expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Fanfiction' })).toBeSelected();
+    await fireEvent.press(screen.getByRole('button', { name: 'Books' }));
+    expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('YOUR FANDOMS')).toBeNull(); // separate sections, never one mixed feed
+    const row = await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 });
+    expect(within(row).getByText('1 reading now')).toBeOnTheScreen();
+    await waitFor(async () => expect(await AsyncStorage.getItem(KIND_KEY)).toBe('book'));
+    screen.unmount();
+    await renderScreen('en', routes, '/discover');
+    expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('in Bulgarian', async () => {
+    await as(bookReader);
+    await renderScreen('bg', routes, '/discover');
+    expect(await screen.findByText('ЧЕТАТ СЕ СЕГА', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const row = await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 });
+    expect(within(row).getByText('1 я чете сега')).toBeOnTheScreen();
   });
 });
 

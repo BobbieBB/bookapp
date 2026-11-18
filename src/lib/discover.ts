@@ -85,3 +85,20 @@ export async function favouriteFandoms(): Promise<string[]> {
 export const addFavouriteFandom = (fandom: string) => rpc<void>('add_favourite_fandom', { p_fandom: fandom });
 
 export const removeFavouriteFandom = (fandom: string) => rpc<void>('remove_favourite_fandom', { p_fandom: fandom });
+
+/** Discover for books (decision F, 15 Nov 2026): "Being read now", books you don't have yet. */
+export type BookTier = 'reading' | 'readers';
+export type BookNow = {
+  id: string;
+  title: string;
+  author_name: string;
+  language: 'en' | 'bg' | null;
+  cover_url: string | null;
+  reading: number;
+  readers: number;
+  tier: BookTier;
+  rank: number;
+};
+
+export const booksBeingRead = async (language: string) =>
+  (await rpc<BookNow[]>('books_being_read', { p_language: language })).map((b) => ({ ...b, reading: Number(b.reading), readers: Number(b.readers) }));

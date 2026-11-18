@@ -102,6 +102,8 @@ Before launch:
 - **Search by title or author (Discover):** apply `20261117000000_search_stories.sql` to the hosted database **before**
   shipping an app build that includes the search field: the app calls `search_stories()`, and the field shows an error
   until the migration is in. Older builds don't call it.
+- **Discover for books:** apply `20261118000000_books_being_read.sql` **before** shipping a build with "Books | Fanfiction":
+  the new build calls `books_being_read()`, and the Books list shows an error until the migration is in.
 - **Moderation notices:** apply `20261114000300_moderation_notices.sql` to the hosted database **before** shipping an app
   build that includes them: the app reads notifications through the new `my_notifications_v2`,
   which fails until the migration is in. Older builds keep calling `my_notifications`, which never returns the new kinds.
