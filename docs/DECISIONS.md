@@ -667,3 +667,12 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   then other title matches, then author matches; the most read first. The text is cut at 200 characters.
 - Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
 - Nothing found, or at the end of the results: "Add a book" / "Add a fic".
+
+## Rating a book: five stars, halves by a second tap (PO, phone test 16 Nov 2026)
+- Five stars on "You finished it!". Tapping a star gives that many; tapping the same star again takes half a star off
+  (5 → 4.5 → 5, 1 → 0.5 → 1). The value is written next to them ("4.5 stars", „4,5 звезди“ with a decimal comma).
+- Stars use the `signal` colour, outlined when empty, so they show in every palette (Calm's sand would not).
+- A screen reader hears each star's label ("Rate 5 stars") and the current value; only the star of the exact value is
+  "selected", so 4.5 is never heard as 5.
+- A rating can't be cleared from this screen (the lowest is half a star), as before.
+- After adding a story its page opens in place of Add; with nothing under Add (a web reload), Home goes underneath.
