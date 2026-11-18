@@ -660,11 +660,16 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 
 ## Share a story with a friend (PO, 16 Nov 2026; built 17 Nov 2026)
 - "Share with a friend" / „Сподели с приятел“ under the author on every story page opens the phone's share sheet with
-  "I'm reading “…” on Livami. Come and talk about it with me!" and a link to livami.app/s/<id>. One story, never the
-  library, and never how far you've read.
+  "Come and talk about “…” with me on Livami!" / „Ела да обсъждаме „…“ в Livami!“ and a link to livami.app/s/<id>. One
+  story, never the library, and never how far you've read (or whether you read it: the button is on every story page).
+  Not shown on a hidden story (only its creator and admins still see one, and the link would open for nobody else).
 - livami.app/s/<id> is the site's 404 page (GitHub Pages has no routes): "A friend wants to read this with you",
   "Open in Livami" (`livami://story/<id>`) and "coming soon to the App Store and Google Play". It asks the database
-  nothing, so it names nothing about the story; the app shows it, or says it isn't available (hidden by its author).
+  nothing, so it names nothing about the story; the app shows it, or says it isn't available (hidden, deleted or a wrong
+  link: "This story isn't available", no Try again). The page's static title and description are neutral ("Livami"), as
+  chat apps preview the link without running its script, and it is `noindex`.
+- A reader who isn't in the app yet (signed out, no profile, terms to accept) goes through those screens first; the app
+  remembers the story and opens it once they are in.
 - Next, once the store accounts exist: Android App Links (`assetlinks.json` with the signing key's fingerprint) and iOS
   Universal Links (`apple-app-site-association` with the Team ID), so the https link opens the app directly.
 

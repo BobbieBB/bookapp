@@ -35,6 +35,7 @@ import {
   setChapter,
   setPage,
   setStatus,
+  StoryUnavailable,
   finishStory,
   finishedFields,
   type MyEntry,
@@ -73,6 +74,12 @@ export default function StoryScreen() {
           <StoryRooms storyId={shown.story.id} version={version} label={sectionLabel(shown.story)} />
           {shown.story.kind === 'book' ? <BookReviews storyId={shown.story.id} version={version} /> : null}
         </>
+      ) : page.error instanceof StoryUnavailable ? (
+        <View style={{ gap: space.m }}>
+          <T v="h2">{t('story.unavailableTitle')}</T>
+          <T v="muted">{t('story.unavailable')}</T>
+          <Button variant="secondary" title={t('story.toHome')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        </View>
       ) : page.error ? (
         <View style={{ gap: space.m }}>
           <ErrorText>{t('story.loadFailed')}</ErrorText>
@@ -315,12 +322,15 @@ function StoryBody({
           <T v="body">{story.author_name}</T>
           {story.has_chapters && count ? <T v="muted">{t('common.chapters', { count })}</T> : null}
           {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCountLink wrong={wrongCount} /> : null}
-          {/* One story, never the library or how far you've read (PO, 16 Nov 2026). */}
-          <Button
-            variant="link"
-            title={t('story.share')}
-            onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
-          />
+          {/* One story, never the library or how far you've read (PO, 16 Nov 2026). Not for a hidden story: its
+              link would open for nobody else. */}
+          {story.is_hidden ? null : (
+            <Button
+              variant="link"
+              title={t('story.share')}
+              onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
+            />
+          )}
         </View>
       </View>
 
