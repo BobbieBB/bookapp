@@ -229,6 +229,23 @@ it('after adding, the story page opens in place of Add; Back lands on what was u
   expect(await screen.findByText('home', {}, { timeout: 8000 })).toBeOnTheScreen();
 });
 
+it('Add opened with nothing under it (a reload on the web): the story page still has a Back, to Home', async () => {
+  jest.useRealTimers();
+  const routes = { index: () => <Text>home</Text>, add: AddStory, 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen };
+  await renderScreen('en', routes, '/add');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/7${Date.now() % 1e8}`);
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Reloaded Add ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
+  await fireEvent.changeText(screen.getByLabelText('Fandom'), `Reloaded Fandom ${run}`);
+  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
+  expect(router.canGoBack()).toBe(true);
+  await act(async () => router.back());
+  expect(await screen.findByText('home', {}, { timeout: 8000 })).toBeOnTheScreen();
+});
+
 it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"', async () => {
   const fandom = `Refused Fandom ${run}`;
   // The database refuses the library entry for this one story, as an honest failure would.

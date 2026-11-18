@@ -220,7 +220,20 @@ describe('finishing', () => {
     expect(screen.getByLabelText('Оцени с 5 звезди')).toBeOnTheScreen();
     await fireEvent.press(screen.getByLabelText('Оцени с 5 звезди'));
     await fireEvent.press(screen.getByLabelText('Оцени с 5 звезди'));
-    expect(screen.getByText('4.5 звезди')).toBeOnTheScreen();
+    expect(screen.getByText('4,5 звезди')).toBeOnTheScreen(); // a decimal comma in Bulgarian
+  });
+
+  it('a screen reader hears the value: a half is never read as the whole star', async () => {
+    await as(me);
+    const id = await book('finished');
+    await renderScreen('en', finishedRoutes, `/finished/${id}`);
+    await fireEvent.press(await screen.findByLabelText('Rate 5 stars', {}, { timeout: 8000 }));
+    await fireEvent.press(screen.getByLabelText('Rate 5 stars'));
+    const fifth = screen.getByLabelText('Rate 5 stars');
+    expect(fifth).not.toBeSelected();
+    expect(fifth.props.accessibilityValue).toEqual({ text: '4.5 stars' });
+    await fireEvent.press(fifth);
+    expect(screen.getByLabelText('Rate 5 stars')).toBeSelected();
   });
 
   it('Save is disabled while there is nothing to save', async () => {
