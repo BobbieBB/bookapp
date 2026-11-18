@@ -193,7 +193,7 @@ function FandomSearch({ onPick, onPickShip }: { onPick: (fandom: string) => void
         >
           <T v="label">{hit.ship}</T>
           <T v="muted">
-            {[hit.nickname ? hit.nickname.replace(/^./, (c) => c.toUpperCase()) : null, t('discover.hitStories', { count: hit.stories })]
+            {[hit.nickname ? hit.nickname.replace(/^./, (c) => c.toUpperCase()) : null, hit.stories > 0 ? t('discover.hitStories', { count: hit.stories }) : t('discover.hitAllMine')]
               .filter(Boolean)
               .join(' · ')}
           </T>
@@ -337,6 +337,11 @@ export default function Discover() {
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
                 <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
+              ) : feed.data.length === 0 && ship ? (
+                // A picked ship: its fics are all in your library already (or, with the filter, none is complete).
+                <Card>
+                  <T v="muted">{t(completeOnly ? 'discover.shipEmptyComplete' : 'discover.shipEmpty')}</T>
+                </Card>
               ) : feed.data.length === 0 && completeOnly ? (
                 // Even the starter fandoms have no complete fic you don't read yet: the filter is what empties the list.
                 <Card>

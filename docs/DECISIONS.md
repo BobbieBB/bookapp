@@ -662,10 +662,15 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - Discover's search finds fandoms **and ships**: "Search fandoms and ships" / „Търси фендъм или ship“. Results come in two
   groups, FANDOMS and SHIPS. A ship is found by its characters' names ("draco") or by its nickname ("dramione"), in either
   order of the tag. Tapping a ship lists the fics with it that you don't read yet ("FICS WITH …"), most read first; Complete only works there too.
+  The count next to a ship is that same number ("all in your library" when it is 0), and a ship whose fics you all have
+  says so when tapped. Nicknames match romantic tags ("A/B") only, never friendship tags ("A & B").
 - Nicknames live in a table (`ship_nicknames`, about 60 popular ones), so the list grows without a new app version. A
   nickname lists the characters' names; a tag matches when it contains them all.
 - Adding a fic: a nickname typed in the Ship field offers the full tag ("Use “Draco Malfoy/Hermione Granger”"): the
-  spelling readers already use in Livami, else the names joined with "/".
+  spelling readers already use in Livami (the most used over every row of the nickname). Nothing is offered while no fic
+  uses the characters yet: names joined with "/" are not always AO3's tag ("Bucky" vs “James "Bucky" Barnes”) and
+  would split one ship into two spellings. (Review of #81, 18 Nov 2026; a PO call if the made-up tag is wanted back,
+  then with an AO3 spelling per nickname.)
 
 ## Search Livami by title or author (PO, 16 Nov 2026)
 - A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the

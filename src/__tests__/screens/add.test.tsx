@@ -7,6 +7,7 @@ import { Text } from 'react-native';
 
 import type { Language } from '../../i18n';
 import * as analytics from '../../lib/analytics';
+import { createFic } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 import { sql } from '../../../test/database';
 import { renderScreen } from '../../../test/router';
@@ -373,7 +374,19 @@ describe('the story_added event', () => {
   });
 });
 
-it('a ship nickname in the Ship field is offered as the full tag', async () => {
+it('a ship nickname in the Ship field is offered as the full tag readers already use', async () => {
+  // Offered only once a fic in Livami uses the tag (nothing is made up from the nickname list).
+  await createFic({
+    ao3Link: `https://archiveofourown.org/works/5${Date.now() % 1e8}`,
+    title: `Nickname Source ${run}`,
+    author: 'someone',
+    fandom: `Nickname Fandom ${run}`,
+    ship: 'Hermione Granger/Draco Malfoy',
+    complete: true,
+    chapters: 1,
+    rating: 'Not Rated',
+    warnings: [],
+  });
   await open('en');
   jest.useRealTimers();
   await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));

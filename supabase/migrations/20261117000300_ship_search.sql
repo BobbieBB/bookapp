@@ -99,17 +99,24 @@ language sql stable security definer set search_path = public as $$
     select distinct sh as ship, s.id as story_id
     from public.visible_fics() s, unnest(s.ships) as sh
   ), named as (
-    -- The nickname that matched, if any (the shortest when several do), to show next to the tag.
+    -- The nickname that matched, if any (the alphabetically first when several do), to show next to the tag. Only
+    -- for a romantic tag ("A/B"): a nickname is never matched to a friendship tag ("A & B").
     select sp.ship, sp.story_id,
       (select min(n.nickname) from public.ship_nicknames n, q
-        where starts_with(n.nickname, q.text)
+        where strpos(sp.ship, '/') > 0
+          and starts_with(n.nickname, q.text)
           and (select bool_and(strpos(lower(sp.ship), lower(ch)) > 0) from unnest(n.characters) ch)) as nickname
     from ships sp
   ), hits as (
     select named.* from named, q
     where char_length(q.text) >= 3 and (strpos(lower(named.ship), q.text) > 0 or named.nickname is not null)
   ), scored as (
-    select ship, min(nickname) as nickname, count(distinct story_id) as stories from hits group by ship
+    -- The count is what tapping the ship lists: fics you don't have in your library yet.
+    select ship, min(nickname) as nickname,
+      count(distinct story_id) filter (
+        where not exists (select 1 from public.library_entries le where le.story_id = hits.story_id and le.user_id = auth.uid())
+      ) as stories
+    from hits group by ship
   )
   select ship, nickname, stories, (row_number() over (order by stories desc, ship))::int
   from scored order by 4 limit 30
@@ -141,22 +148,24 @@ revoke execute on function public.fics_with_ship(text, boolean) from public, ano
 grant execute on function public.fics_with_ship(text, boolean) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Adding a fic: a nickname typed in the Ship field ("Dramione") is offered as the full tag. The tag readers
--- already use in Livami for those characters (the most used), else the characters joined with "/".
--- Null when the text is not a known nickname.
+-- Adding a fic: a nickname typed in the Ship field ("Dramione") is offered as the full tag readers already use in
+-- Livami for those characters (the most used, over every row of the nickname: Reylo is Rey with Kylo Ren or Ben Solo).
+-- Only a tag in use, never one made up from the list: AO3's tags don't always spell the characters as the list does
+-- ("James "Bucky" Barnes"), and a made-up spelling would split one ship into two. Null when nothing matches.
 -- ---------------------------------------------------------------------------
 create or replace function public.ship_for_nickname(p_nickname text)
 returns text
 language sql stable security definer set search_path = public as $$
   with n as (
-    select characters from public.ship_nicknames where nickname = lower(trim(coalesce(p_nickname, ''))) order by characters limit 1
+    select characters from public.ship_nicknames where nickname = lower(trim(coalesce(p_nickname, '')))
   ), used as (
     select sh as ship, count(*) as uses
-    from public.visible_fics() s, unnest(s.ships) as sh, n
-    where (select bool_and(strpos(lower(sh), lower(ch)) > 0) from unnest(n.characters) ch)
+    from public.visible_fics() s, unnest(s.ships) as sh
+    where strpos(sh, '/') > 0
+      and exists (select 1 from n where (select bool_and(strpos(lower(sh), lower(ch)) > 0) from unnest(n.characters) ch))
     group by sh
   )
-  select coalesce((select ship from used order by uses desc, ship limit 1), (select array_to_string(characters, '/') from n))
+  select ship from used order by uses desc, ship limit 1
 $$;
 revoke execute on function public.ship_for_nickname(text) from public, anon;
 grant execute on function public.ship_for_nickname(text) to authenticated;
