@@ -10,8 +10,9 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/lease-test.XXXXXX")"
 cleanup() {
   [ -s "$work/owners" ] && kill $(cat "$work/owners") 2>/dev/null || true
   # Only what this test creates: owner files and empty directories (rmdir refuses anything else).
-  rm -f "$work/owners" "$work"/out.*/* "$work"/leases.*/slot-*/owner
-  rmdir "$work"/out.* "$work"/leases.*/*.reclaim "$work"/leases.*/slot-* "$work"/leases.* "$work" 2>/dev/null || true
+  rm -f "$work/owners" "$work"/out.*/* "$work"/leases.*/slot-*/owner 2>/dev/null || true
+  rm -f "$work"/leases.*/*.reclaim "$work/shim/mkdir" 2>/dev/null || true
+  rmdir "$work/shim" "$work"/out.* "$work"/leases.*/*.reclaim "$work"/leases.*/slot-* "$work"/leases.* "$work" 2>/dev/null || true
 }
 trap cleanup EXIT
 # A generous orphan age: slot 3 below must stay "just taken" for the whole race, even on a slow machine.
@@ -107,6 +108,34 @@ race 4 >/dev/null
 "$dir/release.sh" 3
 expect_slots "after release" "3" "$(race 2)"
 check_tidy "after release"
+
+# 5. A mkdir that reports success for a directory that already exists, as uutils' mkdir (Ubuntu 26.04)
+#    does for the loser of a race: neither a lease nor a reclaim guard may change hands because of it.
+#    The stand-in makes the race certain instead of rare.
+real_mkdir="$(command -v mkdir)"
+shim="$work/shim"
+"$real_mkdir" "$shim"
+printf '#!/usr/bin/env bash\nfor a in "$@"; do [ -d "$a" ] && exit 0; done\nexec %q "$@"\n' "$real_mkdir" >"$shim/mkdir"
+chmod +x "$shim/mkdir"
+fresh_leases
+first="$(PATH="$shim:$PATH" "$dir/lease.sh" "$(live_owner)" 2>/dev/null || true)"
+second="$(PATH="$shim:$PATH" "$dir/lease.sh" "$(live_owner)" 2>/dev/null || true)"
+expect_slots "racy mkdir, two takers" "1 2" "$first $second"
+# Slot 1 is stale (dead owner) but someone else is reclaiming it right now: its guard is held, as a
+# file (this version) or as a directory (left by the version before it).
+for guard_kind in file directory; do
+  fresh_leases
+  "$real_mkdir" "$TEST_STACK_LEASE_DIR/slot-1"
+  if [ $guard_kind = file ]; then : >"$TEST_STACK_LEASE_DIR/slot-1.reclaim"; else "$real_mkdir" "$TEST_STACK_LEASE_DIR/slot-1.reclaim"; fi
+  dead="$(dead_pid)"
+  echo "$dead" >"$TEST_STACK_LEASE_DIR/slot-1/owner"
+  expect_slots "racy mkdir, held $guard_kind guard" "2" "$(PATH="$shim:$PATH" "$dir/lease.sh" "$(live_owner)" 2>/dev/null || true)"
+  [ "$(cat "$TEST_STACK_LEASE_DIR/slot-1/owner" 2>/dev/null)" = "$dead" ] ||
+    fail "racy mkdir, held $guard_kind guard: slot 1 was taken back while another process held its guard"
+  { rm -f "$TEST_STACK_LEASE_DIR/slot-1.reclaim" || rmdir "$TEST_STACK_LEASE_DIR/slot-1.reclaim"; } 2>/dev/null || true
+done
+rm -f "$shim/mkdir"
+rmdir "$shim"
 
 if [ $failures -gt 0 ]; then
   echo "lease tests: $failures failed" >&2
