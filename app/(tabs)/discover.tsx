@@ -109,17 +109,18 @@ function StoryHitRow({ hit, onOpen }: { hit: StoryHit; onOpen: () => void }) {
 function StorySearchResults({ query }: { query: string }) {
   const t = useT();
   const trimmed = query.trim();
-  const { loading, data, error } = useLookup(trimmed.length >= 3 ? `stories:${trimmed}` : null, () => searchStories(trimmed), SEARCH_DELAY_MS);
+  const { data, error, previous } = useLookup(`stories:${trimmed}`, () => searchStories(trimmed), SEARCH_DELAY_MS);
+  // While the next answer loads, the last results stay on screen, so the list doesn't flicker per keystroke.
+  const shown = data ?? previous;
   const addButtons = (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
       <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book' } })} />
       <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
     </View>
   );
-  if (trimmed.length < 3) return <T v="muted">{t('discover.storySearchShort')}</T>;
   if (error !== undefined) return <ErrorText>{t('discover.error')}</ErrorText>;
-  if (!data || loading) return <T v="muted">{t('discover.searching')}</T>;
-  if (data.length === 0) {
+  if (!shown) return <T v="muted">{t('discover.searching')}</T>;
+  if (shown.length === 0) {
     return (
       <Card style={{ gap: space.s }}>
         <T v="muted">{t('discover.storyNoHits')}</T>
@@ -129,7 +130,7 @@ function StorySearchResults({ query }: { query: string }) {
   }
   return (
     <View style={{ gap: space.s }}>
-      {data.map((hit) => (
+      {shown.map((hit) => (
         <StoryHitRow key={hit.id} hit={hit} onOpen={() => router.push(`/story/${hit.id}`)} />
       ))}
       {/* Like book search: adding by hand is offered after the reader has looked through the results. */}
@@ -192,7 +193,7 @@ function FandomSearch({ onPick, onPickShip }: { onPick: (fandom: string) => void
         >
           <T v="label">{hit.ship}</T>
           <T v="muted">
-            {[hit.nickname ? hit.nickname.replace(/^./, (c) => c.toUpperCase()) : null, t('discover.hitStories', { count: hit.stories })]
+            {[hit.nickname ? hit.nickname.replace(/^./, (c) => c.toUpperCase()) : null, hit.stories > 0 ? t('discover.hitStories', { count: hit.stories }) : t('discover.hitAllMine')]
               .filter(Boolean)
               .join(' · ')}
           </T>
@@ -213,7 +214,10 @@ export default function Discover() {
   const [searching, setSearching] = useState(false);
   // Search Livami by title or author: while there is text, the results take the place of the rest.
   const [storyQuery, setStoryQuery] = useState('');
-  const searchingStories = storyQuery.trim() !== '';
+  // From 3 letters the results take the place of the rest of Discover. With fewer, Discover stays as it is;
+  // "Type at least 3 letters" shows only if the reader presses Search (docs/DECISIONS.md, "Search-as-you-type").
+  const searchingStories = storyQuery.trim().length >= 3;
+  const [tooShort, setTooShort] = useState(false);
   // Tabs stay mounted: reload whenever Discover comes back into view (fandoms or library may have changed).
   const [version, setVersion] = useState(0);
   // The tier of the first loaded list is remembered so later focuses can report it; the first has none.
@@ -265,11 +269,17 @@ export default function Discover() {
           label={t('discover.storySearchLabel')}
           placeholder={t('discover.storySearchPlaceholder')}
           value={storyQuery}
-          onChangeText={setStoryQuery}
+          onChangeText={(text) => {
+            setStoryQuery(text);
+            setTooShort(false);
+          }}
+          onSubmitEditing={() => setTooShort(storyQuery.trim().length > 0 && !searchingStories)}
           autoCorrect={false}
           returnKeyType="search"
           clearButtonMode="while-editing"
+          maxLength={200}
         />
+        {tooShort && <T v="muted">{t('discover.storySearchShort')}</T>}
         {searchingStories ? (
           <StorySearchResults query={storyQuery} />
         ) : mine.error !== undefined ? (
@@ -327,6 +337,11 @@ export default function Discover() {
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
                 <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
+              ) : feed.data.length === 0 && ship ? (
+                // A picked ship: its fics are all in your library already (or, with the filter, none is complete).
+                <Card>
+                  <T v="muted">{t(completeOnly ? 'discover.shipEmptyComplete' : 'discover.shipEmpty')}</T>
+                </Card>
               ) : feed.data.length === 0 && completeOnly ? (
                 // Even the starter fandoms have no complete fic you don't read yet: the filter is what empties the list.
                 <Card>

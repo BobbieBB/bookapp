@@ -4,7 +4,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'r
 
 import { useExplicitGate } from '@/components/ExplicitDialog';
 import { Button, ErrorText, Field, T, Toggle } from '@/components/ui';
-import { useT } from '@/i18n';
+import { useLanguage, useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { asksAdult } from '@/lib/explicit';
 import { isAo3Link } from '@/lib/links';
@@ -223,44 +223,68 @@ function BookRating({
  */
 function StarPicker({ rating, onRate }: { rating: number | null; onRate: (n: number) => void }) {
   const t = useT();
+  const { language } = useLanguage();
+  // "4.5 stars" / "4,5 звезди": Bulgarian writes a decimal comma. `count` still picks the plural form.
+  const said = rating === null ? null : t('finishing.yourStars', { count: rating, stars: language === 'bg' ? String(rating).replace('.', ',') : String(rating) });
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
       {STARS.map((value) => (
         <StarButton
           key={value}
           value={value}
           rating={rating}
           hint={t('finishing.rateHalfHint')}
+          said={said}
           // The same star again toggles between whole and half: 4 → 3.5 → 4.
           onRate={() => onRate(rating === value ? value - 0.5 : value)}
         />
       ))}
-      {rating !== null ? <T v="label">{t('finishing.yourStars', { count: rating })}</T> : null}
+      {said !== null ? <T v="label">{said}</T> : null}
     </View>
   );
 }
 
-function StarButton({ value, rating, hint, onRate }: { value: number; rating: number | null; hint: string; onRate: () => void }) {
+// Every glyph sits in a box of this width, so the half star's clip (half the box) is exactly half a star and the
+// clipped text never wraps or gets cut short with "…".
+const STAR_BOX = 36;
+
+function StarButton({
+  value,
+  rating,
+  hint,
+  said,
+  onRate,
+}: {
+  value: number;
+  rating: number | null;
+  hint: string;
+  said: string | null;
+  onRate: () => void;
+}) {
   const { c } = useTheme();
   const t = useT();
   // How much of this star is filled: all, half (4.5 fills the fifth star half) or none.
   const fill = rating === null ? 0 : rating >= value ? 1 : rating >= value - 0.5 ? 0.5 : 0;
-  const selected = rating === value || rating === value - 0.5;
+  // Stars are marks that must show (3:1, WCAG 1.4.11): `signal` in every palette, an outline when empty.
+  const glyph = { width: STAR_BOX, textAlign: 'center', fontSize: 34, lineHeight: 40, color: c.signal } as const;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('finishing.rate', { count: value })}
       accessibilityHint={hint}
-      accessibilityState={{ selected }}
+      // Selected only on the exact value; the value itself ("4.5 stars") is read out, so a half isn't heard as whole.
+      accessibilityState={{ selected: rating === value }}
+      accessibilityValue={said ? { text: said } : undefined}
       onPress={onRate}
-      hitSlop={4}
       style={{ minWidth: TARGET, minHeight: TARGET, alignItems: 'center', justifyContent: 'center' }}
     >
-      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Text style={{ fontSize: 34, lineHeight: 40, color: c.hairline }}>★</Text>
-        {fill > 0 ? (
-          <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: fill === 1 ? '100%' : '50%', overflow: 'hidden' }}>
-            <Text style={{ fontSize: 34, lineHeight: 40, color: c.primary }}>★</Text>
+      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ width: STAR_BOX }}>
+        <Text style={glyph}>{fill === 1 ? '★' : '☆'}</Text>
+        {fill === 0.5 ? (
+          <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: STAR_BOX / 2, overflow: 'hidden' }}>
+            <Text numberOfLines={1} style={glyph}>
+              ★
+            </Text>
           </View>
         ) : null}
       </View>

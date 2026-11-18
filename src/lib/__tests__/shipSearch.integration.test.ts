@@ -74,7 +74,7 @@ it('a nickname finds the ship in any order, and says which nickname matched', as
   const hits = await searchShips(NICK.slice(0, 12));
   expect(hits.map((h) => [h.ship, h.nickname, h.stories])).toEqual(
     expect.arrayContaining([
-      [`${A}/${B}`, NICK, 3], // popular, WIP and mine; not the one without a link
+      [`${A}/${B}`, NICK, 2], // popular and WIP, as tapping it lists them; not mine, not the one without a link
       [`${B}/${A}`, NICK, 1],
     ]),
   );
@@ -102,9 +102,32 @@ it('a nickname typed when adding a fic becomes the tag readers already use', asy
   expect(await shipForNickname('not a nickname at all')).toBeNull();
 });
 
+it('a nickname with several rows: the most used tag over all of them; never a made-up tag', async () => {
+  const nick = `twoway${run}`.slice(0, 40);
+  const [c1, c2, c3] = [`Ceta${run}`, `Kyla${run}`, `Bena${run}`];
+  await serviceClient()
+    .from('ship_nicknames')
+    .insert([
+      { nickname: nick, characters: [c1, c2] },
+      { nickname: nick, characters: [c1, c3] },
+    ])
+    .throwOnError();
+  try {
+    await as(reader);
+    expect(await shipForNickname(nick)).toBeNull(); // no fic uses these characters yet: nothing is invented
+    await fic('One with Kyla', `${c1}/${c2}`);
+    await fic('One with Bena', `${c3}/${c1}`);
+    await fic('Another with Bena', `${c3}/${c1}`);
+    await fic('Just friends', `${c1} & ${c2}`); // a friendship tag is never a nickname's ship
+    expect(await shipForNickname(nick)).toBe(`${c3}/${c1}`);
+    expect((await searchShips(nick)).map((h) => h.ship).sort()).toEqual([`${c1}/${c2}`, `${c3}/${c1}`].sort());
+  } finally {
+    await serviceClient().from('ship_nicknames').delete().eq('nickname', nick);
+  }
+});
+
 it('the built-in list knows the popular nicknames', async () => {
   await as(reader);
   const { data } = await supabase.from('ship_nicknames').select('nickname').in('nickname', ['dramione', 'drarry', 'destiel', 'reylo']);
   expect(new Set(data!.map((r) => r.nickname))).toEqual(new Set(['dramione', 'drarry', 'destiel', 'reylo']));
-  expect(await shipForNickname('Dramione')).toMatch(/Draco Malfoy|Hermione Granger/);
 });

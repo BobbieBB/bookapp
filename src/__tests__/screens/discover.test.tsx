@@ -322,9 +322,14 @@ describe('Discover: search Livami by title or author', () => {
     await renderScreen('en', routes, '/discover');
     const field = await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 });
     await fireEvent.changeText(field, 'se');
+    // Fewer than 3 letters: Discover stays; the hint shows only once the reader presses Search.
+    expect(screen.queryByText('Type at least 3 letters.')).toBeNull();
+    expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent(field, 'submitEditing');
     expect(screen.getByText('Type at least 3 letters.')).toBeOnTheScreen();
-    expect(screen.queryByText('YOUR FANDOMS')).toBeNull(); // the results take the place of the rest
     await fireEvent.changeText(field, `searchable ${run}`);
+    expect(screen.queryByText('Type at least 3 letters.')).toBeNull();
+    expect(screen.queryByText('YOUR FANDOMS')).toBeNull(); // the results take the place of the rest
     await fireEvent.press(await screen.findByTestId(`story-hit-${searchableId}`, {}, { timeout: 8000 }));
     expect(await screen.findByText(`story ${searchableId}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
