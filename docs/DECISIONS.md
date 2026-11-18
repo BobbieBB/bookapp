@@ -658,7 +658,9 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 ## Search Livami by title or author (PO, 16 Nov 2026)
 - A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the
   stories readers have already added, books and fics together, and never asks AO3 or Open Library.
-- From 3 letters, after a pause in typing, like every search. While there is text, the results take the place of the
-  rest of Discover. Exact titles first, then titles that start with the text, then other matches; the most read first.
+- From 3 letters, after a pause in typing, like every search. From 3 letters the results take the place of the rest
+  of Discover; with 1–2, Discover stays and "Type at least 3 letters" shows only if the reader presses Search. While
+  the next answer loads, the last results stay on screen. Exact titles first, then titles that start with the text,
+  then other title matches, then author matches; the most read first. The text is cut at 200 characters.
 - Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
 - Nothing found, or at the end of the results: "Add a book" / "Add a fic".

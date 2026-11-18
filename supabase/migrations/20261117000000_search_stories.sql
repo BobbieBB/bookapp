@@ -4,12 +4,12 @@
 -- (docs/DECISIONS.md, "PO testing round on iPhone", G: in search, not in Discover).
 -- From 3 characters, like every search in the app (docs/DECISIONS.md, "Search-as-you-type").
 -- Order: exact title, then titles that start with the text, then other title matches, then author matches;
--- within each, the most read first.
+-- within each, the most read first. The text is cut at 200 characters (the app's field allows no more).
 create or replace function public.search_stories(p_query text)
 returns table (id uuid, kind public.story_kind, title text, author_name text, fandoms text[],
                status public.story_status, language text, readers bigint, rank int)
 language sql stable security definer set search_path = public as $$
-  with q as (select lower(trim(coalesce(p_query, ''))) as text),
+  with q as (select lower(left(trim(coalesce(p_query, '')), 200)) as text),
   hits as (
     select s.id, s.kind, s.title, s.author_name, s.fandoms, s.status, s.language,
       case when lower(s.title) = q.text then 0
