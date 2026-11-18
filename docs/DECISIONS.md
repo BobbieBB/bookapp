@@ -345,7 +345,8 @@ Choices made during development where the decisions above don't say. Each one is
 - **When someone else marks a fic complete**, everyone with it in their library gets an in-app notification
   "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Built 17 Nov 2026
   (`20261117000200_story_completed_notice.sql`): never to the reader who marked it, never for a hidden fic, names no
-  one, opens the fic page; undo takes it back.
+  one, opens the fic page. Undo hides it while the fic is ongoing again; marking it complete again shows it again and
+  never sends a second one (one notice per reader and fic, so mark / undo / mark can't be used to notify everyone again).
 - **Wording on a WIP:** the Finished status reads **"Caught up"** / „Стигнах докрай“ (same status in the database), with
   "Caught up · 16 of 16 chapters" under it. "Chapter 17 is out: I read it" is a secondary button there (you mostly wait),
   and when someone reports a new chapter the fic shows on Home again with "Chapter 17 is out".

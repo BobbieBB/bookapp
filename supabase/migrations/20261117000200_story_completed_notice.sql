@@ -1,9 +1,10 @@
 -- "[Fic] is complete. The Epilogue is open." (docs/DECISIONS.md, "Finishing a WIP fic", 20 Oct 2026; Trello
--- "Известие: фикът е завършен — Епилогът е отворен").
+-- "Известие: фикшънът е завършен, Епилогът е отворен").
 -- When a reader marks a WIP fic complete, everyone else who has it in their library gets an in-app notice.
 -- No push (pushes are for replies and mentions only), never to the reader who marked it, never for a hidden
 -- fic. The notice names no one: it is a fact about the fic, not about who marked it. Undo (reopen_story,
--- within 7 days) takes the notices back. Tapping it opens the fic page; the Epilogue still opens only for
+-- within 7 days) hides the notices while the fic is ongoing again; marking it complete again shows them
+-- again and adds one only for readers who never had one, so mark / undo / mark can't notify anyone twice. Tapping it opens the fic page; the Epilogue still opens only for
 -- readers who finish (the spoiler rules don't change).
 
 -- The shape: a story, and nothing else (no room, actor, comment, report or suspension).
@@ -35,7 +36,7 @@ create policy notifications_own_read on public.notifications for select to authe
       type::text in ('content_hidden', 'report_resolved', 'account_suspended', 'account_restored')
       or (
         type::text = 'story_completed'
-        and exists (select 1 from public.stories s where s.id = notifications.story_id and not s.is_hidden)
+        and exists (select 1 from public.stories s where s.id = notifications.story_id and not s.is_hidden and s.status = 'completed')
       )
       or (
         not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = notifications.actor_id)
@@ -67,7 +68,7 @@ language sql stable security definer set search_path = public as $$
     and (p_types is null or n.type = any (p_types))
     and (
       n.type::text in ('content_hidden', 'report_resolved', 'account_suspended', 'account_restored')
-      or (n.type::text = 'story_completed' and s.id is not null and not s.is_hidden)
+      or (n.type::text = 'story_completed' and s.id is not null and not s.is_hidden and s.status = 'completed')
       or (
         d.id is not null
         and not exists (select 1 from public.blocks b where b.blocker_id = auth.uid() and b.blocked_id = n.actor_id)
@@ -82,7 +83,10 @@ $$;
 revoke execute on function public.my_notifications_v2(int, public.notification_type[]) from public, anon;
 grant execute on function public.my_notifications_v2(int, public.notification_type[]) to authenticated;
 
--- Sending and taking back. Any change of status counts (complete_story, an admin, or the reader who added it
+-- Notices by story: the check above, and the cascade when a story is deleted.
+create index if not exists notifications_story_idx on public.notifications (story_id) where story_id is not null;
+
+-- Sending. Any change of status counts (complete_story, an admin, or the reader who added it
 -- before anyone else read it); auth.uid() is whoever made the change, and is left out.
 create or replace function public.stories_completed_notice()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -91,9 +95,11 @@ begin
     insert into public.notifications (user_id, type, story_id)
     select le.user_id, 'story_completed', new.id
     from public.library_entries le
-    where le.story_id = new.id and le.user_id is distinct from auth.uid();
-  elsif old.status = 'completed' and new.status is distinct from 'completed' then
-    delete from public.notifications where story_id = new.id and type::text = 'story_completed';
+    where le.story_id = new.id and le.user_id is distinct from auth.uid()
+      and not exists (
+        select 1 from public.notifications n
+        where n.user_id = le.user_id and n.story_id = new.id and n.type::text = 'story_completed'
+      );
   end if;
   return null;
 end $$;

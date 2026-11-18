@@ -1,5 +1,5 @@
 import { serviceClient } from '../../../test/service';
-import { myNotifications, repliesToYou } from '../notifications';
+import { markReadUpTo, myNotifications, repliesToYou } from '../notifications';
 import { markComplete, reopen } from '../story';
 import { addToLibrary, createFic } from '../stories';
 import { supabase } from '../supabase';
@@ -87,7 +87,7 @@ it('everyone else with the fic in their library is told; the reader who marked i
   expect(await completedNotices(fic.id)).toEqual([]);
 });
 
-it('undo takes the notice back', async () => {
+it('undo hides the notice while the fic is ongoing again', async () => {
   await as(marker);
   const fic = await wip(`Not done after all ${run}`);
   await caughtUp(marker, fic.id);
@@ -101,6 +101,43 @@ it('undo takes the notice back', async () => {
   await reopen(fic.id);
   await as(waiting);
   expect(await completedNotices(fic.id)).toEqual([]);
+});
+
+it('mark, undo, mark again: one notice, and one already read stays read', async () => {
+  await as(marker);
+  const fic = await wip(`Back and forth ${run}`);
+  await caughtUp(marker, fic.id);
+  await as(waiting);
+  await addToLibrary(fic.id, 'currently_reading');
+  await as(marker);
+  await markComplete(fic.id);
+  await as(waiting);
+  const [first] = await completedNotices(fic.id);
+  await markReadUpTo(first.created_at);
+  for (let i = 0; i < 2; i++) {
+    await as(marker);
+    await reopen(fic.id);
+    await markComplete(fic.id);
+  }
+  await as(waiting);
+  const again = await completedNotices(fic.id);
+  expect(again).toHaveLength(1);
+  expect(again[0].id).toBe(first.id);
+  expect(again[0].read_at).not.toBeNull();
+  const { data } = await serviceClient().from('notifications').select('id').eq('story_id', fic.id);
+  expect(data).toHaveLength(1);
+});
+
+it('older builds ask Home for replies and mentions only, which never include the notice', async () => {
+  await as(marker);
+  const fic = await wip(`Old build ${run}`);
+  await caughtUp(marker, fic.id);
+  await as(waiting);
+  await addToLibrary(fic.id, 'currently_reading');
+  await as(marker);
+  await markComplete(fic.id);
+  await as(waiting);
+  expect((await myNotifications(200, ['reply', 'mention'])).filter((x) => x.story_id === fic.id)).toEqual([]);
 });
 
 it('a fic hidden by its author is not mentioned any more', async () => {
