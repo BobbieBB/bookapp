@@ -147,7 +147,7 @@ EU representative: not needed while the operator is established in the EU.</p>
 </tr>
 <tr>
 <td><strong>Searches for books</strong></td>
-<td>See section 5 (Open Library).</td>
+<td>See section 5 (Open Library, Google Books).</td>
 <td>Contract.</td>
 </tr>
 </tbody>
@@ -203,8 +203,9 @@ EU representative: not needed while the operator is established in the EU.</p>
 </tbody>
 </table>
 <p>Our processors handle data under their data processing agreements with us.</p>
-<h2>5. Open Library (books you search for)</h2>
+<h2>5. Open Library and Google Books (books you search for)</h2>
 <p>When you search for a book, the app sends your <strong>search text</strong> (title, author or ISBN) directly from your phone to <strong>Open Library</strong> (openlibrary.org, run by the Internet Archive, a US non-profit). Your phone's IP address is visible to them in the usual way. The request identifies the app as <code>Livami/&lt;version&gt;</code> with a link to the project page, <strong>not</strong> with your name, account or e-mail address. Searches start after you type 3 characters and pause. Book cover images shown from Open Library are loaded from <code>covers.openlibrary.org</code> in the same way. Open Library is a separate controller under its own policy: https://openlibrary.org/.</p>
+<p><strong>Google Books.</strong> The same search text is also sent to <strong>Google Books</strong> (Google, USA), but not from your phone: the app sends it to our server (Supabase), which asks Google with our own key. Google sees our server, not your phone, your account or your IP address. Cover images found on Google Books are loaded by your phone from <code>books.google.com</code>, so Google sees your phone's IP address when it shows them. Google is a separate controller under its own policy: https://policies.google.com/privacy</p>
 <p>The app makes no network calls to AO3. When you paste an AO3 link, it is only tidied up and looked up in our own database; the details are read from text you paste yourself. If you tap an AO3 link, it opens AO3 in your browser, and AO3 then handles your data under its own policy.</p>
 <h2>6. How long we keep data</h2>
 <table>
@@ -432,7 +433,7 @@ EU representative: not needed while the operator is established in the EU.</p>
 </tr>
 <tr>
 <td><strong>Търсене на книги</strong></td>
-<td>Виж раздел 5 (Open Library).</td>
+<td>Виж раздел 5 (Open Library, Google Books).</td>
 <td>Договор.</td>
 </tr>
 </tbody>
@@ -488,8 +489,9 @@ EU representative: not needed while the operator is established in the EU.</p>
 </tbody>
 </table>
 <p>Обработващите работят с данните по споразумения за обработване с нас.</p>
-<h2>5. Open Library (книгите, които търсиш)</h2>
+<h2>5. Open Library и Google Books (книгите, които търсиш)</h2>
 <p>Когато търсиш книга, приложението праща <strong>текста на търсенето</strong> (заглавие, автор или ISBN) директно от телефона ти към <strong>Open Library</strong> (openlibrary.org, на Internet Archive, американска организация с нестопанска цел). Те виждат IP адреса на телефона ти по обичайния начин. Заявката представя приложението като <code>Livami/&lt;версия&gt;</code> с линк към страницата на проекта, <strong>не</strong> с името, акаунта или имейла ти. Търсенето започва, след като напишеш 3 знака и спреш. Кориците от Open Library се зареждат от <code>covers.openlibrary.org</code> по същия начин. Open Library е отделен администратор със собствена политика: https://openlibrary.org/</p>
+<p><strong>Google Books.</strong> Същият текст на търсенето отива и до <strong>Google Books</strong> (Google, САЩ), но не от телефона ти: приложението го праща на нашия сървър (Supabase), който пита Google с наш ключ. Google вижда нашия сървър, а не телефона, акаунта или IP адреса ти. Кориците от Google Books телефонът ти зарежда от <code>books.google.com</code>, така че Google вижда IP адреса на телефона ти, когато ги показва. Google е отделен администратор със собствена политика: https://policies.google.com/privacy</p>
 <p>Приложението не прави заявки към AO3. Когато поставиш линк от AO3, той само се подрежда и търси в нашата база; данните се четат от текста, който поставяш ти. Ако цъкнеш линк към AO3, той се отваря в браузъра ти и оттам AO3 обработва данните ти по своята политика.</p>
 <h2>6. Колко дълго пазим данните</h2>
 <table>
