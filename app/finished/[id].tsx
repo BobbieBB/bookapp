@@ -11,7 +11,7 @@ import { isAo3Link } from '@/lib/links';
 import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/reviews';
 import { canComplete, loadStoryPage, markComplete, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
-import { radius, space, useTheme } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 const STARS = [1, 2, 3, 4, 5];
 const REVIEW_MAX = 10000;
@@ -202,18 +202,7 @@ function BookRating({
   return (
     <View style={{ gap: space.m }}>
       <T v="overline">{t('finishing.yourRating')}</T>
-      <View style={{ gap: space.xs }}>
-        <View style={{ flexDirection: 'row', gap: space.xs }}>
-          {STARS.map((value) => (
-            <RateButton key={value} value={value} rating={rating} onRate={edit(setRating)} />
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', gap: space.xs }}>
-          {STARS.map((value) => (
-            <RateButton key={value} value={value - 0.5} rating={rating} onRate={edit(setRating)} />
-          ))}
-        </View>
-      </View>
+      <StarPicker rating={rating} onRate={edit(setRating)} />
       <Field label={t('finishing.reviewLabel')} value={body} onChangeText={edit(setBody)} multiline maxLength={REVIEW_MAX} />
       <Toggle label={t('finishing.spoilers')} value={spoilers} onChange={edit(setSpoilers)} />
       <Button title={t('finishing.save')} onPress={save} loading={status === 'saving'} disabled={nothingToSave} />
@@ -228,33 +217,53 @@ function BookRating({
   );
 }
 
-/** A rating button: whole stars on the first row, the half steps below. Each is at least 44 x 44. */
-function RateButton({ value, rating, onRate }: { value: number; rating: number | null; onRate: (n: number) => void }) {
-  const { c, fonts } = useTheme();
+/**
+ * Five stars (PO, phone test 16 Nov 2026). Tap a star for that many; tap the same star again for half a star less,
+ * and again to go back. Each star is at least 44 x 44; the rating is also written out next to them.
+ */
+function StarPicker({ rating, onRate }: { rating: number | null; onRate: (n: number) => void }) {
   const t = useT();
-  const selected = rating === value;
-  const lit = rating !== null && rating >= value;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+      {STARS.map((value) => (
+        <StarButton
+          key={value}
+          value={value}
+          rating={rating}
+          hint={t('finishing.rateHalfHint')}
+          // The same star again toggles between whole and half: 4 → 3.5 → 4.
+          onRate={() => onRate(rating === value ? value - 0.5 : value)}
+        />
+      ))}
+      {rating !== null ? <T v="label">{t('finishing.yourStars', { count: rating })}</T> : null}
+    </View>
+  );
+}
+
+function StarButton({ value, rating, hint, onRate }: { value: number; rating: number | null; hint: string; onRate: () => void }) {
+  const { c } = useTheme();
+  const t = useT();
+  // How much of this star is filled: all, half (4.5 fills the fifth star half) or none.
+  const fill = rating === null ? 0 : rating >= value ? 1 : rating >= value - 0.5 ? 0.5 : 0;
+  const selected = rating === value || rating === value - 0.5;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('finishing.rate', { count: value })}
+      accessibilityHint={hint}
       accessibilityState={{ selected }}
-      onPress={() => onRate(value)}
-      style={{
-        minWidth: TARGET,
-        minHeight: TARGET,
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: radius.s,
-        borderWidth: 2,
-        borderColor: selected ? c.signal : c.hairline,
-        backgroundColor: lit ? c.primary : 'transparent',
-      }}
+      onPress={onRate}
+      hitSlop={4}
+      style={{ minWidth: TARGET, minHeight: TARGET, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Text importantForAccessibility="no" style={{ fontFamily: fonts.bodyBold, fontSize: 16, color: lit ? c.onPrimary : c.ink }}>
-        {`${value}★`}
-      </Text>
+      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Text style={{ fontSize: 34, lineHeight: 40, color: c.hairline }}>★</Text>
+        {fill > 0 ? (
+          <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: fill === 1 ? '100%' : '50%', overflow: 'hidden' }}>
+            <Text style={{ fontSize: 34, lineHeight: 40, color: c.primary }}>★</Text>
+          </View>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
