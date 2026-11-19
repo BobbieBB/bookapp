@@ -46,21 +46,31 @@ let quietId: string;
 let bookId: string;
 let unlinkedId: string;
 let hiddenId: string;
+let startsId: string;
+let containsId: string;
+let byAuthorId: string;
+let percentId: string;
 
 beforeAll(async () => {
   reader = await signUp('searcher');
   other = await signUp('searched');
   await as(other);
-  // Two titles that both contain the text: the one more readers have comes first.
-  const quiet = await fic(`Quiet Wings ${run}`, 'nobody');
+  // Two titles that both contain the text: the one more readers have comes first, though its title sorts later.
+  const quiet = await fic(`Amber Wings ${run}`, 'nobody');
   quietId = quiet.id;
-  const popular = await fic(`Loud Wings ${run}`, 'somebody');
+  const popular = await fic(`Yonder Wings ${run}`, 'somebody');
   popularId = popular.id;
   await addToLibrary(popular.id, 'currently_reading');
   bookId = (await createManualBook({ title: `Paper Wings ${run}`, author: 'A. Writer', chapters: 10, language: 'bg' })).id;
   unlinkedId = (await fic(`No Link Wings ${run}`, 'offline', false)).id;
   hiddenId = (await fic(`Hidden Wings ${run}`, 'gone')).id;
   await fic('Something else entirely', `Penname ${run}`);
+  // For "paper wings <run>": the exact title, one that starts with it, one that contains it, an author match.
+  startsId = (await fic(`Paper Wings ${run} Returns`, 'later')).id;
+  containsId = (await fic(`Old Paper Wings ${run}`, 'earlier')).id;
+  byAuthorId = (await fic('Unrelated title', `Paper Wings ${run}`)).id;
+  // % and _ are plain letters here, never wildcards.
+  percentId = (await fic(`100% Wings ${run}`, 'percent')).id;
   // An author's opt-out: hidden stories never show anywhere.
   await serviceClient().from('stories').update({ is_hidden: true }).eq('id', hiddenId).throwOnError();
 });
@@ -81,10 +91,16 @@ it('finds books and fics by title, the most read first; hidden stories never sho
   expect(hits.find((h) => h.id === popularId)).toMatchObject({ kind: 'fanfic', readers: 1, fandoms: [`Search Fandom ${run}`] });
 });
 
-it('a title that starts with the text comes before one that only contains it', async () => {
+it('the exact title first, then titles that start with the text, then ones that contain it, then authors', async () => {
   await as(reader);
   const hits = await searchStories(`paper wings ${run}`);
-  expect(hits[0].id).toBe(bookId);
+  expect(hits.map((h) => h.id)).toEqual([bookId, startsId, containsId, byAuthorId]);
+});
+
+it('% and _ are matched as they are, not as wildcards', async () => {
+  await as(reader);
+  expect((await searchStories(`% wings ${run}`)).map((h) => h.id)).toEqual([percentId]);
+  expect(await searchStories(`__ wings ${run}`)).toEqual([]);
 });
 
 it('finds stories by author, case does not matter', async () => {

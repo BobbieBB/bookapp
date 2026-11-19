@@ -8,7 +8,17 @@ import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { useCompleteOnly } from '@/lib/completeOnly';
-import { lively, myFandoms, searchFandoms, searchStories, type LivelyStory, type LivelyTier, type StoryHit } from '@/lib/discover';
+import {
+  ficsWithShip,
+  lively,
+  myFandoms,
+  searchFandoms,
+  searchShips,
+  searchStories,
+  type LivelyStory,
+  type LivelyTier,
+  type StoryHit,
+} from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
 
@@ -99,17 +109,18 @@ function StoryHitRow({ hit, onOpen }: { hit: StoryHit; onOpen: () => void }) {
 function StorySearchResults({ query }: { query: string }) {
   const t = useT();
   const trimmed = query.trim();
-  const { loading, data, error } = useLookup(trimmed.length >= 3 ? `stories:${trimmed}` : null, () => searchStories(trimmed), SEARCH_DELAY_MS);
+  const { data, error, previous } = useLookup(`stories:${trimmed}`, () => searchStories(trimmed), SEARCH_DELAY_MS);
+  // While the next answer loads, the last results stay on screen, so the list doesn't flicker per keystroke.
+  const shown = data ?? previous;
   const addButtons = (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
       <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book' } })} />
       <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
     </View>
   );
-  if (trimmed.length < 3) return <T v="muted">{t('discover.storySearchShort')}</T>;
   if (error !== undefined) return <ErrorText>{t('discover.error')}</ErrorText>;
-  if (!data || loading) return <T v="muted">{t('discover.searching')}</T>;
-  if (data.length === 0) {
+  if (!shown) return <T v="muted">{t('discover.searching')}</T>;
+  if (shown.length === 0) {
     return (
       <Card style={{ gap: space.s }}>
         <T v="muted">{t('discover.storyNoHits')}</T>
@@ -119,7 +130,7 @@ function StorySearchResults({ query }: { query: string }) {
   }
   return (
     <View style={{ gap: space.s }}>
-      {data.map((hit) => (
+      {shown.map((hit) => (
         <StoryHitRow key={hit.id} hit={hit} onOpen={() => router.push(`/story/${hit.id}`)} />
       ))}
       {/* Like book search: adding by hand is offered after the reader has looked through the results. */}
@@ -131,25 +142,35 @@ function StorySearchResults({ query }: { query: string }) {
   );
 }
 
-function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
+/** Fandoms and ships (by the characters' names or a nickname such as "dramione"), from 3 letters. */
+function FandomSearch({ onPick, onPickShip }: { onPick: (fandom: string) => void; onPickShip: (ship: string) => void }) {
   const t = useT();
   const [query, setQuery] = useState('');
   const trimmed = query.trim();
   // Like book search: from 3 characters, after a pause in typing.
-  const { loading, data, error } = useLookup(trimmed.length >= 3 ? trimmed : null, () => searchFandoms(trimmed), SEARCH_DELAY_MS);
+  const { loading, data, error } = useLookup(
+    trimmed.length >= 3 ? trimmed : null,
+    async () => {
+      const [fandoms, ships] = await Promise.all([searchFandoms(trimmed), searchShips(trimmed)]);
+      return { fandoms, ships };
+    },
+    SEARCH_DELAY_MS,
+  );
+  const nothing = data && data.fandoms.length === 0 && data.ships.length === 0;
   return (
     <View style={{ gap: space.s }}>
       <Field label={t('discover.searchLabel')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} autoFocus />
       {trimmed !== '' && loading && <T v="muted">{t('discover.searching')}</T>}
       {error !== undefined && <ErrorText>{t('discover.error')}</ErrorText>}
-      {data?.length === 0 && (
-        // Cold start: Livami only knows fandoms of fics readers have added, so invite them to add one.
+      {nothing && (
+        // Cold start: Livami only knows fandoms and ships of fics readers have added, so invite them to add one.
         <Card style={{ gap: space.s }}>
           <T v="muted">{t('discover.noHits')}</T>
           <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
         </Card>
       )}
-      {data?.map((hit) => (
+      {data && data.fandoms.length > 0 && data.ships.length > 0 && <T v="overline">{t('discover.fandomsHeading')}</T>}
+      {data?.fandoms.map((hit) => (
         <Pressable
           key={hit.fandom}
           testID={`fandom-hit-${hit.fandom}`}
@@ -159,6 +180,23 @@ function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
         >
           <T v="label">{hit.fandom}</T>
           <T v="muted">{t('discover.hitStories', { count: hit.stories })}</T>
+        </Pressable>
+      ))}
+      {data && data.ships.length > 0 && <T v="overline">{t('discover.shipsHeading')}</T>}
+      {data?.ships.map((hit) => (
+        <Pressable
+          key={hit.ship}
+          testID={`ship-hit-${hit.ship}`}
+          accessibilityRole="button"
+          onPress={() => onPickShip(hit.ship)}
+          style={{ minHeight: 44, justifyContent: 'center', paddingVertical: space.xs }}
+        >
+          <T v="label">{hit.ship}</T>
+          <T v="muted">
+            {[hit.nickname ? hit.nickname.replace(/^./, (c) => c.toUpperCase()) : null, hit.stories > 0 ? t('discover.hitStories', { count: hit.stories }) : t('discover.hitAllMine')]
+              .filter(Boolean)
+              .join(' · ')}
+          </T>
         </Pressable>
       ))}
     </View>
@@ -171,10 +209,15 @@ export default function Discover() {
   const router = useRouter();
   const { profile } = useAuth();
   const [selected, setSelected] = useState<string | null>(null);
+  // A ship picked in the search: the list shows fics with that ship instead of the fandoms'.
+  const [ship, setShip] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   // Search Livami by title or author: while there is text, the results take the place of the rest.
   const [storyQuery, setStoryQuery] = useState('');
-  const searchingStories = storyQuery.trim() !== '';
+  // From 3 letters the results take the place of the rest of Discover. With fewer, Discover stays as it is;
+  // "Type at least 3 letters" shows only if the reader presses Search (docs/DECISIONS.md, "Search-as-you-type").
+  const searchingStories = storyQuery.trim().length >= 3;
+  const [tooShort, setTooShort] = useState(false);
   // Tabs stay mounted: reload whenever Discover comes back into view (fandoms or library may have changed).
   const [version, setVersion] = useState(0);
   // The tier of the first loaded list is remembered so later focuses can report it; the first has none.
@@ -198,8 +241,8 @@ export default function Discover() {
   const scope = selected ? [selected] : chips;
   const [completeOnly, setCompleteOnly] = useCompleteOnly();
   const feed = useLookup(
-    mine.data && completeOnly !== null ? `${version}:${completeOnly}:${JSON.stringify(scope)}` : null,
-    () => lively(scope, completeOnly === true),
+    mine.data && completeOnly !== null ? `${version}:${completeOnly}:${ship ?? ''}:${JSON.stringify(scope)}` : null,
+    () => (ship ? ficsWithShip(ship, completeOnly === true) : lively(scope, completeOnly === true)),
   );
   const loadedTier = feed.data?.[0]?.tier;
   useEffect(() => {
@@ -208,6 +251,13 @@ export default function Discover() {
 
   function pick(fandom: string) {
     setSelected(fandom);
+    setShip(null);
+    setSearching(false);
+  }
+
+  function pickShip(picked: string) {
+    setShip(picked);
+    setSelected(null);
     setSearching(false);
   }
 
@@ -219,11 +269,17 @@ export default function Discover() {
           label={t('discover.storySearchLabel')}
           placeholder={t('discover.storySearchPlaceholder')}
           value={storyQuery}
-          onChangeText={setStoryQuery}
+          onChangeText={(text) => {
+            setStoryQuery(text);
+            setTooShort(false);
+          }}
+          onSubmitEditing={() => setTooShort(storyQuery.trim().length > 0 && !searchingStories)}
           autoCorrect={false}
           returnKeyType="search"
           clearButtonMode="while-editing"
+          maxLength={200}
         />
+        {tooShort && <T v="muted">{t('discover.storySearchShort')}</T>}
         {searchingStories ? (
           <StorySearchResults query={storyQuery} />
         ) : mine.error !== undefined ? (
@@ -247,24 +303,33 @@ export default function Discover() {
                     onPress={() => {
                       // One choice at a time: picking a fandom closes the search.
                       setSelected(selected === fandom ? null : fandom);
+                      setShip(null);
                       setSearching(false);
                     }}
                   />
                 ))}
+                {ship ? <Chip label={ship} active onPress={() => setShip(null)} /> : null}
                 <Chip
                   label={t('discover.allFandoms')}
                   active={searching}
                   onPress={() => {
                     setSearching(!searching);
                     setSelected(null);
+                    setShip(null);
                   }}
                 />
               </View>
-              {searching && <FandomSearch onPick={pick} />}
+              {searching && <FandomSearch onPick={pick} onPickShip={pickShip} />}
             </View>
 
             <View style={{ gap: space.s }}>
-              <T v="overline">{selected ? t('discover.livelyIn', { fandom: selected.toUpperCase() }) : t('discover.lively')}</T>
+              <T v="overline">
+                {ship
+                  ? t('discover.withShip', { ship: ship.toUpperCase() })
+                  : selected
+                    ? t('discover.livelyIn', { fandom: selected.toUpperCase() })
+                    : t('discover.lively')}
+              </T>
               <View style={{ flexDirection: 'row' }}>
                 <Chip label={t('discover.completeOnly')} active={completeOnly === true} onPress={() => setCompleteOnly(!completeOnly)} />
               </View>
@@ -272,6 +337,11 @@ export default function Discover() {
                 <ErrorText>{t('discover.error')}</ErrorText>
               ) : !feed.data ? (
                 <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />
+              ) : feed.data.length === 0 && ship ? (
+                // A picked ship: its fics are all in your library already (or, with the filter, none is complete).
+                <Card>
+                  <T v="muted">{t(completeOnly ? 'discover.shipEmptyComplete' : 'discover.shipEmpty')}</T>
+                </Card>
               ) : feed.data.length === 0 && completeOnly ? (
                 // Even the starter fandoms have no complete fic you don't read yet: the filter is what empties the list.
                 <Card>

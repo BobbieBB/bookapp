@@ -4,6 +4,8 @@ import { supabase } from './supabase';
 
 export type MyFandom = { fandom: string; source: 'picked' | 'library' | 'starter'; place: number };
 export type FandomHit = { fandom: string; stories: number; rank: number };
+/** A ship found by its characters' names or its nickname ("dramione"); `nickname` is the one that matched. */
+export type ShipHit = { ship: string; nickname: string | null; stories: number; rank: number };
 export type LivelyTier = 'week' | 'month' | 'readers' | 'starter';
 export type LivelyStory = {
   id: string;
@@ -29,6 +31,19 @@ export const suggestedFandoms = async () => (await rpc<{ fandom: string }[]>('su
 
 export const searchFandoms = async (query: string) =>
   (await rpc<FandomHit[]>('search_fandoms', { p_query: query })).map((h) => ({ ...h, stories: Number(h.stories) }));
+
+export const searchShips = async (query: string) =>
+  (await rpc<ShipHit[]>('search_ships', { p_query: query })).map((h) => ({ ...h, stories: Number(h.stories) }));
+
+/** Fics with this ship you don't read yet, most read first (the shape of Lively, tier 'readers'). */
+export const ficsWithShip = async (ship: string, completeOnly = false) =>
+  (await rpc<LivelyStory[]>('fics_with_ship', { p_ship: ship, p_complete_only: completeOnly })).map((s) => ({
+    ...s,
+    activity: Number(s.activity),
+  }));
+
+/** The full tag for a ship's nickname typed when adding a fic ("Dramione"), or null. */
+export const shipForNickname = (nickname: string) => rpc<string | null>('ship_for_nickname', { p_nickname: nickname });
 
 /** A story already in Livami, found by its title or author (search_stories). */
 export type StoryHit = {

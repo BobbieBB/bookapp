@@ -76,18 +76,33 @@ export type StoryDetails = Story &
     cover_url: string | null;
     content_rating: string | null;
     warnings: string[];
+    is_hidden: boolean; // only its creator and admins still see a hidden story
   };
 
 export type MyEntry = Pick<LibraryEntry, 'status' | 'is_favourite' | 'progress_section' | 'progress_page'>;
 
 const DETAILS =
   'id, kind, title, author_name, fandoms, ships, has_chapters, section_label, published_sections, total_sections, page_count, ' +
-  'status, source_url, language, cover_url, content_rating, warnings, completed_at';
+  'status, source_url, language, cover_url, content_rating, warnings, completed_at, is_hidden';
+
+/**
+ * A story this reader can't see: hidden by its author or by moderators, deleted, or a link with no such story
+ * (e.g. a shared livami.app/s/<id> link). Not a load failure: trying again can't help.
+ */
+export class StoryUnavailable extends Error {
+  constructor() {
+    super('story unavailable');
+    this.name = 'StoryUnavailable';
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The story and the signed-in reader's library entry for it (null if it isn't in their library). */
 export async function loadStoryPage(storyId: string, userId: string): Promise<{ story: StoryDetails; entry: MyEntry | null }> {
+  if (!UUID.test(storyId)) throw new StoryUnavailable();
   const [story, entry] = await Promise.all([
-    supabase.from('stories').select(DETAILS).eq('id', storyId).single(),
+    supabase.from('stories').select(DETAILS).eq('id', storyId).maybeSingle(),
     supabase
       .from('library_entries')
       .select('status, is_favourite, progress_section, progress_page')
@@ -97,6 +112,8 @@ export async function loadStoryPage(storyId: string, userId: string): Promise<{ 
   ]);
   if (story.error) throw story.error;
   if (entry.error) throw entry.error;
+  // The read policy leaves out hidden stories (except for their creator and admins): no row, not an error.
+  if (!story.data) throw new StoryUnavailable();
   return { story: story.data as unknown as StoryDetails, entry: entry.data as MyEntry | null };
 }
 

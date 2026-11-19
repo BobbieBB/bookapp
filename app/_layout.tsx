@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppearanceProvider } from '@/appearance';
+import { PendingStoryLink } from '@/components/PendingStoryLink';
 import { PushEffects } from '@/components/PushEffects';
 import { Button, T } from '@/components/ui';
 import { FONT_FILES } from '@/fonts';
@@ -80,6 +81,7 @@ export function RootStack() {
   return (
     <>
       {onboarded && <PushEffects />}
+      <PendingStoryLink onboarded={onboarded} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" />

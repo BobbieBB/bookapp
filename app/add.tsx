@@ -8,7 +8,7 @@ import { ChoiceList, Sheet } from '@/components/Sheet';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
-import { addFavouriteFandom } from '@/lib/discover';
+import { addFavouriteFandom, shipForNickname } from '@/lib/discover';
 import { statusKey } from '@/lib/library';
 import { chaptersError, finishStory } from '@/lib/story';
 import { supabase } from '@/lib/supabase';
@@ -163,13 +163,26 @@ async function finish(
     if (userId) await finishStory(story, userId).catch(() => undefined);
     void track('story_finished', { kind });
     // The story replaces Add and Finished sits on top, so Back from Finished always lands on the story.
-    router.replace(`/story/${story.id}`);
+    openInPlaceOfAdd(`/story/${story.id}`);
     router.push(`/finished/${story.id}`);
     return;
   }
   // The new story's page takes Add's place (PO, phone test 16 Nov 2026): the next step, the chapter you are on,
   // is there. Back from it lands on whatever was under Add.
-  router.replace(`/story/${story.id}`);
+  openInPlaceOfAdd(`/story/${story.id}`);
+}
+
+/**
+ * Opens `path` where Add was. With nothing under Add (a reload or a link straight to /add, e.g. on the web), Home
+ * goes underneath first, so the story page still has a Back.
+ */
+function openInPlaceOfAdd(path: `/story/${string}`) {
+  if (router.canGoBack()) {
+    router.replace(path);
+  } else {
+    router.replace('/');
+    router.push(path);
+  }
 }
 
 function friendly(e: unknown, t: Translate) {
@@ -418,6 +431,19 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
 // filled in; not found → the reader types them (we never fetch from AO3).
 // ---------------------------------------------------------------------------
 
+/**
+ * A ship's nickname typed in the Ship field ("Dramione") is offered as its full tag, the one readers already use
+ * in Livami (Trello "Discover: търсене по ship"). Single words only: a full tag has a "/" and needs no help.
+ */
+function ShipNickname({ text, onUse }: { text: string; onUse: (ship: string) => void }) {
+  const t = useT();
+  const word = text.trim();
+  const asked = word.length >= 3 && !word.includes('/') ? word.toLowerCase() : null;
+  const { data } = useLookup(asked ? `nickname:${asked}` : null, () => shipForNickname(asked ?? ''), 350);
+  if (!asked || !data || data === word) return null;
+  return <Button variant="link" title={t('add.useShip', { ship: data })} onPress={() => onUse(data)} />;
+}
+
 function AddFic() {
   const { c } = useTheme();
   const t = useT();
@@ -563,6 +589,7 @@ function AddFic() {
             />
             <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} onBlur={fields.onBlur('fandom')} error={fields.show('fandom', errors.fandom)} />
             <Field label={t('add.ship')} value={ship} onChangeText={setShip} />
+            <ShipNickname text={ship} onUse={setShip} />
 
             <T v="label">{t('add.ficStatus')}</T>
             <View style={{ flexDirection: 'row', gap: space.s }}>

@@ -345,7 +345,8 @@ Choices made during development where the decisions above don't say. Each one is
 - **When someone else marks a fic complete**, everyone with it in their library gets an in-app notification
   "[Fic] is complete. The Epilogue is open." (Notifications list and Home, no push). Built 17 Nov 2026
   (`20261117000200_story_completed_notice.sql`): never to the reader who marked it, never for a hidden fic, names no
-  one, opens the fic page; undo takes it back.
+  one, opens the fic page. Undo hides it while the fic is ongoing again; marking it complete again shows it again and
+  never sends a second one (one notice per reader and fic, so mark / undo / mark can't be used to notify everyone again).
 - **Wording on a WIP:** the Finished status reads **"Caught up"** / „Стигнах докрай“ (same status in the database), with
   "Caught up · 16 of 16 chapters" under it. "Chapter 17 is out: I read it" is a secondary button there (you mostly wait),
   and when someone reports a new chapter the fic shows on Home again with "Chapter 17 is out".
@@ -657,10 +658,50 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).
 
+## Share a story with a friend (PO, 16 Nov 2026; built 17 Nov 2026)
+- "Share with a friend" / „Сподели с приятел“ under the author on every story page opens the phone's share sheet with
+  "Come and talk about “…” with me on Livami!" / „Ела да обсъждаме „…“ в Livami!“ and a link to livami.app/s/<id>. One
+  story, never the library, and never how far you've read (or whether you read it: the button is on every story page).
+  Not shown on a hidden story (only its creator and admins still see one, and the link would open for nobody else).
+- livami.app/s/<id> is the site's 404 page (GitHub Pages has no routes): "A friend wants to read this with you",
+  "Open in Livami" (`livami://story/<id>`) and "coming soon to the App Store and Google Play". It asks the database
+  nothing, so it names nothing about the story; the app shows it, or says it isn't available (hidden, deleted or a wrong
+  link: "This story isn't available", no Try again). The page's static title and description are neutral ("Livami"), as
+  chat apps preview the link without running its script, and it is `noindex`.
+- A reader who isn't in the app yet (signed out, no profile, terms to accept) goes through those screens first; the app
+  remembers the story and opens it once they are in.
+- Next, once the store accounts exist: Android App Links (`assetlinks.json` with the signing key's fingerprint) and iOS
+  Universal Links (`apple-app-site-association` with the Team ID), so the https link opens the app directly.
+
+## Search by ship, with nicknames (PO, 20 Oct 2026; built 17 Nov 2026)
+- Discover's search finds fandoms **and ships**: "Search fandoms and ships" / „Търси фендъм или ship“. Results come in two
+  groups, FANDOMS and SHIPS. A ship is found by its characters' names ("draco") or by its nickname ("dramione"), in either
+  order of the tag. Tapping a ship lists the fics with it that you don't read yet ("FICS WITH …"), most read first; Complete only works there too.
+  The count next to a ship is that same number ("all in your library" when it is 0), and a ship whose fics you all have
+  says so when tapped. Nicknames match romantic tags ("A/B") only, never friendship tags ("A & B").
+- Nicknames live in a table (`ship_nicknames`, about 60 popular ones), so the list grows without a new app version. A
+  nickname lists the characters' names; a tag matches when it contains them all.
+- Adding a fic: a nickname typed in the Ship field offers the full tag ("Use “Draco Malfoy/Hermione Granger”"): the
+  spelling readers already use in Livami (the most used over every row of the nickname). Nothing is offered while no fic
+  uses the characters yet: names joined with "/" are not always AO3's tag ("Bucky" vs “James "Bucky" Barnes”) and
+  would split one ship into two spellings. (Review of #81, 18 Nov 2026; a PO call if the made-up tag is wanted back,
+  then with an AO3 spelling per nickname.)
+
 ## Search Livami by title or author (PO, 16 Nov 2026)
 - A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the
   stories readers have already added, books and fics together, and never asks AO3 or Open Library.
-- From 3 letters, after a pause in typing, like every search. While there is text, the results take the place of the
-  rest of Discover. Exact titles first, then titles that start with the text, then other matches; the most read first.
+- From 3 letters, after a pause in typing, like every search. From 3 letters the results take the place of the rest
+  of Discover; with 1–2, Discover stays and "Type at least 3 letters" shows only if the reader presses Search. While
+  the next answer loads, the last results stay on screen. Exact titles first, then titles that start with the text,
+  then other title matches, then author matches; the most read first. The text is cut at 200 characters.
 - Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
 - Nothing found, or at the end of the results: "Add a book" / "Add a fic".
+
+## Rating a book: five stars, halves by a second tap (PO, phone test 16 Nov 2026)
+- Five stars on "You finished it!". Tapping a star gives that many; tapping the same star again takes half a star off
+  (5 → 4.5 → 5, 1 → 0.5 → 1). The value is written next to them ("4.5 stars", „4,5 звезди“ with a decimal comma).
+- Stars use the `signal` colour, outlined when empty, so they show in every palette (Calm's sand would not).
+- A screen reader hears each star's label ("Rate 5 stars") and the current value; only the star of the exact value is
+  "selected", so 4.5 is never heard as 5.
+- A rating can't be cleared from this screen (the lowest is half a star), as before.
+- After adding a story its page opens in place of Add; with nothing under Add (a web reload), Home goes underneath.
