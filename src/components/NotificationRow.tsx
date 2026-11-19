@@ -3,13 +3,42 @@ import { Pressable, View } from 'react-native';
 
 import { T } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
-import { isSystemNotice, roomPath, type Notification } from '@/lib/notifications';
+import { isStoryNotice, isSystemNotice, roomPath, type Notification } from '@/lib/notifications';
 import { relativeTime } from '@/lib/relativeTime';
 import { radius, space, useTheme } from '@/theme';
 
 /** One reply / mention / reaction: who, where, when. Never the comment text. Account notices have no room. */
 export function NotificationRow({ n }: { n: Notification }) {
-  return isSystemNotice(n) ? <SystemNotice n={n} /> : <SocialNotification n={n} />;
+  if (isSystemNotice(n)) return <SystemNotice n={n} />;
+  if (isStoryNotice(n)) return <StoryNotice n={n} />;
+  return <SocialNotification n={n} />;
+}
+
+/**
+ * "[Fic] is complete. The Epilogue is open." (docs/DECISIONS.md, Finishing a WIP fic): names no one and opens
+ * the fic page, where the reader catches up; The Epilogue itself still opens only once they finish it.
+ */
+function StoryNotice({ n }: { n: Notification }) {
+  const t = useT();
+  const { language } = useLanguage();
+  const { c, card } = useTheme();
+  const what = t('notifications.story_completed', { title: n.story_title ?? '' });
+  const unread = n.read_at === null;
+  return (
+    <Pressable
+      testID={`notification-${n.id}`}
+      accessibilityRole="link"
+      accessibilityLabel={unread ? `${what}. ${t('notifications.unread')}` : what}
+      onPress={() => (n.story_id ? router.push(`/story/${n.story_id}` as never) : undefined)}
+      style={[card, { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m }]}
+    >
+      <View style={{ flex: 1, gap: space.xs }}>
+        <T v="label">{what}</T>
+        <T v="muted">{relativeTime(n.created_at, language)}</T>
+      </View>
+      {unread ? <View accessibilityElementsHidden style={{ width: 10, height: 10, borderRadius: radius.pill, backgroundColor: c.signal }} /> : null}
+    </Pressable>
+  );
 }
 
 function SocialNotification({ n }: { n: Notification }) {
