@@ -8,7 +8,7 @@ import { useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { useCompleteOnly } from '@/lib/completeOnly';
-import { lively, myFandoms, searchFandoms, type LivelyStory, type LivelyTier } from '@/lib/discover';
+import { lively, myFandoms, searchFandoms, searchStories, type LivelyStory, type LivelyTier, type StoryHit } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
 
@@ -68,6 +68,69 @@ function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }
   );
 }
 
+/** One story found by title or author: what it is, who wrote it, and how many read it here. */
+function StoryHitRow({ hit, onOpen }: { hit: StoryHit; onOpen: () => void }) {
+  const tr = useT();
+  const kind = hit.kind === 'book' ? tr('discover.kindBook') : tr('discover.kindFic');
+  const where = hit.kind === 'fanfic' ? hit.fandoms[0] : hit.language ? hit.language.toUpperCase() : null;
+  const subtitle = [kind, hit.author_name, where].filter(Boolean).join(' · ');
+  return (
+    <Pressable
+      testID={`story-hit-${hit.id}`}
+      accessibilityRole="button"
+      onPress={onOpen}
+      style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', paddingVertical: space.xs, opacity: pressed ? 0.6 : 1 })}
+    >
+      <T v="label" numberOfLines={2}>
+        {hit.title}
+      </T>
+      <T v="muted" numberOfLines={1}>
+        {subtitle}
+      </T>
+      {hit.readers > 0 && <T v="muted">{tr('discover.readers', { count: hit.readers })}</T>}
+    </Pressable>
+  );
+}
+
+/**
+ * Search Livami by title or author (PO, 16 Nov 2026): only stories readers have already added, books and
+ * fics, never AO3 or Open Library. From 3 letters, after a pause in typing, like every search.
+ */
+function StorySearchResults({ query }: { query: string }) {
+  const t = useT();
+  const trimmed = query.trim();
+  const { loading, data, error } = useLookup(trimmed.length >= 3 ? `stories:${trimmed}` : null, () => searchStories(trimmed), SEARCH_DELAY_MS);
+  const addButtons = (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
+      <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book' } })} />
+      <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
+    </View>
+  );
+  if (trimmed.length < 3) return <T v="muted">{t('discover.storySearchShort')}</T>;
+  if (error !== undefined) return <ErrorText>{t('discover.error')}</ErrorText>;
+  if (!data || loading) return <T v="muted">{t('discover.searching')}</T>;
+  if (data.length === 0) {
+    return (
+      <Card style={{ gap: space.s }}>
+        <T v="muted">{t('discover.storyNoHits')}</T>
+        {addButtons}
+      </Card>
+    );
+  }
+  return (
+    <View style={{ gap: space.s }}>
+      {data.map((hit) => (
+        <StoryHitRow key={hit.id} hit={hit} onOpen={() => router.push(`/story/${hit.id}`)} />
+      ))}
+      {/* Like book search: adding by hand is offered after the reader has looked through the results. */}
+      <View style={{ gap: space.s, paddingTop: space.s }}>
+        <T v="muted">{t('discover.storyNotHere')}</T>
+        {addButtons}
+      </View>
+    </View>
+  );
+}
+
 function FandomSearch({ onPick }: { onPick: (fandom: string) => void }) {
   const t = useT();
   const [query, setQuery] = useState('');
@@ -109,6 +172,9 @@ export default function Discover() {
   const { profile } = useAuth();
   const [selected, setSelected] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  // Search Livami by title or author: while there is text, the results take the place of the rest.
+  const [storyQuery, setStoryQuery] = useState('');
+  const searchingStories = storyQuery.trim() !== '';
   // Tabs stay mounted: reload whenever Discover comes back into view (fandoms or library may have changed).
   const [version, setVersion] = useState(0);
   // The tier of the first loaded list is remembered so later focuses can report it; the first has none.
@@ -147,8 +213,20 @@ export default function Discover() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
-      <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
-        {mine.error !== undefined ? (
+      <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
+        {/* For every reader, books too: the rest of Discover is fanfiction only for now. */}
+        <Field
+          label={t('discover.storySearchLabel')}
+          placeholder={t('discover.storySearchPlaceholder')}
+          value={storyQuery}
+          onChangeText={setStoryQuery}
+          autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        {searchingStories ? (
+          <StorySearchResults query={storyQuery} />
+        ) : mine.error !== undefined ? (
           <ErrorText>{t('discover.error')}</ErrorText>
         ) : !mine.data ? (
           <ActivityIndicator color={c.signal} accessibilityLabel={t('discover.loading')} />

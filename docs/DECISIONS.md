@@ -654,3 +654,11 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).
+
+## Search Livami by title or author (PO, 16 Nov 2026)
+- A field at the top of Discover, for every reader (books too): "Search Livami: title or author". It searches only the
+  stories readers have already added, books and fics together, and never asks AO3 or Open Library.
+- From 3 letters, after a pause in typing, like every search. While there is text, the results take the place of the
+  rest of Discover. Exact titles first, then titles that start with the text, then other matches; the most read first.
+- Hidden stories never show. Fics without a link do (decision G: in search, not in Discover).
+- Nothing found, or at the end of the results: "Add a book" / "Add a fic".
