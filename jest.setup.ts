@@ -3,6 +3,10 @@ import NotificationsHandlerModule from 'expo-notifications/build/NotificationsHa
 
 import { networkFetch } from './test/network';
 
+// The test stack serves no Edge Functions: book search uses only the local Open Library stand-in.
+// Tests of the merge pass their own Google search to searchBooks.
+process.env.EXPO_PUBLIC_GOOGLE_BOOKS ??= 'off';
+
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(url)) {
   throw new Error(

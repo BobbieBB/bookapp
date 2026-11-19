@@ -14,7 +14,7 @@ import { chaptersError, finishStory } from '@/lib/story';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useLookup } from '@/lib/useLookup';
-import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult } from '@/lib/sources';
+import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult, type BookSource } from '@/lib/sources';
 import {
   AO3_RATINGS,
   AO3_WARNINGS,
@@ -148,7 +148,7 @@ async function finish(
   story: Story,
   status: LibraryStatus,
   kind: StoryKind,
-  source: 'open_library' | 'manual' | 'ao3',
+  source: BookSource | 'manual' | 'ao3',
   language?: BookLanguage,
   fandoms: string[] = [],
 ) {
@@ -192,7 +192,7 @@ function friendly(e: unknown, t: Translate) {
 }
 
 // ---------------------------------------------------------------------------
-// Books: search Open Library, then add. A book new to us needs one question:
+// Books: search Open Library and Google Books, then add. A book new to us needs one question:
 // how to split its discussions (Open Library doesn't know chapter counts).
 // ---------------------------------------------------------------------------
 
@@ -228,7 +228,7 @@ function AddBook() {
       {search.loading && <ActivityIndicator />}
       <ErrorText>{error}</ErrorText>
       {results.map((b) => (
-        <BookRow key={b.key} book={b} onPick={setPicked} />
+        <BookRow key={`${b.source}:${b.key}`} book={b} onPick={setPicked} />
       ))}
       {settled && (
         results.length ? (
@@ -306,7 +306,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
   const [saveError, setError] = useState('');
   const fields = useFieldErrors();
 
-  const found = useLookup(`${book.key}#${language}`, () => findStory({ openLibraryKey: book.key, language }));
+  const found = useLookup(`${book.source}:${book.key}#${language}`, () => findStory({ book, language }));
   // undefined = still checking; null = new to Livami (or the check failed: we'll create it)
   const existing: Story | null | undefined = found.loading ? undefined : (found.data ?? null);
   const error = saveError || (found.error ? friendly(found.error, t) : '');
@@ -322,7 +322,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
       const story =
         existing ??
         (await createBook(book, split === 'pages' ? { pages: n } : { chapters: chapters.trim() ? n : null, label: split }, language));
-      await finish(story, status, 'book', 'open_library', language);
+      await finish(story, status, 'book', book.source, language);
     } catch (e) {
       setError(friendly(e, t));
       setBusy(false);

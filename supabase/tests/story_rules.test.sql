@@ -22,6 +22,16 @@ select test.ok(test.error_of($$insert into public.stories (kind, language, title
 select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, total_sections, status, source, source_id)
   values ('book', 'bg', 'Под игото', 'Иван Вазов', 30, 'completed', 'open_library', '/works/OL2W#bg')$$) is null,
   'a Bulgarian edition of an Open Library work');
+select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, total_sections, status, source, source_id)
+  values ('book', 'bg', 'Mismatch', 'x', 3, 'completed', 'google_books', 'zyTCAlFPjgYC#en')$$) like '%google_books_edition_id%',
+  'a Google Books story id names its edition language too');
+select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, total_sections, status, source, source_id, cover_url)
+  values ('book', 'bg', 'Тютюн', 'Димитър Димитров', 30, 'completed', 'google_books', 'zyTCAlFPjgYC#bg',
+          'https://books.google.com/books/content?id=zyTCAlFPjgYC&printsec=frontcover&img=1&zoom=1')$$) is null,
+  'a Bulgarian edition found on Google Books, with its Google cover');
+select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, total_sections, status, cover_url)
+  values ('book', 'en', 'Elsewhere', 'x', 3, 'completed', 'https://evil.example/books/content?id=1')$$) like '%cover_from_book_sources%',
+  'covers come only from Open Library or Google Books');
 select test.ok(test.error_of($$insert into public.stories (kind, title, author_name, published_sections, status, source, source_url)
   values ('fanfic', 'A fic', 'w', 1, 'ongoing', 'ao3', 'https://archiveofourown.org/works/5001')$$) is null,
   'fics need no language: AO3 translations are separate works');

@@ -15,16 +15,17 @@ export type BookLanguage = 'en' | 'bg';
  * reader of the same Open Library work get different stories, because translations can merge or
  * split chapters and chapter N must mean the same thing for everyone in a room.
  */
-const bookSourceId = (openLibraryKey: string, language: BookLanguage) => `${openLibraryKey}#${language}`;
+const bookSourceId = (key: string, language: BookLanguage) => `${key}#${language}`;
 
-/** A story already in our catalogue: a book edition (Open Library work + language) or an AO3 fic. */
+/** A story already in our catalogue: a book edition (Open Library work or Google Books volume, plus
+ * language) or an AO3 fic. */
 export async function findStory(
-  by: { openLibraryKey: string; language: BookLanguage } | { ao3Link: string },
+  by: { book: Pick<BookResult, 'key' | 'source'>; language: BookLanguage } | { ao3Link: string },
 ): Promise<Story | null> {
   let query = supabase.from('stories').select(STORY_COLUMNS);
   query =
-    'openLibraryKey' in by
-      ? query.eq('source', 'open_library').eq('source_id', bookSourceId(by.openLibraryKey, by.language))
+    'book' in by
+      ? query.eq('source', by.book.source).eq('source_id', bookSourceId(by.book.key, by.language))
       : query.eq('source_url', by.ao3Link);
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
@@ -58,7 +59,7 @@ export async function createBook(book: BookResult, split: BookSplit, language: B
       author_name: book.author,
       publication_year: book.year,
       cover_url: book.coverUrl,
-      source: 'open_library',
+      source: book.source,
       source_id: bookSourceId(book.key, language),
       status: 'completed',
       has_chapters: 'chapters' in split,
@@ -66,7 +67,7 @@ export async function createBook(book: BookResult, split: BookSplit, language: B
       total_sections: 'chapters' in split ? split.chapters : null,
       page_count: 'pages' in split ? split.pages : book.pages,
     },
-    () => findStory({ openLibraryKey: book.key, language }),
+    () => findStory({ book, language }),
   );
 }
 
