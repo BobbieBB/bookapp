@@ -30,7 +30,7 @@ beforeAll(async () => {
   await supabase.from('profiles').insert({ id: me, username: `story_${run}` }).throwOnError();
 
   const book = await createBook(
-    { key: `/works/OL${run}SW`, title: 'Ten Chapters', author: 'A. Writer', year: 2001, pages: 300, coverUrl: null },
+    { key: `/works/OL${run}SW`, source: 'open_library', title: 'Ten Chapters', author: 'A. Writer', year: 2001, pages: 300, coverUrl: null },
     { chapters: 10 },
     'en',
   );
@@ -119,7 +119,7 @@ describe('a book you are reading', () => {
 describe('a book without chapters', () => {
   it('tracks the page on the same wheel, and its 25-page parts follow', async () => {
     const id = (
-      await createBook({ key: `/works/OL${run}PG`, title: 'By Pages', author: 'P. Writer', year: 2002, pages: null, coverUrl: null }, { pages: 200 }, 'en')
+      await createBook({ key: `/works/OL${run}PG`, source: 'open_library', title: 'By Pages', author: 'P. Writer', year: 2002, pages: null, coverUrl: null }, { pages: 200 }, 'en')
     ).id;
     await addToLibrary(id, 'currently_reading');
     await open('en', id);
