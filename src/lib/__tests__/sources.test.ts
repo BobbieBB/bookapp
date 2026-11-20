@@ -1,7 +1,7 @@
 import { createServer, type IncomingHttpHeaders, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay } from '../sources';
+import { guessLanguage, isbnOf, normaliseAo3Link, searchBooks, searchDelay, type BookResult } from '../sources';
 
 describe('normaliseAo3Link', () => {
   it.each([
@@ -117,6 +117,7 @@ describe('searchBooks', () => {
     expect(await searchBooks('hobbit')).toEqual([
       {
         key: '/works/OL1W',
+        source: 'open_library',
         title: 'The Hobbit',
         author: 'J. R. R. Tolkien',
         year: 1937,
@@ -126,8 +127,42 @@ describe('searchBooks', () => {
     ]);
   });
 
-  it('fails loudly when Open Library errors', async () => {
+  it('fails loudly when Open Library errors and Google finds nothing either', async () => {
     reply = { status: 503, body: {} };
-    await expect(searchBooks('hobbit')).rejects.toThrow('Open Library search failed (503)');
+    await expect(searchBooks('hobbit', undefined, async () => Promise.reject(new Error('down')))).rejects.toThrow(
+      'Open Library search failed (503)',
+    );
+  });
+
+  // PO, 19 Nov 2026: Google Books as a second source, through our Edge Function.
+  const google = (over: Partial<BookResult>): BookResult => ({
+    key: 'g1',
+    source: 'google_books',
+    title: 'Тютюн',
+    author: 'Димитър Димитров',
+    year: 1951,
+    pages: 700,
+    coverUrl: null,
+    ...over,
+  });
+  const olDoc = (key: string, title: string, author: string) => ({ key, title, author_name: [author] });
+
+  it('lists Google first for Cyrillic text and shows a book found in both only once', async () => {
+    reply.body = { docs: [olDoc('/works/OL9W', 'Тютюн', 'Димитър Димитров'), olDoc('/works/OL8W', 'Тютюн и още', 'Друг')] };
+    const found = await searchBooks('Тютюн', undefined, async () => [google({}), google({ key: 'g2', title: 'Тютюнев път' })]);
+    expect(found.map((b) => `${b.source}:${b.key}`)).toEqual(['google_books:g1', 'google_books:g2', 'open_library:/works/OL8W']);
+  });
+
+  it('lists Open Library first for Latin text', async () => {
+    reply.body = { docs: [olDoc('/works/OL1W', 'The Hobbit', 'J. R. R. Tolkien')] };
+    const found = await searchBooks('hobbit', undefined, async () => [google({ key: 'g3', title: 'The Hobbit Companion', author: 'X' })]);
+    expect(found.map((b) => b.source)).toEqual(['open_library', 'google_books']);
+  });
+
+  it('still shows Google results when Open Library is down, and the other way round', async () => {
+    reply = { status: 503, body: {} };
+    expect(await searchBooks('Тютюн', undefined, async () => [google({})])).toHaveLength(1);
+    reply = { status: 200, body: { docs: [olDoc('/works/OL1W', 'The Hobbit', 'J. R. R. Tolkien')] } };
+    expect(await searchBooks('hobbit', undefined, async () => Promise.reject(new Error('down')))).toHaveLength(1);
   });
 });

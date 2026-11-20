@@ -23,6 +23,7 @@ async function signIn(email: string) {
 
 const book: BookResult = {
   key: `/works/OL${run}W`,
+  source: 'open_library',
   title: 'The Hobbit',
   author: 'J. R. R. Tolkien',
   year: 1937,
@@ -60,14 +61,24 @@ describe('books: one story per Open Library work and edition language', () => {
     const en = await createBook(book, { chapters: 19 }, 'en');
     const bg = await createBook(book, { chapters: 19 }, 'bg');
     expect(en.id).not.toBe(bg.id);
-    expect(await findStory({ openLibraryKey: book.key, language: 'bg' })).toMatchObject({ id: bg.id });
+    expect(await findStory({ book, language: 'bg' })).toMatchObject({ id: bg.id });
   });
 
   it('joins the existing story when another reader adds the same edition', async () => {
     await signIn(bob);
-    const existing = await findStory({ openLibraryKey: book.key, language: 'en' });
+    const existing = await findStory({ book, language: 'en' });
     const again = await createBook(book, { chapters: 19 }, 'en');
     expect(again.id).toBe(existing?.id);
+  });
+
+  it('keeps a Google Books edition apart from an Open Library work with the same id', async () => {
+    await signIn(alice);
+    const fromGoogle: BookResult = { ...book, source: 'google_books', coverUrl: 'https://books.google.com/books/content?id=x&img=1' };
+    const gb = await createBook(fromGoogle, { chapters: 19 }, 'bg');
+    const { data: row } = await supabase.from('stories').select('source, source_id, cover_url').eq('id', gb.id).single();
+    expect(row).toEqual({ source: 'google_books', source_id: `${book.key}#bg`, cover_url: fromGoogle.coverUrl });
+    expect(await findStory({ book: fromGoogle, language: 'bg' })).toMatchObject({ id: gb.id });
+    expect((await findStory({ book, language: 'bg' }))?.id).not.toBe(gb.id);
   });
 });
 

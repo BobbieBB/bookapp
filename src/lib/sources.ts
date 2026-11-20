@@ -1,9 +1,12 @@
 // Where story details come from. We never fetch anything from AO3 (no scraping, see
 // docs/DECISIONS.md): an AO3 link is only normalised and looked up in our own database.
-// Books come from Open Library's public search API.
+// Books come from Open Library's public search API and, through our own server (the google-books
+// Edge Function, which holds the key), from Google Books (PO, 19 Nov 2026: Google has far more
+// Bulgarian editions; Open Library more English ones).
 
-import { APP_NAME, APP_VERSION, openLibraryUrl, PROJECT_URL } from './config';
+import { APP_NAME, APP_VERSION, googleBooksEnabled, openLibraryUrl, PROJECT_URL } from './config';
 import type { BookLanguage } from './stories';
+import { supabase } from './supabase';
 
 // Search starts at 3 characters, after a pause in typing (docs/DECISIONS.md, "Search-as-you-type").
 const MIN_CHARS = 3;
@@ -33,8 +36,11 @@ export function isbnOf(input: string): string | null {
   return /^(?:\d{9}[\dXx]|\d{13})$/.test(digits) ? digits.toUpperCase() : null;
 }
 
+export type BookSource = 'open_library' | 'google_books';
+
 export type BookResult = {
-  key: string; // Open Library work id, e.g. "/works/OL123W"
+  key: string; // Open Library work id ("/works/OL123W") or Google Books volume id
+  source: BookSource;
   title: string;
   author: string;
   year: number | null;
@@ -56,7 +62,7 @@ type OpenLibraryDoc = {
  * Open Library is free and volunteer-run: callers only search from 3 characters and
  * after a pause in typing (docs/DECISIONS.md, "Search-as-you-type").
  */
-export async function searchBooks(query: string, signal?: AbortSignal): Promise<BookResult[]> {
+export async function searchOpenLibrary(query: string, signal?: AbortSignal): Promise<BookResult[]> {
   const isbn = isbnOf(query);
   const params = new URLSearchParams({
     fields: 'key,title,author_name,first_publish_year,number_of_pages_median,cover_i',
@@ -77,10 +83,61 @@ export async function searchBooks(query: string, signal?: AbortSignal): Promise<
     .filter((d) => d.title && d.author_name?.length)
     .map((d) => ({
       key: d.key,
+      source: 'open_library' as const,
       title: d.title!.slice(0, 300),
       author: d.author_name!.slice(0, 3).join(', ').slice(0, 200),
       year: d.first_publish_year ?? null,
       pages: d.number_of_pages_median ?? null,
       coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
     }));
+}
+
+// Google gets a few seconds; a slow answer must not hold up Open Library's results.
+const GOOGLE_TIMEOUT_MS = 5000;
+
+/** Search Google Books through our google-books Edge Function (the key never ships in the app). */
+export async function searchGoogleBooks(query: string): Promise<BookResult[]> {
+  if (!googleBooksEnabled()) return [];
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Google Books search timed out')), GOOGLE_TIMEOUT_MS);
+  });
+  try {
+    const call = supabase.functions.invoke<{ books?: BookResult[] }>('google-books', { body: { q: query.trim() } });
+    const { data, error } = await Promise.race([call, timeout]);
+    if (error) throw error;
+    return (data?.books ?? []).filter((b) => b.key && b.title && b.author).map((b) => ({ ...b, source: 'google_books' as const }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const MAX_RESULTS = 12;
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9а-яё]/g, '');
+const sameBook = (b: BookResult) => `${norm(b.title)}|${norm(b.author.split(',')[0])}`;
+
+/**
+ * Both sources at once. Cyrillic text lists Google's results first (it knows far more Bulgarian
+ * editions), anything else Open Library's. The same title by the same author is shown once, from the
+ * source listed first. One source failing is fine; only both failing is an error.
+ */
+export async function searchBooks(
+  query: string,
+  signal?: AbortSignal,
+  google: (query: string) => Promise<BookResult[]> = searchGoogleBooks,
+): Promise<BookResult[]> {
+  const [ol, gb] = await Promise.allSettled([searchOpenLibrary(query, signal), google(query)]);
+  if (ol.status === 'rejected' && gb.status === 'rejected') throw ol.reason;
+  const fromOl = ol.status === 'fulfilled' ? ol.value : [];
+  const fromGb = gb.status === 'fulfilled' ? gb.value : [];
+  const ordered = guessLanguage(query) === 'bg' ? [...fromGb, ...fromOl] : [...fromOl, ...fromGb];
+  const seen = new Set<string>();
+  return ordered
+    .filter((b) => {
+      const id = sameBook(b);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .slice(0, MAX_RESULTS);
 }

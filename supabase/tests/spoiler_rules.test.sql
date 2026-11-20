@@ -196,7 +196,7 @@ select test.ok(test.error_of($$insert into public.stories (kind, title, author_n
   values ('fanfic', 'x', 'y', 'completed', 'ao3', 'https://archiveofourown.org/works/99/')$$) like '%fanfic_ao3_work_link%',
   'no duplicate fics through another URL form');
 select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, cover_url)
-  values ('book', 'en', 'x', 'y', 'https://tracker.example/pixel.gif')$$) like '%cover_from_open_library%', 'covers only from Open Library');
+  values ('book', 'en', 'x', 'y', 'https://tracker.example/pixel.gif')$$) like '%cover_from_book_sources%', 'covers only from Open Library or Google Books');
 select test.ok(test.error_of($$insert into public.stories (kind, title, author_name, source, source_url)
   values ('fanfic', 'x', 'y', 'ao3', 'https://archiveofourown.org/works/101')$$) like '%fanfic_status_known%',
   'a fic must say whether it is complete or ongoing');
