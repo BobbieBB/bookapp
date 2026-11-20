@@ -713,3 +713,11 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - A book found on Google is stored with `source = 'google_books'` and `source_id = '<volume id>#<language>'`, like an Open Library edition. Covers may come from `books.google.com` (the `cover_from_book_sources` check).
 - The Privacy Policy (section 5) says so. Translated fantasy/YA still needs another source: issue #92 (Yoan) looks at others; Sofia City Library was asked on 19 Nov 2026.
 - Not doing: scraping any catalogue, or pirate sites, even for titles only.
+
+## Headings in Sofia Sans ExtraBold (PO, phone test 20 Nov 2026)
+- Replaces Unbounded for headings and titles: it is wide by design, and long titles ("The Colour of Magic") looked stretched.
+- `fonts.display` is Sofia Sans ExtraBold 800, `displaySemi` Sofia Sans Bold 700. Headings are 3 px larger than the Unbounded sizes
+  (h1 35, h2 22), as for the screen titles on 19 Oct, because Sofia Sans is narrower.
+- The character stays in Cormorant Garamond italic for moments (The Epilogue, typographic covers, "You finished it!").
+- Sofia Sans is made by a Bulgarian studio and has excellent Cyrillic. `@expo-google-fonts/unbounded` is no longer loaded; drop it
+  from package.json with the next dependency update.

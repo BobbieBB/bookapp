@@ -127,10 +127,11 @@ export function coverColor(storyId: string, mode: Mode) {
 }
 
 // Font family names as registered in app/_layout.tsx. One set for both languages; every family has
-// Cyrillic (docs/DECISIONS.md, "Fonts: Unbounded + Sofia Sans"). Unbounded is wide: short text only.
+// Cyrillic (docs/DECISIONS.md, "Headings in Sofia Sans ExtraBold"). Unbounded was dropped on 20 Nov 2026:
+// too wide, long titles looked stretched.
 export const fonts = {
-  display: 'Unbounded_700Bold', // UI headings, book titles
-  displaySemi: 'Unbounded_600SemiBold',
+  display: 'SofiaSans_800ExtraBold', // UI headings, book titles
+  displaySemi: 'SofiaSans_700Bold',
   moment: 'CormorantGaramond_700Bold_Italic', // emotional moments: The Epilogue, chapter titles
   body: 'SofiaSans_400Regular', // comments, buttons, labels
   bodyBold: 'SofiaSans_700Bold',
