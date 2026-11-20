@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useCustomCover } from '@/components/CustomCover';
@@ -76,7 +76,7 @@ function Finished({
   const wip = story.kind === 'fanfic' && story.status === 'ongoing';
   const [completing, setCompleting] = useState(false);
   const [joining, setJoining] = useState(false);
-  const saveDraft = useRef<(() => Promise<boolean>) | null>(null);
+  const saveDraftRef = useRef<(() => Promise<boolean>) | null>(null);
   const myCover = useCustomCover(story.id, true);
 
   // The usual case: the reader just read the last chapter, but Livami still has it as a WIP.
@@ -112,7 +112,7 @@ function Finished({
   // Join The Epilogue saves a review still being written first, so nothing typed is lost (PO, 20 Nov 2026).
   async function joinEpilogue() {
     setJoining(true);
-    const saved = (await saveDraft.current?.()) ?? true;
+    const saved = (await saveDraftRef.current?.()) ?? true;
     setJoining(false);
     if (saved) gate.ask(explicit && !profile?.is_admin, () => router.replace(`/room/${story.id}/epilogue`));
   }
@@ -150,7 +150,7 @@ function Finished({
           <ErrorText>{error}</ErrorText>
         </View>
       ) : (
-        <BookRating storyId={story.id} rating={savedRating} review={savedReview} saveDraft={saveDraft} />
+        <BookRating storyId={story.id} rating={savedRating} review={savedReview} saveDraftRef={saveDraftRef} />
       )}
 
       {wip ? (
@@ -176,18 +176,18 @@ type Review = { body: string; contains_spoilers: boolean };
 /**
  * Stars save as soon as you tap them. The review is written, then saved with "Save review"; once saved it
  * shows read-only with a green tick and "Edit" (PO, 20 Nov 2026: after Save the form looked unchanged).
- * `saveDraft` lets Join The Epilogue save a review that is still being written.
+ * `saveDraftRef` lets Join The Epilogue save a review that is still being written.
  */
 function BookRating({
   storyId,
   rating: initialRating,
   review,
-  saveDraft,
+  saveDraftRef,
 }: {
   storyId: string;
   rating: number | null;
   review: Review | null;
-  saveDraft: RefObject<(() => Promise<boolean>) | null>;
+  saveDraftRef: RefObject<(() => Promise<boolean>) | null>;
 }) {
   const t = useT();
   const { c, fonts } = useTheme();
@@ -232,7 +232,10 @@ function BookRating({
       return false;
     }
   }
-  saveDraft.current = saveReviewNow;
+  // Join The Epilogue calls the latest one (it sees the text typed so far).
+  useEffect(() => {
+    saveDraftRef.current = saveReviewNow;
+  });
 
   return (
     <View style={{ gap: space.m }}>
