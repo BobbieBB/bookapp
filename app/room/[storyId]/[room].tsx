@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useEffectEvent, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommentCard } from '@/components/CommentCard';
@@ -8,7 +8,6 @@ import { ExplicitDialog } from '@/components/ExplicitDialog';
 import { PushOffer } from '@/components/PushOffer';
 import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
-import { useHeaderOffset } from '@/lib/headerOffset';
 import { useAuth } from '@/lib/auth';
 import { asksAdult } from '@/lib/explicit';
 import { FINISH_PILL, LOCKED_ROOM, ROOM_NAME, sectionLabel } from '@/lib/sections';
@@ -45,7 +44,6 @@ function parseRoom(room: string | undefined): { kind: 'chapter'; n: number } | {
 export default function RoomScreen() {
   const { c } = useTheme();
   const t = useT();
-  const headerOffset = useHeaderOffset();
   const { session, profile, profileState } = useAuth();
   const userId = session?.user.id;
   const params = useLocalSearchParams<{ storyId: string; room: string }>();
@@ -53,12 +51,15 @@ export default function RoomScreen() {
   const [tick, setTick] = useState(0);
   const refresh = () => setTick((n) => n + 1);
   // The comment box sits at the end of the discussion: when the keyboard opens for it, scroll down so
-  // the box stays in sight above the keyboard (PO's iPhone, 16 Nov: the keyboard covered it).
+  // the box stays in sight above the keyboard (PO's iPhone, 16 Nov and again 20 Nov: the keyboard
+  // covered it). On iOS the scroll view itself makes room for the keyboard
+  // (automaticallyAdjustKeyboardInsets): KeyboardAvoidingView's guess of the header height was off on
+  // iOS 26, so the box ended up behind the keyboard. The scroll waits a moment for that inset.
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const writing = useRef(false);
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', () => {
-      if (writing.current) scroll.current?.scrollToEnd({ animated: true });
+      if (writing.current) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
     });
     return () => sub.remove();
   }, []);
@@ -115,8 +116,14 @@ export default function RoomScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
-        <ScrollView ref={scroll} contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          ref={scroll}
+          contentContainerStyle={{ padding: space.xl, gap: space.l }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+        >
           <View style={{ gap: space.xs }}>
             <T v="moment">
               <Text testID="room-title">{target.kind === 'epilogue' ? t('room.epilogue') : t(ROOM_NAME[label], { n: target.n })}</Text>
@@ -151,7 +158,7 @@ export default function RoomScreen() {
             />
           ) : null}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -303,6 +310,9 @@ function Discussion({
   };
 
   const threads = list ? threadComments(list) : [];
+  // Nothing anyone can read yet (no comments, or only deleted ones): the box invites the first one
+  // (PO, 20 Nov: "Start the discussion" in an empty room).
+  const quiet = threads.every((th) => th.comment.deleted_at && th.replies.every((r) => r.deleted_at));
 
   return (
     <View style={{ gap: space.m }}>
@@ -360,7 +370,7 @@ function Discussion({
             onFocus={() => onComposerFocus(true)}
             onBlur={() => onComposerFocus(false)}
             multiline
-            placeholder={replyTo ? t('room.addReply', { name: replyTo.username }) : t('room.add')}
+            placeholder={replyTo ? t('room.addReply', { name: replyTo.username }) : quiet ? t('room.start') : t('room.add')}
             placeholderTextColor={c.muted}
             style={{
               minHeight: 50,

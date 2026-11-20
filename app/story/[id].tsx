@@ -324,12 +324,15 @@ function StoryBody({
           {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCountLink wrong={wrongCount} /> : null}
           {/* One story, never the library or how far you've read (PO, 16 Nov 2026). Not for a hidden story: its
               link would open for nobody else. */}
+          {/* Lined up with the title, like "Wrong chapter count?" (PO, 20 Nov: it sat off to the right). */}
           {story.is_hidden ? null : (
-            <Button
-              variant="link"
-              title={t('story.share')}
-              onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
-            />
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Button
+                variant="link"
+                title={t('story.share')}
+                onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
+              />
+            </View>
           )}
         </View>
       </View>
