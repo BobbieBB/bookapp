@@ -18,6 +18,8 @@ import { useMySuspension } from '@/lib/suspension';
 import { useLookup } from '@/lib/useLookup';
 import { space, useTheme } from '@/theme';
 
+const HOME_ROWS = 3;
+
 export default function Home() {
   const { c } = useTheme();
   const t = useT();
@@ -45,10 +47,13 @@ export default function Home() {
   const hintMap = hints.data ?? hints.previous;
   // Fanfiction and books are never mixed in one list (fandom etiquette), and Home shows only
   // what the reader said they read. Everything stays reachable in My Library.
+  // The kind read most recently comes first (PO, 20 Nov 2026): the library arrives newest first, so the
+  // group whose first entry is newer leads. At most 3 per group keep Home short; the rest are in My Library.
   const groups = (['fanfic', 'book'] as const)
     .filter((kind) => (kind === 'book' ? profile?.reads_books : profile?.reads_fanfic) !== false)
     .map((kind) => ({ kind, items: entries.filter((e) => e.story.kind === kind) }))
-    .filter((g) => g.items.length);
+    .filter((g) => g.items.length)
+    .sort((a, b) => (a.items[0].updated_at < b.items[0].updated_at ? 1 : a.items[0].updated_at > b.items[0].updated_at ? -1 : 0));
 
   const hintFor = (storyId: string) => {
     const e = entries.find((x) => x.story_id === storyId);
@@ -77,9 +82,12 @@ export default function Home() {
           groups.map(({ kind, items }) => (
             <View key={kind} style={{ gap: space.m }}>
               <T v="overline">{kind === 'fanfic' ? t('home.continueFanfic') : t('home.continueBooks')}</T>
-              {items.map((e) => (
+              {items.slice(0, HOME_ROWS).map((e) => (
                 <StoryRow key={e.story_id} entry={e} hint={hintFor(e.story_id)} coverUrl={coverUrls[e.story_id]} />
               ))}
+              {items.length > HOME_ROWS ? (
+                <Button variant="link" title={t('home.moreInLibrary', { count: items.length - HOME_ROWS })} onPress={() => router.navigate('/library')} />
+              ) : null}
             </View>
           ))
         ) : (

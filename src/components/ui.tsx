@@ -140,8 +140,8 @@ export function T({
 }) {
   const { c, fonts } = useTheme();
   const styles: Record<string, TextStyle> = {
-    h1: { fontFamily: fonts.display, fontSize: 32, letterSpacing: -0.8, color: c.ink },
-    h2: { fontFamily: fonts.display, fontSize: 19, letterSpacing: -0.3, color: c.ink },
+    h1: { fontFamily: fonts.display, fontSize: 35, letterSpacing: -0.4, color: c.ink },
+    h2: { fontFamily: fonts.display, fontSize: 22, letterSpacing: -0.1, color: c.ink },
     moment: { fontFamily: fonts.moment, fontSize: 28, color: c.ink },
     body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: c.inkSoft },
     muted: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: c.muted },

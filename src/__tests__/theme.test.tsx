@@ -1,13 +1,13 @@
 import { FONT_FILES } from '../fonts';
 import { fonts } from '../theme';
 
-// One font set for both languages (docs/DECISIONS.md, "Fonts: Unbounded + Sofia Sans"): every family
+// One font set for both languages (docs/DECISIONS.md, "Headings in Sofia Sans ExtraBold"): every family
 // must have Cyrillic, or a Bulgarian title inside the English UI falls back to the system font.
 const LATIN_ONLY = /BricolageGrotesque|AtkinsonHyperlegible/;
 
-it('uses Unbounded for headings and Sofia Sans for everything else', () => {
-  expect(fonts.display).toBe('Unbounded_700Bold');
-  expect(fonts.displaySemi).toBe('Unbounded_600SemiBold');
+it('uses Sofia Sans for headings and everything else, Cormorant for moments', () => {
+  expect(fonts.display).toBe('SofiaSans_800ExtraBold');
+  expect(fonts.displaySemi).toBe('SofiaSans_700Bold');
   expect(fonts.body).toBe('SofiaSans_400Regular');
   expect(fonts.bodyBold).toBe('SofiaSans_700Bold');
   expect(fonts.moment).toBe('CormorantGaramond_700Bold_Italic');
