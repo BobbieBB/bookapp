@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 
@@ -86,6 +86,26 @@ describe('finishing', () => {
     expect(await screen.findByText(`finished ${id}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
+  // PO, 20 Nov 2026: every chapter read but not Finished left The Epilogue locked without a word.
+  it('every chapter read but not Finished: one button finishes the story', async () => {
+    await as(me);
+    const id = await book('currently_reading');
+    await supabase.from('library_entries').update({ progress_section: 2 }).eq('story_id', id).eq('user_id', me.id).throwOnError();
+    await renderScreen('en', { 'story/[id]': StoryScreen, 'finished/[id]': FinishedStub }, `/story/${id}`);
+    await fireEvent.press(await screen.findByRole('button', { name: 'I finished the story: open The Epilogue' }, { timeout: 8000 }));
+    expect(await screen.findByText(`finished ${id}`, {}, { timeout: 8000 })).toBeOnTheScreen();
+    const { data } = await supabase.from('library_entries').select('status').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
+    expect(data!.status).toBe('finished');
+  });
+
+  it('a story still being read shows no such button', async () => {
+    await as(me);
+    const id = await book('currently_reading');
+    await renderScreen('en', { 'story/[id]': StoryScreen, 'finished/[id]': FinishedStub }, `/story/${id}`);
+    await screen.findByRole('button', { name: /^Status: / }, { timeout: 8000 });
+    expect(screen.queryByRole('button', { name: 'I finished the story: open The Epilogue' })).toBeNull();
+  });
+
   it('tapping Finished on an already finished story stays on the story page', async () => {
     await as(me);
     const id = await book('finished');
@@ -105,7 +125,7 @@ describe('finishing', () => {
     expect(screen.getByText('Leave kudos, a comment, or bookmark it as a rec on AO3:')).toBeOnTheScreen();
     expect(screen.queryByLabelText(/^Rate /)).toBeNull();
     expect(screen.queryByLabelText('Your review (optional)')).toBeNull();
-    expect(screen.queryByText('Save')).toBeNull();
+    expect(screen.queryByText('Save review')).toBeNull();
     await fireEvent.press(screen.getByText('Join The Epilogue'));
     expect(await screen.findByText(`room ${id} epilogue`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
@@ -184,12 +204,34 @@ describe('finishing', () => {
     expect(screen.getByText('5 stars')).toBeOnTheScreen();
     await fireEvent.press(screen.getByLabelText('Rate 5 stars'));
     expect(screen.getByText('4.5 stars')).toBeOnTheScreen();
+    // Stars save as you tap them.
+    await waitFor(async () => {
+      const { data } = await supabase.from('ratings').select('rating').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
+      expect(Number(data!.rating)).toBe(4.5);
+    });
     await fireEvent.changeText(screen.getByLabelText('Your review (optional)'), 'Beautiful and strange');
-    await fireEvent.press(screen.getByText('Save'));
+    await fireEvent.press(screen.getByText('Save review'));
+    // Saved: the review shows read-only with a tick, the form and its button are gone, Edit brings them back.
     expect(await screen.findByText('Saved', {}, { timeout: 8000 })).toBeOnTheScreen();
-    const { data } = await supabase.from('ratings').select('rating').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
-    expect(Number(data!.rating)).toBe(4.5);
+    expect(screen.getByText('Beautiful and strange')).toBeOnTheScreen();
+    expect(screen.getByText('Your review is on the book’s page.')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Your review (optional)')).toBeNull();
+    expect(screen.queryByText('Save review')).toBeNull();
     expect(screen.getByText('Join The Epilogue')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Edit'));
+    expect(screen.getByLabelText('Your review (optional)')).toHaveDisplayValue('Beautiful and strange');
+  });
+
+  it('Join The Epilogue saves a review still being written', async () => {
+    await as(me);
+    const id = await book('finished');
+    await renderScreen('en', finishedRoutes, `/finished/${id}`);
+    await fireEvent.changeText(await screen.findByLabelText('Your review (optional)', {}, { timeout: 8000 }), 'Typed, never saved');
+    await fireEvent.press(screen.getByText('Join The Epilogue'));
+    await waitFor(async () => {
+      const { data } = await supabase.from('reviews').select('body').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
+      expect(data!.body).toBe('Typed, never saved');
+    });
   });
 
   it('five star buttons, plural-aware, each at least 44 x 44; tapping again toggles the half', async () => {
@@ -236,16 +278,16 @@ describe('finishing', () => {
     expect(screen.getByLabelText('Rate 5 stars')).toBeSelected();
   });
 
-  it('Save is disabled while there is nothing to save', async () => {
+  it('Save review is disabled while there is nothing to save', async () => {
     await as(me);
     const id = await book('finished');
     await renderScreen('en', finishedRoutes, `/finished/${id}`);
     await screen.findByLabelText('Your review (optional)', {}, { timeout: 8000 });
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+    expect(screen.getByRole('button', { name: 'Save review' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save review' }));
     expect(screen.queryByText('Saved')).toBeNull();
     await fireEvent.changeText(screen.getByLabelText('Your review (optional)'), 'Something');
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save review' })).toBeEnabled();
   });
 
   it('the review field is capped at 10000 characters', async () => {
@@ -263,8 +305,8 @@ describe('finishing', () => {
     await fireEvent.press(await screen.findByLabelText('Rate 4 stars', {}, { timeout: 8000 }));
     // changeText ignores maxLength, so this reaches the database, which refuses more than 10000.
     await fireEvent.changeText(screen.getByLabelText('Your review (optional)'), 'x'.repeat(10001));
-    await fireEvent.press(screen.getByText('Save'));
-    expect(await screen.findByText('Your rating is saved, but the review wasn’t. Try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Save review'));
+    expect(await screen.findByText('We couldn’t save your review. Try again.', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByText('Saved')).toBeNull();
     const { data } = await supabase.from('ratings').select('rating').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
     expect(Number(data!.rating)).toBe(4);
