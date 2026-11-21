@@ -320,7 +320,7 @@ describe('Discover: search Livami by title or author', () => {
   it('typing a title shows stories already in Livami; tapping one opens it', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');
-    const field = await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 });
+    const field = await screen.findByLabelText('Search books and fics: title or author', {}, { timeout: 8000 });
     await fireEvent.changeText(field, 'se');
     // Fewer than 3 letters: Discover stays; the hint shows only once the reader presses Search.
     expect(screen.queryByText('Type at least 3 letters.')).toBeNull();
@@ -337,7 +337,7 @@ describe('Discover: search Livami by title or author', () => {
   it('nothing found: offers to add a book or a fic', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');
-    await fireEvent.changeText(await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 }), `nothing like this ${run}`);
+    await fireEvent.changeText(await screen.findByLabelText('Search books and fics: title or author', {}, { timeout: 8000 }), `nothing like this ${run}`);
     expect(await screen.findByText('Nobody has added it to Livami yet. Add it and start the conversation.', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText('Add a book')).toBeOnTheScreen();
     expect(screen.getByText('Add a fic')).toBeOnTheScreen();
@@ -346,13 +346,13 @@ describe('Discover: search Livami by title or author', () => {
   it('readers of books only can search too', async () => {
     await as(bookReader);
     await renderScreen('en', routes, '/discover');
-    expect(await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Search books and fics: title or author', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('in Bulgarian', async () => {
     await as(reader);
     await renderScreen('bg', routes, '/discover');
-    await fireEvent.changeText(await screen.findByLabelText('Търси в Livami: заглавие или автор', {}, { timeout: 8000 }), `searchable ${run}`);
+    await fireEvent.changeText(await screen.findByLabelText('Търси книга или фикшън: заглавие или автор', {}, { timeout: 8000 }), `searchable ${run}`);
     expect(await screen.findByText('Фикшън · w · ' + FROM_LIBRARY, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });

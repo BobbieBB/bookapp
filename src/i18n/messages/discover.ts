@@ -4,8 +4,8 @@ import type { Messages, Translation } from '../types';
 export const en = {
   'discover.tab': 'Discover',
   'discover.fanficOnly': 'Discover is for fanfiction for now.',
-  'discover.storySearchLabel': 'Search Livami: title or author',
-  'discover.storySearchPlaceholder': 'Start typing…',
+  'discover.storySearchLabel': 'Search books and fics: title or author',
+  'discover.storySearchPlaceholder': 'A book, a fic or an author…',
   'discover.storySearchShort': 'Type at least 3 letters.',
   'discover.kindBook': 'Book',
   'discover.kindFic': 'Fic',
@@ -44,8 +44,8 @@ export const en = {
 export const bg: Translation<typeof en> = {
   'discover.tab': 'Открий',
   'discover.fanficOnly': 'Засега „Открий“ е само за фенфикшън.',
-  'discover.storySearchLabel': 'Търси в Livami: заглавие или автор',
-  'discover.storySearchPlaceholder': 'Започни да пишеш…',
+  'discover.storySearchLabel': 'Търси книга или фикшън: заглавие или автор',
+  'discover.storySearchPlaceholder': 'Книга, фикшън или автор…',
   'discover.storySearchShort': 'Напиши поне 3 букви.',
   'discover.kindBook': 'Книга',
   'discover.kindFic': 'Фикшън',
