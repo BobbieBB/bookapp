@@ -37,7 +37,7 @@ export default function AddStory() {
   const { c, fonts } = useTheme();
   const t = useT();
   const { profile } = useAuth();
-  const params = useLocalSearchParams<{ kind?: StoryKind }>();
+  const params = useLocalSearchParams<{ kind?: StoryKind; q?: string }>();
   const [kind, setKind] = useState<StoryKind>(
     params.kind ?? (profile?.reads_books === false ? 'fanfic' : 'book'),
   );
@@ -63,7 +63,7 @@ export default function AddStory() {
               <Chip label={t('add.kindFanfic')} active={kind === 'fanfic'} onPress={() => setKind('fanfic')} big />
             </View>
           </View>
-          {kind === 'book' ? <AddBook /> : <AddFic />}
+          {kind === 'book' ? <AddBook initialQuery={params.q} /> : <AddFic />}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -196,9 +196,10 @@ function friendly(e: unknown, t: Translate) {
 // how to split its discussions (Open Library doesn't know chapter counts).
 // ---------------------------------------------------------------------------
 
-function AddBook() {
+/** `initialQuery`: what the reader already typed in Discover's search (PO, 21 Nov 2026), so "Add a book" goes on from there. */
+function AddBook({ initialQuery }: { initialQuery?: string }) {
   const t = useT();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery?.trim() ?? '');
   const [picked, setPicked] = useState<BookResult | null>(null);
   const [manual, setManual] = useState(false);
 
