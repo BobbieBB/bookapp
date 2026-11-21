@@ -37,6 +37,22 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "f0c0466a-a21f-48ed-94e7-00cc5f466359"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f0c0466a-a21f-48ed-94e7-00cc5f466359"
     }
   }
 }
