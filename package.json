@@ -5,6 +5,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "phone": "EXPO_PACKAGER_PROXY_URL=https://$CODESPACE_NAME-8081.$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
