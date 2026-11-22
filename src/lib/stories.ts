@@ -145,28 +145,6 @@ export async function createFic(f: FicForm): Promise<Story> {
   );
 }
 
-/** For ilike: % and _ match themselves, so only the same text matches (case aside). */
-const exactly = (text: string) => text.trim().replace(/[\\%_]/g, (ch) => `\\${ch}`);
-
-/**
- * A fic already in Livami with this title and author (case aside), with or without a link (PO, 22 Nov 2026):
- * a reader adding a fic without a link joins it, so readers of the same fic share its rooms. Fics stay out of
- * Livami search, so this is how the second reader finds the first one's rooms.
- */
-export async function findSameFic(title: string, author: string): Promise<Story | null> {
-  if (!title.trim() || !author.trim()) return null;
-  const { data, error } = await supabase
-    .from('stories')
-    .select(STORY_COLUMNS)
-    .eq('kind', 'fanfic')
-    .ilike('title', exactly(title))
-    .ilike('author_name', exactly(author))
-    .order('created_at')
-    .limit(1);
-  if (error) throw error;
-  return (data?.[0] as Story | undefined) ?? null;
-}
-
 /** "Add the AO3 link" to a fic added without one (readers who have it; admins). */
 export async function setFicLink(storyId: string, link: string): Promise<void> {
   const { error } = await supabase.rpc('set_fic_link', { p_story: storyId, p_link: link });

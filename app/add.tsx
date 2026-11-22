@@ -9,6 +9,7 @@ import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
 import { addFavouriteFandom, shipForNickname } from '@/lib/discover';
+import { findFicMatches } from '@/lib/sameFic';
 import { statusKey } from '@/lib/library';
 import { chaptersError, finishStory } from '@/lib/story';
 import { supabase } from '@/lib/supabase';
@@ -22,7 +23,7 @@ import {
   createBook,
   createFic,
   createManualBook,
-  findSameFic,
+  setFicLink,
   findStory,
   type BookLanguage,
   type SplitKind,
@@ -478,13 +479,6 @@ function AddFic() {
   // "I don't have a link" (docs/DECISIONS.md, PO testing round, G): the same form, no link. The fic stays
   // out of Discover until a reader adds the link on its page.
   const [noLink, setNoLink] = useState(false);
-  // Without a link, the same title and author is the same fic: the reader joins it (PO, 22 Nov 2026), unless
-  // they say it is a different one. Saying so holds only for the title and author it was said for.
-  const sameKey = noLink && title.trim() && author.trim() ? `same:${title.trim().toLowerCase()}|${author.trim().toLowerCase()}` : null;
-  const same = useLookup(sameKey, () => findSameFic(title, author), 500);
-  const [different, setDifferent] = useState<string | null>(null);
-  const joining = noLink && sameKey !== null && different !== sameKey ? (same.data ?? null) : null;
-
   /** A plain link, or AO3's Share text: then everything it says is filled in (nothing is fetched from AO3). */
   function onLink(value: string) {
     const share = parseAo3Share(value);
@@ -519,6 +513,17 @@ function AddFic() {
 
   // The form shows for a link we don't know yet, or for a fic added without one.
   const showForm = noLink || (!!canonical && !checking && !existing);
+  // Is it already in Livami? (PO, 22 Nov 2026.) Fics are out of Livami search, so Add looks by title and author:
+  // the same one (spelling aside) is joined; close ones are offered as "Did you mean…?". A reader with a new AO3
+  // link is offered only fics still without one, and joining one adds their link to it. Each answer holds only
+  // for the title and author (and link) it was given for.
+  const matchKey =
+    showForm && title.trim().length >= 3 && author.trim() ? `fic:${noLink ? '' : canonical}|${title.trim().toLowerCase()}|${author.trim().toLowerCase()}` : null;
+  const matches = useLookup(matchKey, () => findFicMatches(title, author, noLink), 500);
+  const [answer, setAnswer] = useState<{ key: string; picked: Story | null } | null>(null);
+  const answered = matchKey !== null && answer?.key === matchKey ? answer : null;
+  const joining = matchKey === null ? null : answered ? answered.picked : (matches.data?.same ?? null);
+  const close = matchKey === null || answered || joining ? [] : (matches.data?.close ?? []);
   const joinCard = joining ? (
     <Card tone="band">
       <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
@@ -527,8 +532,25 @@ function AddFic() {
       </View>
       <T v="h2">{joining.title}</T>
       <T v="muted">{[joining.author_name, joining.fandoms[0], joining.ships[0]].filter(Boolean).join(' · ')}</T>
-      <T v="muted">{t('add.sameFicHint')}</T>
-      <QuietLink label={t('add.differentFic')} onPress={() => setDifferent(sameKey)} />
+      <T v="muted">{t(noLink ? 'add.sameFicHint' : 'add.sameFicLinkHint')}</T>
+      <QuietLink label={t('add.differentFic')} onPress={() => setAnswer({ key: matchKey!, picked: null })} />
+    </Card>
+  ) : close.length > 0 ? (
+    <Card tone="band">
+      <T v="label">{t('add.didYouMean')}</T>
+      {close.map((s) => (
+        <Pressable
+          key={s.id}
+          testID={`same-fic-${s.id}`}
+          accessibilityRole="button"
+          onPress={() => setAnswer({ key: matchKey!, picked: s })}
+          style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', paddingVertical: space.xs, opacity: pressed ? 0.6 : 1 })}
+        >
+          <T v="h2">{s.title}</T>
+          <T v="muted">{[s.author_name, s.fandoms[0], s.ships[0]].filter(Boolean).join(' · ')}</T>
+        </Pressable>
+      ))}
+      <QuietLink label={t('add.noneOfThese')} onPress={() => setAnswer({ key: matchKey!, picked: null })} />
     </Card>
   ) : null;
   const ready = noLink || (!!canonical && !checking);
@@ -539,7 +561,13 @@ function AddFic() {
       setBusy(true);
       setError('');
       try {
-        await finish(joining, status, 'fanfic', 'manual', undefined, joining.fandoms);
+        if (!noLink && canonical) {
+          // In the library first: only a reader who has the fic may add its link. Someone may have added one
+          // meanwhile; the reader has joined either way.
+          await addToLibrary(joining.id, status);
+          await setFicLink(joining.id, canonical).catch(() => undefined);
+        }
+        await finish(joining, status, 'fanfic', noLink ? 'manual' : 'ao3', undefined, joining.fandoms);
       } catch (e) {
         setError(friendly(e, t));
         setBusy(false);
