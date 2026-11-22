@@ -92,7 +92,7 @@ describe('Library', () => {
     expect(screen.queryByRole('button', { name: 'On Hold' })).toBeNull();
     expect(screen.getByText('Currently Reading · Finished chapter 3 of 10')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Fanfiction' }));
-    expect(screen.getByRole('button', { name: 'On Hold' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'On Hold' })).toBeNull(); // no On Hold for fics either (PO, 22 Nov)
     await waitFor(() => expect(screen.getAllByText('Held fic')).not.toHaveLength(0));
   });
 

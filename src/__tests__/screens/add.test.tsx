@@ -194,23 +194,17 @@ it('adding a fic adds its fandom to "Your fandoms"', async () => {
   );
 });
 
-it('a fic added as Finished: Back from "You\u2019re caught up" lands on the story, not on what was under Add', async () => {
+it('a WIP fic cannot be added as Finished: its reader stays Currently Reading (PO, 22 Nov)', async () => {
   jest.useRealTimers();
-  const routes = { index: () => <Text>home</Text>, add: AddStory, 'finished/[id]': FinishedScreen, 'story/[id]': StoryScreen };
-  await renderScreen('en', routes, '/');
-  await act(async () => router.push('/add'));
+  await renderScreen('en', { add: AddStory }, '/add');
   await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
   await fireEvent.changeText(await screen.findByLabelText('AO3 link'), `https://archiveofourown.org/works/6${Date.now() % 1e8}`);
-  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `Finished Add ${run}`);
-  await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
-  await fireEvent.changeText(screen.getByLabelText('Fandom'), `Done Fandom ${run}`);
-  await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
-  await fireEvent.press(screen.getByText('WIP')); // a WIP's Finished screen has "Back to the story"
-  await fireEvent.press(screen.getByText('Caught up'));
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
-  await fireEvent.press(await screen.findByText('Back to the story', {}, { timeout: 8000 }));
-  expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
-  expect(screen.queryByText('home')).toBeNull();
+  await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), `WIP Add ${run}`);
+  await fireEvent.press(screen.getByText('Finished'));
+  await fireEvent.press(screen.getByText('WIP'));
+  expect(screen.queryByText('Caught up')).toBeNull();
+  expect(screen.queryByText('Finished')).toBeNull();
+  expect(screen.queryByText('On Hold')).toBeNull();
 });
 
 it('after adding, the story page opens in place of Add; Back lands on what was under it', async () => {
