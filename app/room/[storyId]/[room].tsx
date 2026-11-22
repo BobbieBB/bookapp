@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useEffectEvent, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CommentCard } from '@/components/CommentCard';
@@ -10,6 +10,7 @@ import { Button, ErrorText, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { asksAdult } from '@/lib/explicit';
+import { isAo3Link } from '@/lib/links';
 import { FINISH_PILL, LOCKED_ROOM, ROOM_NAME, sectionLabel } from '@/lib/sections';
 import {
   deleteComment,
@@ -148,6 +149,12 @@ export default function RoomScreen() {
               <ErrorText>{t('room.error')}</ErrorText>
             )
           ) : opened ? (
+            <>
+              {/* Chapter 1 of a fic: once, a nudge to give the author kudos or a comment on AO3, where they see it
+                  (PO, 22 Nov 2026: not after every chapter, that would nag). */}
+              {page?.story.kind === 'fanfic' && target.kind === 'chapter' && target.n === 1 && isAo3Link(page.story.source_url) ? (
+                <Ao3Nudge url={page.story.source_url!} />
+              ) : null}
             <Discussion
               discussionId={opened.id}
               list={list}
@@ -156,10 +163,24 @@ export default function RoomScreen() {
               userId={userId}
               onComposerFocus={onComposerFocus}
             />
+            </>
           ) : null}
         </ScrollView>
       </View>
     </SafeAreaView>
+  );
+}
+
+function Ao3Nudge({ url }: { url: string }) {
+  const { c } = useTheme();
+  const t = useT();
+  return (
+    <View style={{ backgroundColor: c.band, borderRadius: radius.l, padding: space.m, gap: space.xs }}>
+      <T v="body">{t('room.ao3Nudge')}</T>
+      <Pressable accessibilityRole="link" onPress={() => Linking.openURL(url).catch(() => undefined)} hitSlop={8}>
+        <T v="label" style={{ textDecorationLine: 'underline' }}>{t('room.ao3Open')}</T>
+      </Pressable>
+    </View>
   );
 }
 

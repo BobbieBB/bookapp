@@ -30,9 +30,10 @@ const MAX_CHIPS = 6;
 const SEARCH_DELAY_MS = 350;
 
 const TIER_KEY = {
-  week: 'discover.tier.week',
-  month: 'discover.tier.month',
-  readers: 'discover.tier.readers',
+  // No rankings for fics (PO, 22 Nov 2026): what the list is, never "most read" or "most discussed".
+  week: 'discover.ficTier.lately',
+  month: 'discover.ficTier.lately',
+  readers: 'discover.ficTier.added',
   starter: 'discover.tier.starter',
 } as const satisfies Record<LivelyTier, string>;
 
@@ -150,7 +151,8 @@ function StoryHitRow({ hit, onOpen }: { hit: StoryHit; onOpen: () => void }) {
       <T v="muted" numberOfLines={1}>
         {subtitle}
       </T>
-      {hit.readers > 0 && <T v="muted">{tr('discover.readers', { count: hit.readers })}</T>}
+      {/* Reader counts only for books: fics are never ranked (PO, 22 Nov 2026). */}
+      {hit.kind === 'book' && hit.readers > 0 && <T v="muted">{tr('discover.readers', { count: hit.readers })}</T>}
     </Pressable>
   );
 }
