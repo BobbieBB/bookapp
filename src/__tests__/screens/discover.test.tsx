@@ -157,7 +157,7 @@ describe('Discover for books (decision F)', () => {
   it('readers of books only see "Being read now" directly, without the switch; tapping a book opens it', async () => {
     await as(bookReader);
     await renderScreen('en', routes, '/discover');
-    expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByText('MOST READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Fanfiction' })).toBeNull();
     await fireEvent.press(await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 }));
     expect(await screen.findByText(`story ${nowId}`, {}, { timeout: 8000 })).toBeOnTheScreen();
@@ -166,14 +166,14 @@ describe('Discover for books (decision F)', () => {
   it('readers of both: Books first, Fanfiction one tap away, and the choice is remembered on this phone', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');
-    expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByText('MOST READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Books' })).toBeSelected();
     expect(screen.queryByText('YOUR FANDOMS')).toBeNull(); // separate sections, never one mixed feed
     const row = await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 });
     expect(within(row).getByText('1 reading now')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Fanfiction' }));
     expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.queryByText('BEING READ NOW')).toBeNull();
+    expect(screen.queryByText('MOST READ NOW')).toBeNull();
     await waitFor(async () => expect(await AsyncStorage.getItem(KIND_KEY)).toBe('fanfic'));
     screen.unmount();
     await renderScreen('en', routes, '/discover');
@@ -183,7 +183,7 @@ describe('Discover for books (decision F)', () => {
   it('in Bulgarian', async () => {
     await as(bookReader);
     await renderScreen('bg', routes, '/discover');
-    expect(await screen.findByText('ЧЕТАТ СЕ СЕГА', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByText('НАЙ-ЧЕТЕНИ СЕГА', {}, { timeout: 8000 })).toBeOnTheScreen();
     const row = await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 });
     expect(within(row).getByText('1 я чете сега')).toBeOnTheScreen();
   });
