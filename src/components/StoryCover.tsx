@@ -5,6 +5,19 @@ import { useT } from '@/i18n';
 import { forgetCoverLink } from '@/lib/covers';
 import { coverColor, softShadow, useTheme } from '@/theme';
 
+// Rough glyph widths in em, measured on the phone (21 Nov): the italic title ~0.6, the bold spaced capitals ~0.85.
+const TITLE_EM = 0.6;
+const AUTHOR_EM = 0.85;
+
+/**
+ * The largest type size, up to `max`, at which the longest word of `text` fits in `inner` px
+ * (PO, 21 Nov 2026: "Obsession" and a long author name broke mid-word on the cover). Never under `min`.
+ */
+export function coverTypeSize(text: string, inner: number, max: number, em: number, min: number): number {
+  const longest = Math.max(1, ...text.split(/\s+/).map((w) => w.length));
+  return Math.max(min, Math.min(max, Math.floor(inner / (longest * em))));
+}
+
 type CoverStory = { id: string; kind: 'book' | 'fanfic'; title: string; author_name: string; cover_url?: string | null };
 
 /**
@@ -42,8 +55,10 @@ export function StoryCover({ story, customUrl, width }: { story: CoverStory; cus
   }
   const cover = coverColor(story.id, th.mode);
   // Type sizes follow the cover's width: 76 (lists) → 14/8, 96 (story page) → 20/9, larger on "You finished it!".
-  const titleSize = Math.round(width / 5);
-  const authorSize = Math.max(8, Math.round(width / 11));
+  // A long word shrinks the type so it fits on one line, instead of breaking mid-word ("Obsessi / on").
+  const inner = width - 2 * Math.round(width / 11);
+  const titleSize = coverTypeSize(story.title, inner, Math.round(width / 5), TITLE_EM, 7);
+  const authorSize = coverTypeSize(story.author_name.toUpperCase(), inner, Math.max(8, Math.round(width / 11)), AUTHOR_EM, 6);
   return (
     <View accessible accessibilityLabel={label} style={[size, { backgroundColor: cover.bg, justifyContent: 'space-between', padding: Math.round(width / 11) }]}>
       <Text numberOfLines={5} style={{ fontFamily: th.fonts.moment, fontSize: titleSize, lineHeight: Math.round(titleSize * 1.05), color: cover.fg }}>

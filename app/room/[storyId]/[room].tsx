@@ -317,7 +317,7 @@ function Discussion({
   return (
     <View style={{ gap: space.m }}>
       {loadFailed && !list ? <ErrorText>{t('room.error')}</ErrorText> : null}
-      {list && !threads.length ? <T v="muted">{t('room.empty')}</T> : null}
+      {/* An empty room says it once, in the field: "Start the discussion…" (PO, 22 Nov 2026). */}
       {threads.map((thread) => {
         const { shown, earlier } = visibleReplies(thread.replies, expanded.has(thread.comment.id));
         return (

@@ -168,7 +168,7 @@ function StorySearchResults({ query, onLeave }: { query: string; onLeave: () => 
   const shown = data ?? previous;
   const addButtons = (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
-      <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book' } })} />
+      <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book', q: trimmed } })} />
       <Button variant="secondary" title={t('discover.addFic')} onPress={() => router.push({ pathname: '/add', params: { kind: 'fanfic' } })} />
     </View>
   );
