@@ -11,6 +11,7 @@ import { analyticsConsent, setAnalyticsConsent, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { useLegalUrl } from '@/lib/legalLinks';
+import { FICS_IN_DISCOVER } from '@/lib/discoverKind';
 import { addFavouriteFandom, favouriteFandoms, removeFavouriteFandom, suggestedFandoms } from '@/lib/discover';
 import { disablePush, enablePush, pushIsOn, type PushStatus } from '@/lib/pushDevice';
 import { useLookup } from '@/lib/useLookup';
@@ -243,7 +244,7 @@ export default function Profile() {
           <T v="muted">{t('profile.appearanceHint')}</T>
         </Card>
 
-        <YourFandoms />
+        {FICS_IN_DISCOVER ? <YourFandoms /> : null}
 
         <PhoneNotifications />
 

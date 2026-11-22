@@ -9,7 +9,7 @@ import { useLanguage, useT } from '@/i18n';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { useCompleteOnly } from '@/lib/completeOnly';
-import { useDiscoverKind, type DiscoverKind } from '@/lib/discoverKind';
+import { FICS_IN_DISCOVER, useDiscoverKind, type DiscoverKind } from '@/lib/discoverKind';
 import {
   booksBeingRead,
   ficsWithShip,
@@ -167,7 +167,8 @@ function StorySearchResults({ query, onLeave }: { query: string; onLeave: () => 
   const trimmed = query.trim();
   const { data, error, previous } = useLookup(`stories:${trimmed}`, () => searchStories(trimmed), SEARCH_DELAY_MS);
   // While the next answer loads, the last results stay on screen, so the list doesn't flicker per keystroke.
-  const shown = data ?? previous;
+  const last = data ?? previous;
+  const shown = last && (FICS_IN_DISCOVER ? last : last.filter((hit) => hit.kind === 'book'));
   const addButtons = (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
       <Button variant="secondary" title={t('discover.addBook')} onPress={() => router.push({ pathname: '/add', params: { kind: 'book', q: trimmed } })} />
@@ -303,8 +304,8 @@ export default function Discover() {
   // who said neither sees books (reads_books defaults to true, so that is rare).
   const bookReader = profile?.reads_books !== false;
   const [kindChoice, setKind] = useDiscoverKind();
-  const both = bookReader && fanficReader;
-  const showing: DiscoverKind | null = both ? kindChoice : fanficReader ? 'fanfic' : 'book';
+  const both = FICS_IN_DISCOVER && bookReader && fanficReader;
+  const showing: DiscoverKind | null = !FICS_IN_DISCOVER ? 'book' : both ? kindChoice : fanficReader ? 'fanfic' : 'book';
   const chips = (mine.data ?? []).slice(0, MAX_CHIPS).map((f) => f.fandom);
   // Say where the chips come from, so Discover and Profile tell the same story: only fandoms the reader
   // picked are "yours"; before that they come from the library, or are popular ones to start with.
@@ -337,7 +338,7 @@ export default function Discover() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
-        {/* For every reader, books and fics together: the one place they share. */}
+        {/* For every reader; books only while FICS_IN_DISCOVER is off. */}
         <Field
           label={t('discover.storySearchLabel')}
           placeholder={t('discover.storySearchPlaceholder')}

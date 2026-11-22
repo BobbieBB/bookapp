@@ -8,6 +8,14 @@ export const DISCOVER_KIND_STORAGE_KEY = 'livami.discover.kind';
 export type DiscoverKind = 'book' | 'fanfic';
 
 /**
+ * Off for the closed test (PO, 22 Nov 2026): Discover and Livami search show books only, and Profile has no
+ * "Your fandoms". A fic is added only from its AO3 link, so only a reader who found it on AO3 reaches its rooms;
+ * Livami does not advertise fics to strangers. The fic feed, the switch and the fandom picker stay in the code:
+ * turning this on brings them back.
+ */
+export const FICS_IN_DISCOVER = false;
+
+/**
  * The reader's choice; null until the remembered one has been read. Books until they pick fanfiction (PO, 21 Nov
  * 2026: more readers come for books, and Discover looked fic-only).
  */
