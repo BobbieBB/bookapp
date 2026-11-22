@@ -388,9 +388,9 @@ describe('Discover: search Livami by title or author', () => {
 
   beforeAll(async () => {
     await as(reader);
-    bookId = (await createManualBook({ title: `Searchable book ${run}`, author: 'S. Writer', chapters: 3, language: 'en' })).id;
+    bookId = (await createManualBook({ title: `Searchable ${run} book`, author: 'S. Writer', chapters: 3, language: 'en' })).id;
     await addToLibrary(bookId, 'want_to_read');
-    ficId = (await fic(`Searchable fic ${run}`, FROM_LIBRARY, true)).id;
+    ficId = (await fic(`Searchable ${run} fic`, FROM_LIBRARY, true)).id;
   });
 
   it('typing a title shows books already in Livami; tapping one opens it', async () => {
@@ -403,7 +403,7 @@ describe('Discover: search Livami by title or author', () => {
     expect(await screen.findByText('HOTTEST BOOKS', {}, { timeout: 8000 })).toBeOnTheScreen();
     await fireEvent(field, 'submitEditing');
     expect(screen.getByText('Type at least 3 letters.')).toBeOnTheScreen();
-    await fireEvent.changeText(field, `searchable book ${run}`);
+    await fireEvent.changeText(field, `searchable ${run} book`);
     expect(screen.queryByText('Type at least 3 letters.')).toBeNull();
     expect(screen.queryByText('HOTTEST BOOKS')).toBeNull(); // the results take the place of the rest
     await fireEvent.press(await screen.findByTestId(`story-hit-${bookId}`, {}, { timeout: 8000 }));
@@ -436,7 +436,7 @@ describe('Discover: search Livami by title or author', () => {
   it('in Bulgarian', async () => {
     await as(reader);
     await renderScreen('bg', routes, '/discover');
-    await fireEvent.changeText(await screen.findByLabelText('Търси книга: заглавие или автор', {}, { timeout: 8000 }), `searchable book ${run}`);
+    await fireEvent.changeText(await screen.findByLabelText('Търси книга: заглавие или автор', {}, { timeout: 8000 }), `searchable ${run} book`);
     expect(await screen.findByText('Книга · S. Writer · EN', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });
