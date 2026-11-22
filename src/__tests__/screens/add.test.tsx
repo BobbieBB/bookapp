@@ -200,6 +200,39 @@ describe('a fic without a link that is already in Livami', () => {
     expect(data).toEqual([{ id: firstId }]);
   });
 
+  it('a title spelt a little differently is offered as "Did you mean one of these?"', async () => {
+    jest.useRealTimers();
+    await open('en');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'I don’t have a link' }));
+    await fireEvent.changeText(screen.getByLabelText('Title'), `Shared Linkles ${run}`); // one letter short
+    await fireEvent.changeText(screen.getByLabelText('Author'), author);
+    expect(await screen.findByText('Did you mean one of these?', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Fandom')).toBeOnTheScreen(); // nothing is decided until the reader picks
+    await fireEvent.press(screen.getByTestId(`same-fic-${firstId}`));
+    expect(screen.getByText('Already on Livami')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Fandom')).toBeNull();
+  });
+
+  it('a reader with a new AO3 link joins it and adds the link', async () => {
+    const link = `https://archiveofourown.org/works/8${Date.now() % 1e8}`;
+    jest.useRealTimers();
+    await open('en');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+    await fireEvent.changeText(await screen.findByLabelText('AO3 link'), link);
+    await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), title);
+    await fireEvent.changeText(screen.getByLabelText('Author'), author);
+    expect(await screen.findByText(/your AO3 link is added to it/, {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await waitFor(
+      async () => {
+        const { data } = await supabase.from('stories').select('source_url').eq('id', firstId).single();
+        expect(data?.source_url).toBe(link);
+      },
+      { timeout: 8000 },
+    );
+  });
+
   it('"It’s a different fic" brings the form back', async () => {
     await typeIt();
     await fireEvent.press(await screen.findByRole('button', { name: 'It’s a different fic' }, { timeout: 8000 }));

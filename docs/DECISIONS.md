@@ -662,8 +662,10 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   kept; a small grey "I don't have a link" opens the same form. Fics without a link show up in search but not in
   Discover (we can't send readers to the author or match a removal request) until a link is added.
   *22 Nov 2026 (PO):* fics are out of Discover and Livami search for the closed test (`FICS_IN_DISCOVER`), so a
-  reader adding a fic without a link who types the same title and author (case aside) joins the fic already in
-  Livami and its rooms; "It's a different fic" makes a new one.
+  reader adding a fic by hand who types the same title and author (spelling aside: case, accents, "&", punctuation)
+  joins the fic already in Livami and its rooms; close ones are offered as "Did you mean one of these?"; "It's a
+  different fic" makes a new one. A reader with a new AO3 link is offered only fics without one, and joining adds
+  the link (src/lib/sameFic.ts).
 - **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).
