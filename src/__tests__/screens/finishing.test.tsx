@@ -92,7 +92,7 @@ describe('finishing', () => {
     const id = await book('currently_reading');
     await supabase.from('library_entries').update({ progress_section: 2 }).eq('story_id', id).eq('user_id', me.id).throwOnError();
     await renderScreen('en', { 'story/[id]': StoryScreen, 'finished/[id]': FinishedStub }, `/story/${id}`);
-    await fireEvent.press(await screen.findByRole('button', { name: 'I finished the story: open The Epilogue' }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'I finished the story' }, { timeout: 8000 }));
     expect(await screen.findByText(`finished ${id}`, {}, { timeout: 8000 })).toBeOnTheScreen();
     const { data } = await supabase.from('library_entries').select('status').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
     expect(data!.status).toBe('finished');
@@ -103,7 +103,7 @@ describe('finishing', () => {
     const id = await book('currently_reading');
     await renderScreen('en', { 'story/[id]': StoryScreen, 'finished/[id]': FinishedStub }, `/story/${id}`);
     await screen.findByRole('button', { name: /^Status: / }, { timeout: 8000 });
-    expect(screen.queryByRole('button', { name: 'I finished the story: open The Epilogue' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'I finished the story' })).toBeNull();
   });
 
   it('tapping Finished on an already finished story stays on the story page', async () => {
