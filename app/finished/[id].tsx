@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { useEffect, useRef, useState, type RefObject } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef, type RefObject } from 'react';
+import { ActivityIndicator, Keyboard, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useCustomCover } from '@/components/CustomCover';
 import { useExplicitGate } from '@/components/ExplicitDialog';
@@ -33,8 +33,22 @@ export default function FinishedScreen() {
     return { story, finished, mine, progress: entry?.progress_section ?? 0 };
   });
 
+  // The review field is near the end: when the keyboard opens, scroll so it and its buttons stay in view
+  // (PO, 22 Nov 2026: the keyboard hid what was being typed). Same as the discussion rooms.
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50));
+    return () => shown.remove();
+  }, []);
+
   return (
-    <ScrollView style={{ backgroundColor: c.ground }} contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1 }}>
+    <ScrollView
+      ref={scroll}
+      style={{ backgroundColor: c.ground }}
+      contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1 }}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+    >
       {page.data ? (
         <Finished story={page.data.story} finished={page.data.finished} progress={page.data.progress} rating={page.data.mine?.[0] ?? null} review={page.data.mine?.[1] ?? null} />
       ) : page.error ? (
@@ -200,12 +214,17 @@ function BookRating({
   const [status, setStatus] = useState<'idle' | 'saving' | 'failed'>('idle');
   const dirty = editing && (body.trim() !== (saved?.body ?? '') || spoilers !== (saved?.contains_spoilers ?? false));
 
+  const ratingSaves = useRef<Promise<unknown>>(Promise.resolve());
+
   async function rate(value: number) {
     const before = rating;
     setRating(value);
     setRatingFailed(false);
+    // Taps save one after another, so two quick taps (5, then 4.5) can't land in the wrong order and leave 5.
+    const save = ratingSaves.current.catch(() => undefined).then(() => rateBook(storyId, value));
+    ratingSaves.current = save;
     try {
-      await rateBook(storyId, value);
+      await save;
     } catch {
       setRating(before);
       setRatingFailed(true);
@@ -307,8 +326,9 @@ function StarPicker({ rating, onRate }: { rating: number | null; onRate: (n: num
 }
 
 // Every glyph sits in a box of this width, so the half star's clip (half the box) is exactly half a star and the
-// clipped text never wraps or gets cut short with "…".
-const STAR_BOX = 36;
+// clipped text never wraps or gets cut short with "…". Wider than the glyph: at 36 the iPhone's ★ lost its right
+// point (PO, 22 Nov 2026); 44 is also the touch target.
+const STAR_BOX = 44;
 
 function StarButton({
   value,
