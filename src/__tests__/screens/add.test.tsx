@@ -147,7 +147,7 @@ it('a fic without a link: "I don’t have a link" opens the same form; it is sav
   await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'I don’t have a link' }));
   expect(screen.queryByLabelText('AO3 link')).toBeNull();
-  expect(screen.getByText(/stays out of Discover/)).toBeOnTheScreen();
+  expect(screen.getByText(/joins its rooms/)).toBeOnTheScreen();
   await fireEvent.changeText(screen.getByLabelText('Title'), title);
   await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
   await fireEvent.changeText(screen.getByLabelText('Fandom'), `Linkless Fandom ${run}`);
@@ -160,6 +160,52 @@ it('a fic without a link: "I don’t have a link" opens the same form; it is sav
     },
     { timeout: 8000 },
   );
+});
+
+// PO, 22 Nov 2026: fics are not in Livami search, so the same title and author is how a second reader without a
+// link finds the first one's rooms.
+describe('a fic without a link that is already in Livami', () => {
+  const title = `Shared Linkless ${run}`;
+  const author = 'Ink And Quill';
+  let firstId: string;
+
+  beforeAll(async () => {
+    firstId = (
+      await createFic({ ao3Link: null, title, author, fandom: `Shared Fandom ${run}`, ship: '', complete: false, chapters: 3, rating: 'Not Rated', warnings: [] })
+    ).id;
+  });
+
+  async function typeIt() {
+    jest.useRealTimers();
+    await open('en');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'I don’t have a link' }));
+    await fireEvent.changeText(screen.getByLabelText('Title'), `  ${title.toUpperCase()} `);
+    await fireEvent.changeText(screen.getByLabelText('Author'), author.toLowerCase());
+  }
+
+  it('the same title and author (case aside) joins it instead of making a second one', async () => {
+    await typeIt();
+    expect(await screen.findByText('Already on Livami', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Fandom')).toBeNull(); // nothing more to fill in
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await waitFor(
+      async () => {
+        const { data } = await supabase.from('library_entries').select('story_id').eq('story_id', firstId);
+        expect(data).toHaveLength(1);
+      },
+      { timeout: 8000 },
+    );
+    const { data } = await supabase.from('stories').select('id').ilike('title', title);
+    expect(data).toEqual([{ id: firstId }]);
+  });
+
+  it('"It’s a different fic" brings the form back', async () => {
+    await typeIt();
+    await fireEvent.press(await screen.findByRole('button', { name: 'It’s a different fic' }, { timeout: 8000 }));
+    expect(screen.queryByText('Already on Livami')).toBeNull();
+    expect(screen.getByLabelText('Fandom')).toBeOnTheScreen();
+  });
 });
 
 it('"I have a link after all" brings the link field back', async () => {

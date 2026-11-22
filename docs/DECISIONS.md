@@ -661,6 +661,9 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - **G. A fic without a link.** If the site doesn't answer, adding falls back to the manual form with the link
   kept; a small grey "I don't have a link" opens the same form. Fics without a link show up in search but not in
   Discover (we can't send readers to the author or match a removal request) until a link is added.
+  *22 Nov 2026 (PO):* fics are out of Discover and Livami search for the closed test (`FICS_IN_DISCOVER`), so a
+  reader adding a fic without a link who types the same title and author (case aside) joins the fic already in
+  Livami and its rooms; "It's a different fic" makes a new one.
 - **The story page follows your own reading, admins included.** Admins open any room from Moderation, but the
   story page showed them every chapter and The Epilogue as open, a spoiler on their own book
   (`20261115000000_rooms_follow_progress.sql`).

@@ -22,6 +22,7 @@ import {
   createBook,
   createFic,
   createManualBook,
+  findSameFic,
   findStory,
   type BookLanguage,
   type SplitKind,
@@ -477,6 +478,12 @@ function AddFic() {
   // "I don't have a link" (docs/DECISIONS.md, PO testing round, G): the same form, no link. The fic stays
   // out of Discover until a reader adds the link on its page.
   const [noLink, setNoLink] = useState(false);
+  // Without a link, the same title and author is the same fic: the reader joins it (PO, 22 Nov 2026), unless
+  // they say it is a different one. Saying so holds only for the title and author it was said for.
+  const sameKey = noLink && title.trim() && author.trim() ? `same:${title.trim().toLowerCase()}|${author.trim().toLowerCase()}` : null;
+  const same = useLookup(sameKey, () => findSameFic(title, author), 500);
+  const [different, setDifferent] = useState<string | null>(null);
+  const joining = noLink && sameKey !== null && different !== sameKey ? (same.data ?? null) : null;
 
   /** A plain link, or AO3's Share text: then everything it says is filled in (nothing is fetched from AO3). */
   function onLink(value: string) {
@@ -512,10 +519,33 @@ function AddFic() {
 
   // The form shows for a link we don't know yet, or for a fic added without one.
   const showForm = noLink || (!!canonical && !checking && !existing);
+  const joinCard = joining ? (
+    <Card tone="band">
+      <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
+        <Feather name="check" size={18} color={c.ink} />
+        <T v="label">{t('add.alreadyHere')}</T>
+      </View>
+      <T v="h2">{joining.title}</T>
+      <T v="muted">{[joining.author_name, joining.fandoms[0], joining.ships[0]].filter(Boolean).join(' · ')}</T>
+      <T v="muted">{t('add.sameFicHint')}</T>
+      <QuietLink label={t('add.differentFic')} onPress={() => setDifferent(sameKey)} />
+    </Card>
+  ) : null;
   const ready = noLink || (!!canonical && !checking);
 
   async function save() {
     if (!noLink && !canonical) return setError(t('add.errorLink'));
+    if (joining) {
+      setBusy(true);
+      setError('');
+      try {
+        await finish(joining, status, 'fanfic', 'manual', undefined, joining.fandoms);
+      } catch (e) {
+        setError(friendly(e, t));
+        setBusy(false);
+      }
+      return;
+    }
     if (noLink || !existing) {
       fields.submit();
       if (Object.values(errors).some(Boolean)) return;
@@ -592,6 +622,9 @@ function AddFic() {
               onBlur={fields.onBlur('author')}
               error={fields.show('author', errors.author)}
             />
+            {joinCard}
+            {joining ? null : (
+            <>
             <Field label={t('add.fandom')} value={fandom} onChangeText={setFandom} onBlur={fields.onBlur('fandom')} error={fields.show('fandom', errors.fandom)} />
             <Field label={t('add.ship')} value={ship} onChangeText={setShip} />
             <ShipNickname text={ship} onUse={setShip} />
@@ -623,13 +656,15 @@ function AddFic() {
                 <Chip key={w} label={t(WARNING_LABEL[w])} active={warnings.includes(w)} onPress={() => toggleWarning(w)} />
               ))}
             </View>
+            </>
+            )}
           </>
         )
       )}
 
       {ready && (
         <>
-          <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={existing && !noLink ? existing.status === 'ongoing' : !complete} />
+          <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={joining ? joining.status === 'ongoing' : existing && !noLink ? existing.status === 'ongoing' : !complete} />
           <ErrorText>{error}</ErrorText>
           <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
         </>
