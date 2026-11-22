@@ -12,7 +12,7 @@ import { useMyLibrary } from '@/lib/library';
 import { STATUS_KEY, type LibraryStatus, type StoryKind } from '@/lib/types';
 import { space, useTheme } from '@/theme';
 
-const FILTERS: (LibraryStatus | 'all')[] = ['all', 'currently_reading', 'want_to_read', 'finished', 'on_hold', 'dnf'];
+const FILTERS: (LibraryStatus | 'all')[] = ['all', 'currently_reading', 'want_to_read', 'finished', 'dnf'];
 
 export default function Library() {
   const { c } = useTheme();
@@ -25,12 +25,11 @@ export default function Library() {
 
   // Books and fanfiction are always shown in separate sections (fandom etiquette).
   const shown = entries.filter((e) => e.story.kind === kind && (filter === 'all' || e.status === filter));
-  const filters = FILTERS.filter((f) => kind === 'fanfic' || f !== 'on_hold');
+  const filters = FILTERS; // No On Hold (PO, 22 Nov 2026)
 
   function switchKind(next: StoryKind) {
     setKind(next);
     // On Hold exists only for fanfiction: don't leave an invisible filter selected.
-    if (next === 'book' && filter === 'on_hold') setFilter('all');
   }
 
   return (

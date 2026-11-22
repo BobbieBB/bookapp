@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -87,13 +87,17 @@ function StatusPicker({
   wip?: boolean;
 }) {
   const t = useT();
+  // Switching to WIP after picking Finished: back to Currently Reading, the status a WIP reader keeps.
+  useEffect(() => {
+    if (wip && value === 'finished') onChange('currently_reading');
+  }, [wip, value, onChange]);
+  // No On Hold, and no Finished on a WIP (PO, 22 Nov 2026): see STATUSES on the story page.
   const options: [LibraryStatus, string][] = [
     ['currently_reading', t('add.statusReading')],
     ['want_to_read', t('add.statusWant')],
-    ['finished', t(statusKey('finished', { kind, status: wip ? 'ongoing' : 'completed' }))],
+    ...(wip ? [] : [['finished', t(statusKey('finished', { kind, status: 'completed' }))] as [LibraryStatus, string]]),
     ['dnf', t('library.status.dnf')],
   ];
-  if (kind === 'fanfic') options.push(['on_hold', t('library.status.on_hold')]);
   return (
     <View style={{ gap: space.s, marginTop: space.m }}>
       <T v="label">{t('add.statusLabel')}</T>

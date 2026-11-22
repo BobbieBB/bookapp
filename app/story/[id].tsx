@@ -46,7 +46,9 @@ import { type LibraryEntry, type LibraryStatus } from '@/lib/types';
 import { useLookup } from '@/lib/useLookup';
 import { radius, softShadow, space, useTheme } from '@/theme';
 
-const STATUSES: LibraryStatus[] = ['currently_reading', 'want_to_read', 'finished', 'dnf', 'on_hold'];
+// No On Hold, and no Finished ("Caught up") on a WIP: a reader keeps Currently Reading until the story is complete
+// (PO, 22 Nov 2026: two more statuses confused more than they helped). The database still knows both.
+const STATUSES: LibraryStatus[] = ['currently_reading', 'want_to_read', 'finished', 'dnf'];
 
 // The page wheel's end for a book whose page count we don't know.
 const PAGE_WHEEL_MAX = 2000;
@@ -280,7 +282,7 @@ function StoryBody({
       void track('story_finished', { kind: story.kind });
       router.push(`/finished/${story.id}`);
     });
-  const statuses = STATUSES.filter((s) => s !== 'on_hold' || isFic);
+  const statuses = STATUSES.filter((s) => s !== 'finished' || story.status !== 'ongoing');
   const link = isAo3Link(story.source_url) ? story.source_url : null;
   // An Explicit fic asks the 18+ question before its link opens; nothing else on the page is hidden.
   const openLink = (url: string) =>

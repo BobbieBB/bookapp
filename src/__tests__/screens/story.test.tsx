@@ -97,7 +97,7 @@ describe('a book you are reading', () => {
     expect(screen.queryByTestId('page-option-1')).toBeNull();
   });
 
-  it('status is saved; On Hold is only for fanfiction; no favourites in v1', async () => {
+  it('status is saved; no On Hold; no favourites in v1', async () => {
     await open('en', bookId);
     await fireEvent.press(screen.getByRole('button', { name: 'Status: Currently Reading. Change' }));
     // The sheet of statuses opens on the current one.
@@ -162,8 +162,11 @@ describe('a WIP fic you are caught up with', () => {
     expect(screen.getByText('Major character death')).toBeOnTheScreen();
     expect(screen.getByText('All tags on AO3 ↗')).toBeOnTheScreen();
     expect(screen.getByText('WIP')).toBeOnTheScreen();
+    // A WIP reader stays Currently Reading until the story is complete: no Finished ("Caught up"), no On Hold.
     await fireEvent.press(screen.getByRole('button', { name: /^Status: / }));
-    expect(await screen.findByText('On Hold')).toBeOnTheScreen();
+    expect(await screen.findByText('DNF')).toBeOnTheScreen();
+    expect(screen.queryByText('Caught up')).toBeNull();
+    expect(screen.queryByText('On Hold')).toBeNull();
   });
 
   it('reports a newly published chapter when you finish it', async () => {
