@@ -5,7 +5,7 @@ import { renderScreen } from '../../../test/router';
 import * as analytics from '../../lib/analytics';
 import { openRoom, postComment } from '../../lib/discussions';
 import type { Language } from '../../i18n';
-import { addToLibrary, createManualBook } from '../../lib/stories';
+import { addToLibrary, createFic, createManualBook } from '../../lib/stories';
 import { supabase } from '../../lib/supabase';
 
 // A Chapter Discussion / The Epilogue screen (docs/DECISIONS.md: Spoiler Safe Mode, Visual design,
@@ -174,3 +174,48 @@ async function firstCommentId(body: string) {
   const { data } = await supabase.from('comments').select('id').eq('body', body).single().throwOnError();
   return data!.id as string;
 }
+
+describe('the nudge to AO3 (PO, 22 Nov 2026)', () => {
+  let ficId: string;
+
+  beforeAll(async () => {
+    await as(reader);
+    ficId = (
+      await createFic({
+        ao3Link: `https://archiveofourown.org/works/${(parseInt(run, 36) % 1_000_000_000) + 900}`,
+        title: `Nudge Fic ${run}`,
+        author: 'w',
+        fandom: `Nudge Fandom ${run}`,
+        ship: '',
+        complete: true,
+        chapters: 3,
+        rating: 'Not Rated',
+        warnings: [],
+      })
+    ).id;
+    await addToLibrary(ficId, 'currently_reading');
+    await supabase.from('library_entries').update({ progress_section: 2 }).eq('story_id', ficId).eq('user_id', reader.id).throwOnError();
+  });
+
+  const openFic = async (room: string) => {
+    await renderScreen('en', { 'room/[storyId]/[room]': RoomScreen }, `/room/${ficId}/${room}`);
+    await screen.findByTestId('room-title', {}, { timeout: 20_000 });
+  };
+
+  it('chapter 1 of a fic asks once for kudos or a comment on AO3', async () => {
+    await as(reader);
+    await openFic('1');
+    expect(await screen.findByText('Open on AO3 ↗', {}, { timeout: 8000 })).toBeOnTheScreen();
+  });
+
+  it('not in later chapters, and never in a book', async () => {
+    await as(reader);
+    await openFic('2');
+    await screen.findByPlaceholderText(/Start the discussion|Write a comment/, {}, { timeout: 8000 });
+    expect(screen.queryByText('Open on AO3 ↗')).toBeNull();
+    screen.unmount();
+    await open('en', '1');
+    await screen.findByPlaceholderText(/Start the discussion|Write a comment/, {}, { timeout: 8000 });
+    expect(screen.queryByText('Open on AO3 ↗')).toBeNull();
+  });
+});
