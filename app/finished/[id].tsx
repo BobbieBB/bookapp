@@ -307,8 +307,9 @@ function StarPicker({ rating, onRate }: { rating: number | null; onRate: (n: num
 }
 
 // Every glyph sits in a box of this width, so the half star's clip (half the box) is exactly half a star and the
-// clipped text never wraps or gets cut short with "…".
-const STAR_BOX = 36;
+// clipped text never wraps or gets cut short with "…". Wider than the glyph: at 36 the iPhone's ★ lost its right
+// point (PO, 22 Nov 2026); 44 is also the touch target.
+const STAR_BOX = 44;
 
 function StarButton({
   value,
