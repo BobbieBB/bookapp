@@ -71,8 +71,11 @@ it('books being read now come first, the reader’s language first; never hidden
   const busy = bg.find((b) => b.id === ids.busyEn)!;
   expect(busy).toMatchObject({ reading: 3, readers: 3, tier: 'reading', language: 'en', author_name: 'A. Writer' });
 
-  // In English, the more readers first.
-  expect(ours(await booksBeingRead('en')).slice(0, 2)).toEqual([ids.busyEn, ids.quietBg]);
+  // In English, English editions first. The list holds 30, and other test files add English books being read at
+  // the same time, so the Bulgarian one may be past the end: when it is there, it comes after.
+  const en = ours(await booksBeingRead('en'));
+  expect(en[0]).toBe(ids.busyEn);
+  if (en.includes(ids.quietBg)) expect(en.indexOf(ids.quietBg)).toBeGreaterThan(0);
 });
 
 it('a book nobody is reading right now follows as most read, after every book being read', async () => {

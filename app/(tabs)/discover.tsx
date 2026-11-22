@@ -159,7 +159,8 @@ function StoryHitRow({ hit, onOpen }: { hit: StoryHit; onOpen: () => void }) {
  * Search Livami by title or author (PO, 16 Nov 2026): only stories readers have already added, books and
  * fics, never AO3 or Open Library. From 3 letters, after a pause in typing, like every search.
  */
-function StorySearchResults({ query }: { query: string }) {
+/** `onLeave`: going to add a book or a fic clears the search, so Discover is back as it was afterwards (PO, 22 Nov 2026). */
+function StorySearchResults({ query, onLeave }: { query: string; onLeave: () => void }) {
   const t = useT();
   const trimmed = query.trim();
   const { data, error, previous } = useLookup(`stories:${trimmed}`, () => searchStories(trimmed), SEARCH_DELAY_MS);
@@ -351,7 +352,7 @@ export default function Discover() {
         />
         {tooShort && <T v="muted">{t('discover.storySearchShort')}</T>}
         {searchingStories ? (
-          <StorySearchResults query={storyQuery} />
+          <StorySearchResults query={storyQuery} onLeave={() => setStoryQuery('')} />
         ) : mine.error !== undefined ? (
           <ErrorText>{t('discover.error')}</ErrorText>
         ) : !mine.data || showing === null ? (
