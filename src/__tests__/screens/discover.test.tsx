@@ -87,7 +87,12 @@ beforeAll(async () => {
   expect(await lively([ONLY_WIPS], true)).toEqual([]); // the empty-state test's precondition
 });
 
-beforeEach(() => AsyncStorage.removeItem(COMPLETE_ONLY_KEY));
+// Readers of both kinds open on Books (PO, 21 Nov 2026); the fanfiction tests start from Fanfiction, as a reader
+// who switched would. "Discover for books" clears this to test the default.
+beforeEach(async () => {
+  await AsyncStorage.removeItem(COMPLETE_ONLY_KEY);
+  await AsyncStorage.setItem(KIND_KEY, 'fanfic');
+});
 
 
 function StoryStub() {
@@ -158,20 +163,21 @@ describe('Discover for books (decision F)', () => {
     expect(await screen.findByText(`story ${nowId}`, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
-  it('readers of both: Fanfiction as before, Books one tap away, and the choice is remembered on this phone', async () => {
+  it('readers of both: Books first, Fanfiction one tap away, and the choice is remembered on this phone', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');
-    expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Fanfiction' })).toBeSelected();
-    await fireEvent.press(screen.getByRole('button', { name: 'Books' }));
     expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Books' })).toBeSelected();
     expect(screen.queryByText('YOUR FANDOMS')).toBeNull(); // separate sections, never one mixed feed
     const row = await screen.findByTestId(`book-now-${nowId}`, {}, { timeout: 8000 });
     expect(within(row).getByText('1 reading now')).toBeOnTheScreen();
-    await waitFor(async () => expect(await AsyncStorage.getItem(KIND_KEY)).toBe('book'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Fanfiction' }));
+    expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByText('BEING READ NOW')).toBeNull();
+    await waitFor(async () => expect(await AsyncStorage.getItem(KIND_KEY)).toBe('fanfic'));
     screen.unmount();
     await renderScreen('en', routes, '/discover');
-    expect(await screen.findByText('BEING READ NOW', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByText('YOUR FANDOMS', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('in Bulgarian', async () => {
@@ -364,7 +370,7 @@ describe('Discover: search Livami by title or author', () => {
   it('typing a title shows stories already in Livami; tapping one opens it', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');
-    const field = await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 });
+    const field = await screen.findByLabelText('Search books and fics: title or author', {}, { timeout: 8000 });
     await fireEvent.changeText(field, 'se');
     // Fewer than 3 letters: Discover stays; the hint shows only once the reader presses Search.
     expect(screen.queryByText('Type at least 3 letters.')).toBeNull();
@@ -381,7 +387,7 @@ describe('Discover: search Livami by title or author', () => {
   it('nothing found: offers to add a book or a fic', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');
-    await fireEvent.changeText(await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 }), `nothing like this ${run}`);
+    await fireEvent.changeText(await screen.findByLabelText('Search books and fics: title or author', {}, { timeout: 8000 }), `nothing like this ${run}`);
     expect(await screen.findByText('Nobody has added it to Livami yet. Add it and start the conversation.', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText('Add a book')).toBeOnTheScreen();
     expect(screen.getByText('Add a fic')).toBeOnTheScreen();
@@ -390,13 +396,13 @@ describe('Discover: search Livami by title or author', () => {
   it('readers of books only can search too', async () => {
     await as(bookReader);
     await renderScreen('en', routes, '/discover');
-    expect(await screen.findByLabelText('Search Livami: title or author', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Search books and fics: title or author', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 
   it('in Bulgarian', async () => {
     await as(reader);
     await renderScreen('bg', routes, '/discover');
-    await fireEvent.changeText(await screen.findByLabelText('Търси в Livami: заглавие или автор', {}, { timeout: 8000 }), `searchable ${run}`);
+    await fireEvent.changeText(await screen.findByLabelText('Търси книга или фикшън: заглавие или автор', {}, { timeout: 8000 }), `searchable ${run}`);
     expect(await screen.findByText('Фикшън · w · ' + FROM_LIBRARY, {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });

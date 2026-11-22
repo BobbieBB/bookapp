@@ -8,6 +8,7 @@ import { useT } from '@/i18n';
 import { setAnalyticsConsent, track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/legal';
+import { NAME_RULE, nameProblem } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { space, useTheme } from '@/theme';
 
@@ -16,6 +17,8 @@ export default function Onboarding() {
   const t = useT();
   const { session, refreshProfile, signOut } = useAuth();
   const [username, setUsername] = useState('');
+  const [leftName, setLeftName] = useState(false);
+  const [tried, setTried] = useState(false);
   const [readsBooks, setReadsBooks] = useState(true);
   const [readsFanfic, setReadsFanfic] = useState(true);
   const [acceptsTerms, setAcceptsTerms] = useState(false);
@@ -29,8 +32,10 @@ export default function Onboarding() {
   async function save() {
     setError('');
     const handle = username.trim();
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(handle)) {
-      return setError(t('auth.errorBadName'));
+    if (!NAME_RULE.test(handle)) {
+      // The field shows why; no second copy of the message by the button.
+      setTried(true);
+      return;
     }
     if (!readsBooks && !readsFanfic) return setError(t('auth.errorPickOne'));
 
@@ -85,6 +90,8 @@ export default function Onboarding() {
               label={t('common.name')}
               value={username}
               onChangeText={setUsername}
+              onBlur={() => setLeftName(true)}
+              error={nameProblem(username, { left: leftName, tried }) ? t('auth.errorBadName') : undefined}
               autoCapitalize="none"
               autoCorrect={false}
               placeholder={t('auth.namePlaceholder')}

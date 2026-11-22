@@ -54,7 +54,7 @@ EU representative: not needed while the operator is established in the EU [TO CO
 | **Technical data** | Our hosting provider and the services below see your IP address and basic request data when the app connects. | Legitimate interests (security, operation). [TO CONFIRM: Supabase log retention, from Supabase's documentation for the project's plan.] |
 | **Chapter counts** | The first reader to add a book enters its chapter count; it is stored with the book and visible to all readers. Once a book has a count, only a moderator changes it. If you see a wrong one, "Wrong chapter count?" lets you propose a number: we store who asked, the proposed number, the story, the time and the status (open, actioned or dismissed); deleted with your account. | Contract; legitimate interests (a correct shared catalogue). |
 | **Moderation** | Moderators see, in an admin-only screen, the open reports, removal requests, feedback and chapter-count requests with their text. Reports show the reason and your details text; the screen shows how many readers reported the same item. Moderators can hide a comment or review (on a report), hide a fic (only on an author removal request), dismiss a report, suspend or unsuspend a reader with a reason, accept or dismiss a chapter-count request, and mark feedback done or dismiss it. When content is hidden, its author gets an in-app notice with the reason; a suspended reader gets a notice with the reason and how to contest it. We keep the reason and the decision with the item. [TO CONFIRM: ships with feat/moderation-notices and feat/suspend. Today reports on a reader can only be dismissed and nobody is notified.] | Legitimate interests (keeping the community safe); legal obligation where it applies. |
-| **Searches for books** | See section 5 (Open Library). | Contract. |
+| **Searches for books** | See section 5 (Open Library, Google Books). | Contract. |
 
 We do **not** collect: your real name, phone number, contact list, precise location, advertising ID, payment data, or the text of any fanfiction. [TO CONFIRM: no crash-reporting or other SDKs are added before release; none were found in `package.json`.]
 
@@ -71,9 +71,11 @@ We do **not** collect: your real name, phone number, contact list, precise locat
 
 We have data processing agreements with processors [TO CONFIRM: sign and keep the DPAs of Supabase, Expo and Resend].
 
-## 5. Open Library (books you search for)
+## 5. Open Library and Google Books (books you search for)
 
 When you search for a book, the app sends your **search text** (title, author or ISBN) directly from your phone to **Open Library** (openlibrary.org, run by the Internet Archive, a US non-profit). Your phone's IP address is visible to them in the usual way. The request identifies the app as `Livami/<version>` with a link to the project page, **not** with your name, account or e-mail address. Searches start after you type 3 characters and pause. Book cover images shown from Open Library are loaded from `covers.openlibrary.org` in the same way. Open Library is a separate controller under its own policy: https://openlibrary.org/ [TO CONFIRM: link to its current privacy policy].
+
+**Google Books.** The same search text is also sent to **Google Books** (Google, USA), but not from your phone: the app sends it to our server (Supabase), which asks Google with our own key. Google sees our server, not your phone, your account or your IP address. Cover images found on Google Books are loaded by your phone from `books.google.com`, so Google sees your phone's IP address when it shows them. Google is a separate controller under its own policy: https://policies.google.com/privacy
 
 The app makes no network calls to AO3. When you paste an AO3 link, it is only tidied up and looked up in our own database; the details are read from text you paste yourself. If you tap an AO3 link, it opens AO3 in your browser, and AO3 then handles your data under its own policy.
 

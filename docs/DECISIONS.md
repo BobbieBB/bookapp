@@ -83,7 +83,7 @@ fic auto-fill from AO3 (only with OTW permission).
 - **Open Library:** lookups only when a user searches, results cached in `stories`, requests carry a
   `User-Agent` with the app name and contact email, at most ~3 requests/second. At scale, switch to
   the Open Library data dumps.
-- **Google Books:** optional; their terms forbid charging users for the data without permission.
+- **Google Books:** a second source since 19 Nov 2026 (see "Google Books for Bulgarian editions"); their terms forbid charging users for the data without permission.
 
 ## Home: replies to you, not all discussions (14 Oct 2026)
 - Home shows only what needs you: replies and @mentions, max 3, with "See all" leading to notifications. Section title: "REPLIES TO YOU".
@@ -712,3 +712,19 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   "selected", so 4.5 is never heard as 5.
 - A rating can't be cleared from this screen (the lowest is half a star), as before.
 - After adding a story its page opens in place of Add; with nothing under Add (a web reload), Home goes underneath.
+
+## Google Books for Bulgarian editions (PO, 19 Nov 2026)
+- Why: a probe of 20 well-known books in Bulgarian found 12 on Google Books (title search, Bulgarian editions only) and 3 on Open Library. Classics 6/6, contemporary Bulgarian 5/6, translated fantasy/YA only 1/8. Covers: 4/20.
+- Book search asks both sources at once. Cyrillic text lists Google's results first, anything else Open Library's; the same title by the same author is shown once. One source failing is fine.
+- The app never calls Google itself: the `google-books` Edge Function holds the key (secret `GOOGLE_BOOKS_KEY`, restricted to the Books API) and needs a reader's session. Google sees our server, not the reader's phone. Only the search text is sent.
+- A book found on Google is stored with `source = 'google_books'` and `source_id = '<volume id>#<language>'`, like an Open Library edition. Covers may come from `books.google.com` (the `cover_from_book_sources` check).
+- The Privacy Policy (section 5) says so. Translated fantasy/YA still needs another source: issue #92 (Yoan) looks at others; Sofia City Library was asked on 19 Nov 2026.
+- Not doing: scraping any catalogue, or pirate sites, even for titles only.
+
+## Headings in Sofia Sans ExtraBold (PO, phone test 20 Nov 2026)
+- Replaces Unbounded for headings and titles: it is wide by design, and long titles ("The Colour of Magic") looked stretched.
+- `fonts.display` is Sofia Sans ExtraBold 800, `displaySemi` Sofia Sans Bold 700. Headings are 3 px larger than the Unbounded sizes
+  (h1 35, h2 22), as for the screen titles on 19 Oct, because Sofia Sans is narrower.
+- The character stays in Cormorant Garamond italic for moments (The Epilogue, typographic covers, "You finished it!").
+- Sofia Sans is made by a Bulgarian studio and has excellent Cyrillic. `@expo-google-fonts/unbounded` is no longer loaded; drop it
+  from package.json with the next dependency update.

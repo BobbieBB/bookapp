@@ -32,6 +32,8 @@ export type Story = {
   page_count: number | null;
   status: 'completed' | 'ongoing' | null;
   source_url: string | null;
+  /** A book's cover from Open Library or Google Books; never set for fics. */
+  cover_url?: string | null;
 };
 
 export type LibraryEntry = {

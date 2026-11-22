@@ -23,6 +23,7 @@ beforeAll(async () => {
 
   const book = (key: string, title: string) => ({
     key: `/works/OL${run}${key}W`,
+    source: 'open_library' as const,
     title,
     author: 'An Author',
     year: 2000,

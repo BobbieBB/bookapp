@@ -1,11 +1,12 @@
 import Feather from '@expo/vector-icons/Feather';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
 import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
+import { StoryCover } from '@/components/StoryCover';
 import { useExplicitGate } from '@/components/ExplicitDialog';
 import { ChoiceList, NumberWheel, Sheet } from '@/components/Sheet';
 import { Button, Card, ErrorText, Field, T } from '@/components/ui';
@@ -43,7 +44,7 @@ import {
 } from '@/lib/story';
 import { type LibraryEntry, type LibraryStatus } from '@/lib/types';
 import { useLookup } from '@/lib/useLookup';
-import { coverColor, radius, softShadow, space, useTheme } from '@/theme';
+import { radius, softShadow, space, useTheme } from '@/theme';
 
 const STATUSES: LibraryStatus[] = ['currently_reading', 'want_to_read', 'finished', 'dnf', 'on_hold'];
 
@@ -89,31 +90,6 @@ export default function StoryScreen() {
         <ActivityIndicator color={c.signal} />
       )}
     </ScrollView>
-  );
-}
-
-function Cover({ story, customUrl }: { story: StoryDetails; customUrl: string | null }) {
-  const th = useTheme();
-  const t = useT();
-  const { fonts } = th;
-  const size = { width: 96, height: 140, borderRadius: 14, ...softShadow(th.mode, 'small') };
-  const label = t('library.coverLabel', { title: story.title });
-  if (customUrl) {
-    return <Image source={{ uri: customUrl }} accessibilityLabel={t('covers.customLabel', { title: story.title })} style={size} />;
-  }
-  if (story.kind === 'book' && story.cover_url) {
-    return <Image source={{ uri: story.cover_url }} accessibilityLabel={label} style={size} />;
-  }
-  const cover = coverColor(story.id, th.mode);
-  return (
-    <View accessible accessibilityLabel={label} style={[size, { backgroundColor: cover.bg, justifyContent: 'space-between', padding: 8 }]}>
-      <Text numberOfLines={5} style={{ fontFamily: fonts.moment, fontSize: 20, lineHeight: 20, color: cover.fg }}>
-        {story.title}
-      </Text>
-      <Text numberOfLines={2} style={{ fontFamily: fonts.bodyBold, fontSize: 9, lineHeight: 10, letterSpacing: 0.2, color: cover.fg }}>
-        {story.author_name.toUpperCase()}
-      </Text>
-    </View>
   );
 }
 
@@ -297,6 +273,13 @@ function StoryBody({
     ? { ...entry, story_id: story.id, updated_at: '', story }
     : null;
   const next = entry ? nextChapter(story, entry.progress_section) : null;
+  const readAll =
+    !!entry && entry.status !== 'finished' && !next && story.status !== 'ongoing' && story.has_chapters && !!count && entry.progress_section >= count;
+  const markFinished = () =>
+    saved(finishedFields(story), () => finishStory(story, userId), () => {
+      void track('story_finished', { kind: story.kind });
+      router.push(`/finished/${story.id}`);
+    });
   const statuses = STATUSES.filter((s) => s !== 'on_hold' || isFic);
   const link = isAo3Link(story.source_url) ? story.source_url : null;
   // An Explicit fic asks the 18+ question before its link opens; nothing else on the page is hidden.
@@ -311,7 +294,7 @@ function StoryBody({
       <View style={{ flexDirection: 'row', gap: space.l }}>
         <View style={{ width: 96, gap: space.xs }}>
           <View>
-            <Cover story={story} customUrl={myCover.url} />
+            <StoryCover story={story} customUrl={myCover.url} width={96} />
             {entry ? <CoverEditButton hasCover={!!myCover.url} onPress={() => setCoverOpen((o) => !o)} /> : null}
           </View>
         </View>
@@ -324,12 +307,15 @@ function StoryBody({
           {entry && story.kind === 'book' && story.has_chapters && story.total_sections !== null ? <WrongChapterCountLink wrong={wrongCount} /> : null}
           {/* One story, never the library or how far you've read (PO, 16 Nov 2026). Not for a hidden story: its
               link would open for nobody else. */}
+          {/* Lined up with the title, like "Wrong chapter count?" (PO, 20 Nov: it sat off to the right). */}
           {story.is_hidden ? null : (
-            <Button
-              variant="link"
-              title={t('story.share')}
-              onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
-            />
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Button
+                variant="link"
+                title={t('story.share')}
+                onPress={() => shareStory(story, t).catch(() => setError(t('story.shareFailed')))}
+              />
+            </View>
           )}
         </View>
       </View>
@@ -432,6 +418,11 @@ function StoryBody({
           ) : null}
 
 
+          {/* Every chapter of a complete story read, but not marked Finished: say what opens The Epilogue
+              instead of leaving it locked without a word (PO, 20 Nov 2026). The reader decides: someone
+              rereading may not want it Finished. */}
+          {readAll ? <Button title={t('story.finishStory')} onPress={markFinished} /> : null}
+
           {canComplete(story, entry.progress_section) ? (
             <Button variant="secondary" title={t('story.markComplete')} onPress={() => act(() => markComplete(story.id))} />
           ) : null}
@@ -447,16 +438,8 @@ function StoryBody({
                 setStatusOpen(false);
                 if (s === entry.status) return;
                 setJustOpened(null);
-                saved(
-                  s === 'finished' ? finishedFields(story) : { status: s },
-                  () => (s === 'finished' ? finishStory(story, userId) : setStatus(story.id, userId, s)),
-                  s === 'finished'
-                    ? () => {
-                        void track('story_finished', { kind: story.kind });
-                        router.push(`/finished/${story.id}`);
-                      }
-                    : undefined,
-                );
+                if (s === 'finished') markFinished();
+                else saved({ status: s }, () => setStatus(story.id, userId, s));
               }}
             />
           </Sheet>

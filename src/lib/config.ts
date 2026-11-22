@@ -20,3 +20,6 @@ export const PROJECT_URL = 'https://github.com/BobbieBB/bookapp';
 
 /** Open Library's base URL; tests point it at a local stand-in so they never call the real API. */
 export const openLibraryUrl = () => process.env.EXPO_PUBLIC_OPEN_LIBRARY_URL ?? 'https://openlibrary.org';
+
+/** Google Books search (through our google-books Edge Function); tests turn it off with 'off'. */
+export const googleBooksEnabled = () => process.env.EXPO_PUBLIC_GOOGLE_BOOKS !== 'off';

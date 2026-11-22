@@ -159,3 +159,13 @@ main[hidden] { display: none; }
   font-weight: 800;
   text-decoration: none;
 }
+
+/* The terms and privacy pages (site/terms, site/privacy), generated from docs/legal. */
+.legal { overflow-wrap: anywhere; }
+.legal h2 { font-size: 20px; }
+.legal ul, .legal ol { padding-left: 1.2em; }
+.legal li { margin: 4px 0; }
+.legal table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 15px; display: block; overflow-x: auto; }
+.legal th, .legal td { border: 1px solid var(--hairline); padding: 8px 10px; text-align: left; vertical-align: top; min-width: 120px; }
+.legal th { background: var(--surface); }
+.legal code { font-size: 0.9em; }

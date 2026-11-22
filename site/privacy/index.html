@@ -22,9 +22,577 @@
 </header>
 <main>
 <h1><span lang="en">Privacy Policy</span><span lang="bg">Политика за поверителност</span></h1>
-<div class="note">
-  <p lang="en">We're preparing this text. The full version will be published here before Livami opens to readers.</p>
-  <p lang="bg">Подготвяме този текст. Пълната версия ще бъде публикувана тук, преди Livami да се отвори за читатели.</p>
+<div class="legal" lang="en">
+<p><strong>Last updated:</strong> 19 November 2026 (version 1)<br />
+<strong>Applies to:</strong> the Livami mobile app (iOS and Android) and the Livami support address.</p>
+<h2>1. Who we are</h2>
+<p>The controller of your personal data is:</p>
+<p><strong>Boryana Dimitrova</strong>, a natural person, Bulgaria. Postal address for correspondence: available on request from support@livami.app.</p>
+<p>Contact for all privacy questions: <strong>support@livami.app</strong>.</p>
+<p>Data protection officer: not appointed, as it is not required for a service of this size.
+EU representative: not needed while the operator is established in the EU.</p>
+<h2>2. The short version</h2>
+<ul>
+<li>Livami is a reading app. We keep what you need to use it: your account, your library, your reading progress, what you post.</li>
+<li>Other signed-in readers can see your Name and the public part of your profile (whether you read books and/or fanfiction, favourite genres and fandoms, join date), your comments and book reviews and ratings (section 13). Your library and reading progress are private. Nothing is public to people who are not signed in.</li>
+<li>We do <strong>not</strong> show ads, do <strong>not</strong> sell your data and do <strong>not</strong> share it for advertising.</li>
+<li>Our analytics are our own and record which features are used (never what you write or read). They are <strong>off unless you switch them on</strong>, at sign-up or later in Profile ("Help us improve the app").</li>
+<li>You can delete your account inside the app. You choose whether your comments stay (without your name) or are erased.</li>
+<li>We do not host fanfiction text. We keep metadata and a link to the work on AO3.</li>
+</ul>
+<h2>3. What we collect, and why</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Data</th>
+<th>Why (GDPR legal basis, Art. 6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Account</strong></td>
+<td>E-mail address and password (the password is handled by Supabase Auth and stored hashed; we never see it). Your account ID and sign-up time.</td>
+<td>Contract: to provide your account.</td>
+</tr>
+<tr>
+<td><strong>Password reset</strong></td>
+<td>If you choose "Forgot password", we use your e-mail address to send you a 6-digit code, valid for one hour, which you type into the app with your new password. The e-mail is sent through the e-mail service connected to our authentication provider (section 4).</td>
+<td>Contract (access to your account); legitimate interests (account security).</td>
+</tr>
+<tr>
+<td><strong>Acceptance of the terms and age confirmation</strong></td>
+<td>When you create your profile you tick the box "I accept the Terms. I have read the Privacy Policy." and the box "I'm at least 16". We store on your profile: the version of the terms you accepted, the time of acceptance (set by our server, not by your phone) and a yes/no that you ticked the age box. If you confirm "I'm 18 or over" when the app asks, the first time you open the AO3 link or a discussion room of a work rated Explicit, we store that yes too; it is needed to open the discussion rooms of Explicit works, and you are not asked again. <strong>We do not ask for or store a date of birth, and we do not verify age.</strong> When we publish a new version of the terms, you are told before it applies and asked to accept it from its effective date; we then update the stored version and time. Leaving means deleting your account.</td>
+<td>Contract, Art. 6(1)(b) (the terms are the contract you accept); legitimate interests, Art. 6(1)(f) (proof that you accepted the terms and confirmed your age). The Privacy Policy is information, not something you agree to.</td>
+</tr>
+<tr>
+<td><strong>Profile</strong></td>
+<td>Your unique Name (letters, numbers, underscore), whether you read books and/or fanfiction, favourite genres and fandoms. Other signed-in readers can read only the public part of your profile: Name, whether you read books/fanfiction, favourite genres and fandoms, and join date. The terms version, acceptance time, age tick, the 18+ confirmation, the admin flag and the suspension flag cannot be read by other readers; you can read your own. Your Name is shown everywhere.</td>
+<td>Contract.</td>
+</tr>
+<tr>
+<td><strong>Library and progress</strong></td>
+<td>The stories you added to your library, their status (e.g. reading, finished, DNF, on hold), the last chapter you finished, an optional page number, favourite flag, start and finish dates. Your progress decides which discussions you may open.</td>
+<td>Contract.</td>
+</tr>
+<tr>
+<td><strong>Visibility of your library</strong></td>
+<td>Your library entries are <strong>private</strong>: only you can read them, and no one, including you, can make an entry visible to other readers. Counts that use everyone's entries (for example how many readers a story has, or what is lively in a fandom) are calculated inside the database and never show who the readers are.</td>
+<td>Contract; data protection by default (GDPR Art. 25).</td>
+</tr>
+<tr>
+<td><strong>Stories you add</strong></td>
+<td>Title, author, fandom, chapter counts, AO3 link and similar details you type or paste. Stories are shared with other readers; we record who added a story.</td>
+<td>Contract; legitimate interests (running a shared catalogue).</td>
+</tr>
+<tr>
+<td><strong>Comments, replies, reactions</strong></td>
+<td>The text you write, when, where (story and chapter), emoji reactions, @mentions. Visible to readers who have unlocked that chapter.</td>
+<td>Contract.</td>
+</tr>
+<tr>
+<td><strong>Book ratings and reviews</strong></td>
+<td>Star rating, review text, "contains spoilers" flag. Visible to other signed-in readers.</td>
+<td>Contract.</td>
+</tr>
+<tr>
+<td><strong>Reports and blocks</strong></td>
+<td>Whom/what you reported (a comment, a review or a reader), the reason and optional details (up to 2000 characters), the status of the report (open, actioned or dismissed) and when; whom you blocked. When a report is reviewed, you get an in-app notice with the outcome.</td>
+<td>Legitimate interests, Art. 6(1)(f) (keeping the community safe); legal obligation, Art. 6(1)(c), for the notice-and-action duties of the Digital Services Act (see terms, section 6).</td>
+</tr>
+<tr>
+<td><strong>Author removal requests</strong></td>
+<td>The AO3 work link, a message, <strong>the contact details you give</strong> (e-mail or other way to reach you) and a status (open, actioned or dismissed), so we can check the request with you. The link, your message and your contact details are also sent to our moderation mailbox (section 4).</td>
+<td>Legitimate interests (respecting authors' rights); legal obligation where it applies.</td>
+</tr>
+<tr>
+<td><strong>Feedback</strong></td>
+<td>Your message, its type (problem, idea, other), the app version, whether you ticked “I’d like a reply by e-mail” (unticked by default), and a status (open, actioned or dismissed) that only moderators change. If you ask for a reply, we write to your account’s e-mail address.</td>
+<td>Legitimate interests (fixing and improving the app).</td>
+</tr>
+<tr>
+<td><strong>Notifications in the app</strong></td>
+<td>Records that someone replied, mentioned or reacted, and who. <strong>Never the comment text.</strong></td>
+<td>Contract.</td>
+</tr>
+<tr>
+<td><strong>Push notifications</strong> (only if you switch them on)</td>
+<td>Your device's push token (issued by Expo), the platform (iOS/Android) and the app language. A push says who replied, in which story and chapter, <strong>never the comment text</strong>. Several replies within 10 minutes are bundled into one push.</td>
+<td>Consent (you accept your phone's permission prompt; you can withdraw it in Profile ("Notifications on this phone") or in phone settings).</td>
+</tr>
+<tr>
+<td><strong>Custom covers</strong> (optional)</td>
+<td>An image you choose from your photo library (the app asks for photo-library permission) and which story it belongs to. Before upload the app resizes it to 1200 px wide and re-encodes it as a JPEG (quality 0.8), so what is stored is always a JPEG. It is stored in a private bucket in a folder named after your account ID (the bucket also accepts PNG/WebP up to 5 MB). Only you can see it; we do not show it to others. Re-encoding very likely removes hidden metadata such as location (EXIF).</td>
+<td>Contract (you ask for the feature).</td>
+</tr>
+<tr>
+<td><strong>Analytics</strong> (only if you opt in)</td>
+<td>Event name from a fixed list (for example app opened, sign-up, chapter finished, comment posted, language changed), a few short non-content values (such as kind, language, count), app version, platform, time. Linked to your account so we can see whether people come back. <strong>Never</strong> titles, comment text or other people's IDs. Limited to 300 events per hour per reader. Analytics are <strong>off by default</strong>: nothing is recorded unless you tick the unticked box "Help us improve the app" at sign-up or switch it on in Profile. We keep a record of when you gave consent (GDPR Art. 7(1)) and delete it when you withdraw consent or delete your account. Readers who joined before this change count as not opted in until they switch it on.</td>
+<td>Consent, Art. 6(1)(a), and the ePrivacy rule on information read from your device (ЗЕС чл. 4а). You can withdraw consent at any time in Profile.</td>
+</tr>
+<tr>
+<td><strong>Technical data</strong></td>
+<td>Our hosting provider and the services below see your IP address and basic request data when the app connects.</td>
+<td>Legitimate interests (security, operation).</td>
+</tr>
+<tr>
+<td><strong>Chapter counts</strong></td>
+<td>The first reader to add a book enters its chapter count; it is stored with the book and visible to all readers. Once a book has a count, only a moderator changes it. If you see a wrong one, "Wrong chapter count?" lets you propose a number: we store who asked, the proposed number, the story, the time and the status (open, actioned or dismissed); deleted with your account.</td>
+<td>Contract; legitimate interests (a correct shared catalogue).</td>
+</tr>
+<tr>
+<td><strong>Moderation</strong></td>
+<td>Moderators see, in an admin-only screen, the open reports, removal requests, feedback and chapter-count requests with their text. Reports show the reason and your details text; the screen shows how many readers reported the same item. Moderators can hide a comment or review (on a report), hide a fic (only on an author removal request), dismiss a report, suspend or unsuspend a reader with a reason, accept or dismiss a chapter-count request, and mark feedback done or dismiss it. When content is hidden, its author gets an in-app notice with the reason; a suspended reader gets a notice with the reason and how to contest it. We keep the reason and the decision with the item.</td>
+<td>Legitimate interests (keeping the community safe); legal obligation where it applies.</td>
+</tr>
+<tr>
+<td><strong>Searches for books</strong></td>
+<td>See section 5 (Open Library, Google Books).</td>
+<td>Contract.</td>
+</tr>
+</tbody>
+</table>
+<p>We do <strong>not</strong> collect: your real name, phone number, contact list, precise location, advertising ID, payment data, or the text of any fanfiction.</p>
+<h2>4. Who receives your data (processors and others)</h2>
+<table>
+<thead>
+<tr>
+<th>Recipient</th>
+<th>Role</th>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Supabase</strong> (database, authentication, file storage, realtime)</td>
+<td>Processor</td>
+<td>Everything in section 3</td>
+<td>EU (Ireland)</td>
+</tr>
+<tr>
+<td><strong>Expo</strong> (push notification service)</td>
+<td>Processor</td>
+<td>Push token, and the push message (title "Livami", who replied, story, chapter, link). Only if you enabled pushes.</td>
+<td>USA (see section 7)</td>
+</tr>
+<tr>
+<td><strong>Apple (APNs) and Google (FCM)</strong></td>
+<td>Independent controllers for delivery to your phone</td>
+<td>The push message, via Expo</td>
+<td>Worldwide</td>
+</tr>
+<tr>
+<td><strong>Resend</strong> (e-mail)</td>
+<td>Processor</td>
+<td>(a) Moderation e-mails <strong>to ourselves</strong> (sent by our database through Resend's API to our support mailbox). Immediate e-mails: for a report, the kind (comment, review or reader), the reason, the story title and the first 500 characters of the details the reporter wrote (<strong>never who reported</strong>); for an author removal request, the story title, the work link, the contact the author gave and the first 500 characters of the message. A daily digest at 07:00 UTC: feedback (type and the first 160 characters of the text) and chapter-count requests (story title, proposed and current count). Control characters in reader text are replaced by spaces. Reader account e-mail addresses are <strong>not</strong> included, except under feedback whose sender ticked “I’d like a reply by e-mail” (their account address, so we can answer). Normally at most one report e-mail is sent per reported item while an earlier one is open. Text that readers write (report details, the removal-request message and contact) is forwarded as written, so anything typed there is included. (b) Password-reset code e-mails to <strong>your</strong> account address: our authentication provider sends them through Resend, from no-reply@livami.app. Open and click tracking are switched off.</td>
+<td>EU (Ireland)</td>
+</tr>
+<tr>
+<td><strong>Apple App Store / Google Play</strong></td>
+<td>Independent controllers</td>
+<td>Their own data about your download and purchases, under their own policies. We do not get your Apple/Google identity.</td>
+<td>Worldwide</td>
+</tr>
+<tr>
+<td>Authorities, courts</td>
+<td>As required by law</td>
+<td>Only where legally required</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Our processors handle data under their data processing agreements with us.</p>
+<h2>5. Open Library and Google Books (books you search for)</h2>
+<p>When you search for a book, the app sends your <strong>search text</strong> (title, author or ISBN) directly from your phone to <strong>Open Library</strong> (openlibrary.org, run by the Internet Archive, a US non-profit). Your phone's IP address is visible to them in the usual way. The request identifies the app as <code>Livami/&lt;version&gt;</code> with a link to the project page, <strong>not</strong> with your name, account or e-mail address. Searches start after you type 3 characters and pause. Book cover images shown from Open Library are loaded from <code>covers.openlibrary.org</code> in the same way. Open Library is a separate controller under its own policy: https://openlibrary.org/.</p>
+<p><strong>Google Books.</strong> The same search text is also sent to <strong>Google Books</strong> (Google, USA), but not from your phone: the app sends it to our server (Supabase), which asks Google with our own key. Google sees our server, not your phone, your account or your IP address. Cover images found on Google Books are loaded by your phone from <code>books.google.com</code>, so Google sees your phone's IP address when it shows them. Google is a separate controller under its own policy: https://policies.google.com/privacy</p>
+<p>The app makes no network calls to AO3. When you paste an AO3 link, it is only tidied up and looked up in our own database; the details are read from text you paste yourself. If you tap an AO3 link, it opens AO3 in your browser, and AO3 then handles your data under its own policy.</p>
+<h2>6. How long we keep data</h2>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Kept</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Account, profile, library, progress, ratings, reactions, follows, blocks, notifications, reports you filed, analytics events and your analytics consent record, push tokens, custom covers</td>
+<td>Until you delete your account, then deleted. Accounts that never created a profile are deleted automatically after 30 days. Inactive accounts are not deleted automatically.</td>
+</tr>
+<tr>
+<td>Comments and reviews</td>
+<td>Until you delete them or your account (see section 8)</td>
+</tr>
+<tr>
+<td>Feedback</td>
+<td>Kept without your name after account deletion; the text stays for 24 months, then it is deleted.</td>
+</tr>
+<tr>
+<td>Author removal requests</td>
+<td>Kept after deletion without the requester's link to an account; contact details are removed on account deletion.</td>
+</tr>
+<tr>
+<td>Reports about someone's comments</td>
+<td>Stay with the comment, with their status (open, actioned, dismissed). Reports you filed, or about you as a reader, are deleted with your account. Moderation e-mails already sent to our support mailbox and held by Resend are kept for up to 24 months.</td>
+</tr>
+<tr>
+<td>Stories you added</td>
+<td>Stay (other readers have them), without your name as the creator.</td>
+</tr>
+<tr>
+<td>Notifications other readers received from you</td>
+<td>Stay, signed "Deleted reader".</td>
+</tr>
+<tr>
+<td>Cover files</td>
+<td>Removed by the app when you delete your account. If that step fails, leftovers are removed by a daily clean-up.</td>
+</tr>
+<tr>
+<td>Chapter-count requests</td>
+<td>Deleted with your account.</td>
+</tr>
+<tr>
+<td>Terms acceptance record (version, time, age yes/no)</td>
+<td>Kept on your profile until you delete your account.</td>
+</tr>
+<tr>
+<td>Password-reset codes</td>
+<td>Valid for one hour, and used up once a password is set.</td>
+</tr>
+<tr>
+<td>Moderation e-mail log (request ID, kind, delivery status, linked report; no content)</td>
+<td>30 days</td>
+</tr>
+<tr>
+<td>Backups</td>
+<td>Deleted data may remain in our hosting provider's backups for a limited time, until the backups are replaced.</td>
+</tr>
+<tr>
+<td>Server logs</td>
+<td>Kept by our hosting provider for a short period under its own retention rules.</td>
+</tr>
+</tbody>
+</table>
+<h2>7. Transfers outside the EU/EEA</h2>
+<p>Some recipients are in, or may access data from, the United States or elsewhere: Expo, Apple, Google, Open Library (Internet Archive), and, for support functions, possibly Supabase and Resend (both host our data in Ireland). Where a recipient is outside the EEA, we rely on the EU-US Data Privacy Framework (if the recipient is certified) or the EU Standard Contractual Clauses. You can ask us for a copy of the safeguards.</p>
+<h2>8. Deleting your account, and what happens to your content</h2>
+<p>Go to <strong>Profile &gt; "Delete my account"</strong> (Bulgarian: "Изтрий акаунта ми"). Before you confirm, the screen tells you what stays and what goes. <strong>Deletion cannot be undone.</strong></p>
+<p><strong>Always deleted:</strong> your profile, library and progress, ratings, reactions, follows, blocks, notifications, reports you filed, custom covers (including the files), analytics events and your analytics consent record, and push tokens. All your sessions are ended.</p>
+<p><strong>Comments and reviews, your choice:</strong> before you confirm, the screen asks you to choose, with no answer preselected.
+- <em>"Keep my comments as 'Deleted reader'":</em> they stay, shown as written by "Deleted reader", with no avatar and no link to a profile, so other readers' replies still make sense.
+- <em>"Erase them":</em> the text of each comment is erased (the place in the thread stays, showing "This comment was deleted"), and your reviews are deleted.</p>
+<p><strong>Kept without your name:</strong> stories you added (shared with other readers), feedback you sent (its text), author removal requests you sent (their contact details are removed), notifications others received from you (signed "Deleted reader").</p>
+<p><strong>Anonymisation note.</strong> Comments kept as "Deleted reader" no longer show your name or account link. If a comment's text itself identifies you, choose the erase option.</p>
+<p>If you cannot use the app, write to support@livami.app from the e-mail address of your account and we will delete it.</p>
+<h2>9. Your rights and how to use them</h2>
+<p>Under the GDPR you have the right to: access your data; correct it; erase it; restrict processing; receive a copy in a portable format; object to processing based on legitimate interests; and withdraw consent at any time. You also have the right to complain to a supervisory authority. For Bulgaria this is the <strong>Commission for Personal Data Protection (КЗЛД / CPDP)</strong>, 2 Prof. Tsvetan Lazarov Blvd., Sofia 1592, www.cpdp.bg. You may complain to the authority in your own EU country instead.</p>
+<p>How to use them:
+- <strong>Delete your account:</strong> in the app (section 8).
+- <strong>Switch analytics on or off:</strong> Profile &gt; "Help us improve the app" (Bulgarian: "Помогни ни да подобрим приложението"). Off is the default. When it is off, nothing is recorded; the setting is saved on your account and follows you to other devices. A device that has not yet picked up the change is still blocked by the database from recording anything. Past events are deleted when you delete your account.
+- <strong>Turn off push notifications:</strong> in Profile ("Notifications on this phone") or in your phone settings.
+- <strong>Correct your Name, genres, fandoms:</strong> in Profile.
+- <strong>Everything else (access, copy, correction, restriction, objection):</strong> write to support@livami.app. We reply within one month (GDPR Art. 12).</p>
+<p>We do not make decisions about you by automated means that have legal or similar effects.</p>
+<h2>10. Children</h2>
+<p>Livami is not for children. You must be at least <strong>16 years old</strong> to use it. (In Bulgaria the age of digital consent under GDPR Art. 8 is 14; we chose 16 because readers discuss fanfiction rated Mature or Explicit.) When you create your profile, the app asks you to tick "I'm at least 16" next to a note that Livami is for readers of that age and over. This is a <strong>self-declaration</strong>: we do not check it, we do not ask for or store a date of birth, and we keep only the fact that you ticked it (section 3). Readers who joined before this step must tick it, and accept the terms, before the app opens again. Your e-mail address and password are collected when you sign up, <strong>before</strong> you reach this step; if you do not accept, the account has no profile, and you can sign out, or write to support@livami.app and we'll delete it; accounts with no profile are deleted automatically after 30 days..</p>
+<p>Fanfiction on AO3 can be rated General, Teen, Mature or Explicit. Livami links to those works and shows AO3's rating and archive warnings, but does not host the text. Before you first open the AO3 link or a discussion room of an Explicit work, the app asks you to confirm that you are 18 or over; until you do, the discussion rooms of Explicit works stay closed to you. Content ratings do not make Livami suitable for children. If we learn that a child under the minimum age has an account, we delete it. Parents can contact support@livami.app.</p>
+<h2>11. Security</h2>
+<p>Data is sent over encrypted connections. Access to each table is controlled in the database by Row Level Security: anonymous visitors have no access, and you can read other readers' content only as the app's rules allow (for example, comments in a chapter only after you finished it). Your Name, profile, comments, book reviews and ratings are readable by signed-in readers, by design (section 13); your library is not. Your custom covers are in a private bucket and only reachable by short-lived signed links (valid for one hour). The service key for e-mail sending stays only in Supabase and is not in the app. No system is perfectly secure. If a breach puts your rights at risk, we will notify you and the authority as the law requires (GDPR Arts. 33-34). The operator's accounts for Supabase, Resend and GitHub use two-factor sign-in.</p>
+<h2>12. Ads, selling, tracking</h2>
+<p>No advertising, no ad networks, no sale or sharing of personal data for advertising, no cross-app tracking, no profiling for marketing.</p>
+<h2>13. Content that is public inside the app</h2>
+<p>Other signed-in readers can see: your Name and profile (whether you read books and/or fanfiction, favourite genres and fandoms, join date); your comments (in chapters they unlocked), reviews and <strong>individual book ratings</strong>. They <strong>cannot</strong> see your library, your reading progress or your custom covers. Fanfiction ratings are private to the rater. Everything is behind login and is not meant to be indexed by search engines. Please do not post personal information about yourself or others.</p>
+<h2>14. Changes to this policy</h2>
+<p>We will update this policy when the app changes. For material changes we will tell you in the app (or by e-mail) before they apply, normally 30 days ahead. The date at the top shows the current version; older versions are available on request.</p>
+<h2>15. Contact</h2>
+<p>Boryana Dimitrova, support@livami.app</p>
+</div>
+<div class="legal" lang="bg">
+<p><strong>Последна промяна:</strong> 19 ноември 2026 г. (версия 1)<br />
+<strong>Важи за:</strong> мобилното приложение Livami (iOS и Android) и адреса за поддръжка на Livami.</p>
+<h2>1. Кои сме ние</h2>
+<p>Администратор на личните ти данни е:</p>
+<p><strong>Боряна Димитрова</strong>, физическо лице, България. Пощенски адрес за кореспонденция: при поискване на support@livami.app.</p>
+<p>За всички въпроси за поверителността: <strong>support@livami.app</strong>.</p>
+<p>Длъжностно лице по защита на данните: не е определено, защото не се изисква за услуга с този размер.
+Представител в ЕС: не е нужен, докато администраторът е в ЕС.</p>
+<h2>2. Накратко</h2>
+<ul>
+<li>Livami е приложение за четене. Пазим това, което ти трябва, за да го ползваш: акаунта ти, библиотеката ти, докъде си стигнал(а) и това, което публикуваш.</li>
+<li>Другите влезли читатели виждат името ти (Name) и публичната част от профила ти (дали четеш книги и/или фенфикшън, любими жанрове и фендъми, откога си в Livami), коментарите, ревютата и оценките ти за книги (раздел 13). <strong>Библиотеката и напредъкът ти са лични.</strong> Нищо не е публично за хора, които не са влезли в приложението.</li>
+<li><strong>Нямаме</strong> реклами, <strong>не продаваме</strong> данните ти и <strong>не ги споделяме</strong> за реклама.</li>
+<li>Статистиката ни е наша и брои кои функции се ползват (никога какво пишеш или четеш). Тя е <strong>изключена, освен ако не я включиш</strong> при регистрацията или по-късно в Профил („Помогни ни да подобрим приложението“).</li>
+<li>Можеш да изтриеш акаунта си в самото приложение. Ти избираш дали коментарите ти остават (без името ти) или се изтриват.</li>
+<li>Не пазим текста на фенфикшъните. Пазим основни данни и линк към творбата в AO3.</li>
+</ul>
+<h2>3. Какво събираме и защо</h2>
+<table>
+<thead>
+<tr>
+<th>Функция</th>
+<th>Данни</th>
+<th>Защо (правно основание по чл. 6 от ОРЗД)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Акаунт</strong></td>
+<td>Имейл адрес и парола (паролата се обработва от Supabase Auth и се пази криптирана (хеширана), никога не я виждаме). Идентификатор на акаунта и кога си се регистрирал(а).</td>
+<td>Договор: за да имаш акаунт.</td>
+</tr>
+<tr>
+<td><strong>Забравена парола</strong></td>
+<td>Ако избереш „Забравена парола?“, пращаме на имейла ти 6-цифрен код, валиден един час, който въвеждаш в приложението заедно с новата парола. Имейлът минава през услугата за имейли на доставчика ни за вход (раздел 4).</td>
+<td>Договор (достъп до акаунта); легитимен интерес (сигурност на акаунта).</td>
+</tr>
+<tr>
+<td><strong>Приемане на условията и възраст</strong></td>
+<td>Когато създаваш профила си, отбелязваш „Приемам Условията. Прочетох Политиката за поверителност.“ и „Аз съм на поне 16 години“. Пазим в профила ти: коя версия на условията си приел(а), кога (часът се слага от нашия сървър, не от телефона) и „да“ за възрастта. Ако потвърдиш „Аз съм на 18+“, когато приложението те попита първия път, когато отваряш линка към AO3 или обсъждане на творба с рейтинг Explicit, пазим и това „да“; то е нужно, за да отваряш обсъжданията на Explicit творбите, и не те питаме повече. <strong>Не питаме за рождена дата, не я пазим и не проверяваме възрастта.</strong> Когато публикуваме нова версия на условията, те уведомяваме преди да влезе в сила и те молим да я приемеш от датата на влизане в сила; тогава обновяваме запазените версия и час. Ако напуснеш, изтриваш акаунта си.</td>
+<td>Договор, чл. 6, ал. 1, буква „б“ (условията са договорът, който приемаш); легитимен интерес, чл. 6, ал. 1, буква „е“ (доказателство, че си приел(а) условията и потвърдил(а) възрастта). Политиката за поверителност е информация, а не нещо, с което се съгласяваш.</td>
+</tr>
+<tr>
+<td><strong>Профил</strong></td>
+<td>Уникалното ти име (Name: букви, цифри, долна черта), дали четеш книги и/или фенфикшън, любими жанрове и фендъми. Другите влезли читатели могат да четат само публичните полета на профила ти: име, дали четеш книги/фенфикшън, жанрове, фендъми и откога си в Livami. Версията на условията, часът на приемане, отметката за 16 години, потвърждението за 18+, флагът за администратор и флагът за спиране не се четат от други читатели; ти можеш да четеш своите. Името ти се показва навсякъде.</td>
+<td>Договор.</td>
+</tr>
+<tr>
+<td><strong>Библиотека и напредък</strong></td>
+<td>Историите в библиотеката ти, статусът им (напр. чета, прочетена, DNF, на пауза), последната завършена глава, по избор номер на страница, „любима“, дати на започване и завършване. Напредъкът решава кои обсъждания може да отвориш.</td>
+<td>Договор.</td>
+</tr>
+<tr>
+<td><strong>Видимост на библиотеката</strong></td>
+<td>Библиотеката ти е <strong>лична</strong>: само ти я виждаш и никой, включително ти, не може да направи запис видим за други читатели. Числата, които ползват всички библиотеки (напр. колко читатели има една история или какво е горещо в един фендъм), се смятат в базата данни и никога не показват кои са читателите.</td>
+<td>Договор; защита на данните по подразбиране (чл. 25 от ОРЗД).</td>
+</tr>
+<tr>
+<td><strong>Истории, които добавяш</strong></td>
+<td>Заглавие, автор, фендъм, брой глави, линк към AO3 и други данни, които въвеждаш или поставяш. Историите са общи за всички читатели; записваме кой е добавил историята.</td>
+<td>Договор; легитимен интерес (общ каталог).</td>
+</tr>
+<tr>
+<td><strong>Коментари, отговори, реакции</strong></td>
+<td>Текстът, който пишеш, кога и къде (история и глава), емоджи реакции, @споменавания. Виждат ги читателите, които са отключили тази глава.</td>
+<td>Договор.</td>
+</tr>
+<tr>
+<td><strong>Оценки и ревюта на книги</strong></td>
+<td>Звезди, текст на ревюто, отметка „съдържа спойлери“. Виждат ги другите влезли читатели.</td>
+<td>Договор.</td>
+</tr>
+<tr>
+<td><strong>Доклади и блокирания</strong></td>
+<td>Кого или какво си докладвал(а) (коментар, ревю или читател), причината и по избор подробности (до 2000 знака), статусът на доклада (отворен, приет или отхвърлен) и кога; кого си блокирал(а). Когато докладът бъде прегледан, получаваш известие в приложението с резултата.</td>
+<td>Легитимен интерес, чл. 6, ал. 1, буква „е“ (безопасна общност); законово задължение, чл. 6, ал. 1, буква „в“, за задълженията по Акта за цифровите услуги (виж условията, раздел 6).</td>
+</tr>
+<tr>
+<td><strong>Молби от автори за премахване</strong></td>
+<td>Линкът към творбата в AO3, съобщение, <strong>данните за контакт, които даваш</strong> (имейл или друг начин да се свържем) и статус, за да проверим молбата с теб. Линкът, съобщението и контактът отиват и в пощата ни за модерация (раздел 4).</td>
+<td>Легитимен интерес (зачитане на правата на авторите); законово задължение, където важи.</td>
+</tr>
+<tr>
+<td><strong>Обратна връзка</strong></td>
+<td>Съобщението ти, видът му (проблем, идея, друго), версията на приложението, дали си отметнал(а) „Искам отговор по имейл“ (по подразбиране не е отметнато) и статус, който променят само модераторите. Ако поискаш отговор, ти пишем на имейла на акаунта ти.</td>
+<td>Легитимен интерес (поправяне и подобряване на приложението).</td>
+</tr>
+<tr>
+<td><strong>Известия в приложението</strong></td>
+<td>Записи, че някой ти е отговорил, те е споменал или е реагирал, и кой. <strong>Никога текстът на коментара.</strong></td>
+<td>Договор.</td>
+</tr>
+<tr>
+<td><strong>Push известия</strong> (само ако ги включиш)</td>
+<td>Push токенът на устройството ти (издава го Expo), платформата (iOS/Android) и езикът на приложението. Известието казва кой е отговорил, в коя история и глава, <strong>никога текста на коментара</strong>. Няколко отговора в рамките на 10 минути се събират в едно известие.</td>
+<td>Съгласие (приемаш въпроса на телефона; можеш да го оттеглиш в Профил („Известия на този телефон“) или в настройките на телефона).</td>
+</tr>
+<tr>
+<td><strong>Собствени корици</strong> (по избор)</td>
+<td>Снимка, която избираш от галерията си (приложението иска достъп до снимките), и за коя история е. Преди качване приложението я смалява до 1200 px ширина и я записва като JPEG, така че пазим винаги JPEG. Стои в лично хранилище, в папка с идентификатора на акаунта ти. Вижда я само ти. Презаписването най-вероятно маха скритите данни като местоположение (EXIF).</td>
+<td>Договор (ти искаш функцията).</td>
+</tr>
+<tr>
+<td><strong>Статистика</strong> (само ако се съгласиш)</td>
+<td>Име на събитие от фиксиран списък (напр. отворено приложение, регистрация, завършена глава, публикуван коментар, сменен език), няколко кратки стойности без съдържание (напр. вид, език, брой), версия на приложението, платформа, час. Свързани са с акаунта ти, за да виждаме дали хората се връщат. <strong>Никога</strong> заглавия, текст на коментари или идентификатори на други хора. Най-много 300 събития на час на читател. Статистиката е <strong>изключена по подразбиране</strong>: нищо не се записва, освен ако не отбележиш непопълненото поле „Помогни ни да подобрим приложението“ при регистрацията или не я включиш в Профил. Пазим запис кога си дал(а) съгласие (чл. 7, ал. 1 от ОРЗД) и го изтриваме, когато оттеглиш съгласието или изтриеш акаунта си. Читателите, които са се регистрирали преди тази промяна, се водят несъгласили се, докато не я включат.</td>
+<td>Съгласие, чл. 6, ал. 1, буква „а“, и правилото за е-неприкосновеност за информация, четена от устройството ти (ЗЕС, чл. 4а). Можеш да оттеглиш съгласието по всяко време в Профил.</td>
+</tr>
+<tr>
+<td><strong>Технически данни</strong></td>
+<td>Доставчикът ни на хостинг и услугите по-долу виждат IP адреса ти и основни данни за заявката, когато приложението се свързва.</td>
+<td>Легитимен интерес (сигурност, работа на услугата).</td>
+</tr>
+<tr>
+<td><strong>Брой глави</strong></td>
+<td>Първият читател, който добави книга, въвежда броя глави; той се пази с книгата и се вижда от всички. След това само модератор го променя. Ако видиш грешен брой, с „Грешен брой глави?“ предлагаш друг: пазим кой е предложил, числото, историята, часа и статуса; изтриват се с акаунта ти.</td>
+<td>Договор; легитимен интерес (точен общ каталог).</td>
+</tr>
+<tr>
+<td><strong>Модерация</strong></td>
+<td>Модераторите виждат на екран само за администратори отворените доклади, молби за премахване, обратна връзка и предложения за брой глави, с текста им. Докладите показват причината и текста с подробности; екранът показва и колко читатели са докладвали един и същ елемент. Могат да скрият коментар или ревю (при доклад), да скрият фикшън (само по молба на автора), да отхвърлят доклад, да спират или връщат читател с причина, да приемат или отхвърлят предложение за брой глави и да отбележат обратна връзка като свършена или отхвърлена. Когато съдържание е скрито, авторът му получава известие в приложението с причината; спрян читател получава известие с причината и как да я оспори. Пазим причината и решението при съответния елемент.</td>
+<td>Легитимен интерес (безопасна общност); законово задължение, където важи.</td>
+</tr>
+<tr>
+<td><strong>Търсене на книги</strong></td>
+<td>Виж раздел 5 (Open Library, Google Books).</td>
+<td>Договор.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Не събираме:</strong> истинското ти име, телефон, контакти, точно местоположение, рекламен идентификатор, данни за плащане или текст на фенфикшън.</p>
+<h2>4. Кой получава данните ти</h2>
+<table>
+<thead>
+<tr>
+<th>Получател</th>
+<th>Роля</th>
+<th>Какво</th>
+<th>Къде</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Supabase</strong> (база данни, вход, файлове, обновяване в реално време)</td>
+<td>Обработващ</td>
+<td>Всичко от раздел 3</td>
+<td>ЕС (Ирландия)</td>
+</tr>
+<tr>
+<td><strong>Expo</strong> (услуга за push известия)</td>
+<td>Обработващ</td>
+<td>Push токен и съобщението (заглавие „Livami“, кой е отговорил, история, глава, линк). Само ако си включил(а) известията.</td>
+<td>САЩ (виж раздел 7)</td>
+</tr>
+<tr>
+<td><strong>Apple (APNs) и Google (FCM)</strong></td>
+<td>Самостоятелни администратори за доставката до телефона ти</td>
+<td>Push съобщението, през Expo</td>
+<td>Целия свят</td>
+</tr>
+<tr>
+<td><strong>Resend</strong> (имейли)</td>
+<td>Обработващ</td>
+<td>(а) Имейли за модерация <strong>до нас самите</strong>: при доклад видът (коментар, ревю или читател), причината, заглавието на историята и първите 500 знака от подробностите (<strong>никога кой е докладвал</strong>); при молба от автор заглавието, линкът, контактът и първите 500 знака от съобщението. Всеки ден в 07:00 UTC обобщение: обратна връзка (вид и първите 160 знака) и предложения за брой глави (заглавие, предложен и сегашен брой). Управляващите знаци в текста на читателите се заменят с интервали. Имейлите на читателите <strong>не</strong> се включват, освен под обратна връзка, при която подателят е отметнал „Искам отговор по имейл“ (имейлът на акаунта му, за да можем да отговорим). По правило се праща най-много един имейл за доклад за един елемент, докато предишният е отворен. Текст, който читателите пишат (подробности, съобщение, контакт), се препраща както е написан. (б) Имейли с код за нова парола до <strong>твоя</strong> адрес, от no-reply@livami.app. Проследяването на отваряния и кликове е изключено.</td>
+<td>ЕС (Ирландия)</td>
+</tr>
+<tr>
+<td><strong>Apple App Store / Google Play</strong></td>
+<td>Самостоятелни администратори</td>
+<td>Собствените им данни за изтеглянето, по техните политики. Не получаваме Apple/Google самоличността ти.</td>
+<td>Целия свят</td>
+</tr>
+<tr>
+<td>Органи, съдилища</td>
+<td>Когато законът го изисква</td>
+<td>Само когато законът го изисква</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Обработващите работят с данните по споразумения за обработване с нас.</p>
+<h2>5. Open Library и Google Books (книгите, които търсиш)</h2>
+<p>Когато търсиш книга, приложението праща <strong>текста на търсенето</strong> (заглавие, автор или ISBN) директно от телефона ти към <strong>Open Library</strong> (openlibrary.org, на Internet Archive, американска организация с нестопанска цел). Те виждат IP адреса на телефона ти по обичайния начин. Заявката представя приложението като <code>Livami/&lt;версия&gt;</code> с линк към страницата на проекта, <strong>не</strong> с името, акаунта или имейла ти. Търсенето започва, след като напишеш 3 знака и спреш. Кориците от Open Library се зареждат от <code>covers.openlibrary.org</code> по същия начин. Open Library е отделен администратор със собствена политика: https://openlibrary.org/</p>
+<p><strong>Google Books.</strong> Същият текст на търсенето отива и до <strong>Google Books</strong> (Google, САЩ), но не от телефона ти: приложението го праща на нашия сървър (Supabase), който пита Google с наш ключ. Google вижда нашия сървър, а не телефона, акаунта или IP адреса ти. Кориците от Google Books телефонът ти зарежда от <code>books.google.com</code>, така че Google вижда IP адреса на телефона ти, когато ги показва. Google е отделен администратор със собствена политика: https://policies.google.com/privacy</p>
+<p>Приложението не прави заявки към AO3. Когато поставиш линк от AO3, той само се подрежда и търси в нашата база; данните се четат от текста, който поставяш ти. Ако цъкнеш линк към AO3, той се отваря в браузъра ти и оттам AO3 обработва данните ти по своята политика.</p>
+<h2>6. Колко дълго пазим данните</h2>
+<table>
+<thead>
+<tr>
+<th>Данни</th>
+<th>Пазим</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Акаунт, профил, библиотека, напредък, оценки, реакции, следвания, блокирания, известия, доклади, които си подал(а), статистика и записът за съгласието ти за нея, push токени, собствени корици</td>
+<td>Докато изтриеш акаунта си, после се изтриват. Акаунти, които никога не са създали профил, се изтриват автоматично след 30 дни. Неактивни акаунти не се изтриват автоматично.</td>
+</tr>
+<tr>
+<td>Коментари и ревюта</td>
+<td>Докато ги изтриеш ти или изтриеш акаунта си (раздел 8)</td>
+</tr>
+<tr>
+<td>Обратна връзка</td>
+<td>Остава без името ти след изтриване на акаунта; текстът остава 24 месеца, после се изтрива.</td>
+</tr>
+<tr>
+<td>Молби от автори за премахване</td>
+<td>Остават без връзка с акаунт; данните за контакт се изтриват с акаунта.</td>
+</tr>
+<tr>
+<td>Доклади за чужди коментари</td>
+<td>Остават с коментара и статуса си. Докладите, които си подал(а), и тези за теб като читател се изтриват с акаунта ти. Вече изпратените имейли за модерация до пощата ни за поддръжка и при Resend се пазят до 24 месеца.</td>
+</tr>
+<tr>
+<td>Истории, които си добавил(а)</td>
+<td>Остават (другите читатели ги имат), без името ти като създател.</td>
+</tr>
+<tr>
+<td>Известия, които други са получили от теб</td>
+<td>Остават, подписани „Изтрит читател“.</td>
+</tr>
+<tr>
+<td>Файловете на кориците</td>
+<td>Изтриват се с акаунта ти. Ако тази стъпка не успее, ежедневно почистване маха остатъците.</td>
+</tr>
+<tr>
+<td>Предложения за брой глави</td>
+<td>Изтриват се с акаунта ти.</td>
+</tr>
+<tr>
+<td>Запис за приемане на условията (версия, час, възраст „да“)</td>
+<td>Пази се в профила ти, докато изтриеш акаунта.</td>
+</tr>
+<tr>
+<td>Кодове за нова парола</td>
+<td>Валидни един час и само веднъж.</td>
+</tr>
+<tr>
+<td>Дневник на имейлите за модерация (без съдържание)</td>
+<td>30 дни</td>
+</tr>
+<tr>
+<td>Резервни копия</td>
+<td></td>
+</tr>
+<tr>
+<td>Логове на сървъра</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2>7. Прехвърляне извън ЕС/ЕИП</h2>
+<p>Някои получатели са в САЩ или другаде, или имат достъп оттам: Expo, Apple, Google, Open Library (Internet Archive), а за поддръжка евентуално и Supabase и Resend (и двете пазят данните ни в Ирландия). Когато получателят е извън ЕИП, разчитаме на Рамката за защита на данните ЕС–САЩ (ако е сертифициран) или на Стандартните договорни клаузи на ЕС. Можеш да поискаш копие на гаранциите.</p>
+<h2>8. Изтриване на акаунта и какво става със съдържанието ти</h2>
+<p>Отиди в <strong>Профил → „Изтрий акаунта ми“</strong>. Преди да потвърдиш, екранът казва какво остава и какво изчезва. <strong>Изтриването не може да се отмени.</strong></p>
+<p><strong>Винаги се изтриват:</strong> профилът, библиотеката и напредъкът, оценките, реакциите, следванията, блокиранията, известията, докладите, които си подал(а), собствените корици (заедно с файловете), статистиката и записът за съгласието ти за нея, push токените. Излизаш от всички устройства.</p>
+<p><strong>Коментари и ревюта, по твой избор:</strong> преди да потвърдиш, екранът те кара да избереш, без предварително избран отговор.
+- <em>„Запази коментарите ми като „Изтрит читател““:</em> остават, подписани „Изтрит читател“, без снимка и без линк към профил, за да имат смисъл отговорите на другите.
+- <em>„Изтрий ги“:</em> текстът на всеки коментар се изтрива (мястото в разговора остава с „Този коментар е изтрит“), а ревютата ти се изтриват.</p>
+<p><strong>Остават без името ти:</strong> историите, които си добавил(а) (общи са), обратната ти връзка (текстът), молбите ти за премахване (без данните за контакт), известията, които други са получили от теб (подписани „Изтрит читател“).</p>
+<p><strong>За анонимизирането.</strong> Коментарите, оставени като „Изтрит читател“, вече не показват името ти и не водят към акаунт. Ако самият текст на коментар те разкрива, избери изтриването.</p>
+<p>Ако не можеш да ползваш приложението, пиши на support@livami.app от имейла на акаунта си и ще го изтрием.</p>
+<h2>9. Правата ти и как да ги ползваш</h2>
+<p>Според ОРЗД имаш право: на достъп до данните си; да ги поправиш; да ги изтриеш; да ограничиш обработването им; да получиш копие в преносим формат; да възразиш срещу обработване на основание легитимен интерес; и да оттеглиш съгласието си по всяко време. Имаш право и на жалба до надзорен орган. За България това е <strong>Комисията за защита на личните данни (КЗЛД)</strong>, бул. „Проф. Цветан Лазаров“ 2, София 1592, www.cpdp.bg. Можеш да подадеш жалба и до органа в своята държава в ЕС.</p>
+<p>Как:
+- <strong>Изтриване на акаунта:</strong> в приложението (раздел 8).
+- <strong>Включване или изключване на статистиката:</strong> Профил → „Помогни ни да подобрим приложението“. По подразбиране е изключена. Когато е изключена, нищо не се записва; изборът се пази в акаунта ти и важи на всички устройства. Устройство, което още не е разбрало за промяната, пак бива спряно от базата да записва. Старите събития се изтриват, когато изтриеш акаунта си.
+- <strong>Изключване на push известията:</strong> в Профил („Известия на този телефон“) или в настройките на телефона.
+- <strong>Поправка на името, жанровете, фендъмите:</strong> в Профил.
+- <strong>Всичко останало (достъп, копие, поправка, ограничаване, възражение):</strong> пиши на support@livami.app. Отговаряме до един месец (чл. 12 от ОРЗД).</p>
+<p>Не вземаме автоматизирани решения за теб, които имат правни или подобни последици.</p>
+<h2>10. Деца</h2>
+<p>Livami не е за деца. Трябва да си на поне <strong>16 години</strong>, за да го ползваш. (В България възрастта за съгласие по чл. 8 от ОРЗД е 14; избрахме 16, защото читателите обсъждат фенфикшън с рейтинг Mature или Explicit.) Когато създаваш профила си, приложението те моли да отбележиш „Аз съм на поне 16 години“ до бележка, че Livami е за читатели на тази възраст и по-големи. Това е <strong>твое собствено заявление</strong>: не го проверяваме, не питаме за рождена дата и пазим само това, че си го отбелязал(а) (раздел 3). Читателите, които са се регистрирали преди тази стъпка, трябва да я отбележат и да приемат условията, преди приложението да се отвори отново. Имейлът и паролата се събират при регистрацията, <strong>преди</strong> тази стъпка; ако не приемеш, акаунтът няма профил; можеш да излезеш или да пишеш на support@livami.app и ще го изтрием; акаунтите без профил се изтриват автоматично след 30 дни.</p>
+<p>Фенфикшънът в AO3 може да е с рейтинг General, Teen, Mature или Explicit. Livami дава линк към тези творби и показва рейтинга и предупрежденията на AO3, но не пази текста. Рейтингите на съдържанието не правят Livami подходящ за деца. Преди първия път, когато отвориш линка към AO3 или обсъждане на Explicit творба, приложението те пита дали си на 18 или повече години; докато не потвърдиш, обсъжданията на Explicit творбите остават затворени за теб. Ако разберем, че дете под минималната възраст има акаунт, го изтриваме. Родителите могат да пишат на support@livami.app.</p>
+<h2>11. Сигурност</h2>
+<p>Данните се пращат по криптирани връзки. Достъпът до всяка таблица се контролира в самата база (Row Level Security): анонимни посетители нямат достъп, а чуждото съдържание виждаш само според правилата на приложението (напр. коментарите в глава – само след като я завършиш). Името, профилът, коментарите, ревютата и оценките ти за книги се виждат от влезлите читатели (раздел 13); библиотеката ти – не. Собствените корици са в лично хранилище и се отварят само с временни линкове (валидни един час). Ключът за изпращане на имейли е само в Supabase, не и в приложението. Акаунтите на администратора в Supabase, Resend и GitHub са с двуфакторен вход. Никоя система не е напълно сигурна. Ако пробив застраши правата ти, ще уведомим теб и КЗЛД, както изисква законът (чл. 33–34 от ОРЗД).</p>
+<h2>12. Реклами, продажба, проследяване</h2>
+<p>Нямаме реклами, рекламни мрежи, продажба или споделяне на лични данни за реклама, проследяване между приложения или профилиране за маркетинг.</p>
+<h2>13. Какво виждат другите в приложението</h2>
+<p>Другите влезли читатели виждат: името ти и профила ти (дали четеш книги и/или фенфикшън, любими жанрове и фендъми, откога си в Livami); коментарите ти (в главите, които са отключили), ревютата и <strong>отделните ти оценки за книги</strong>. <strong>Не виждат</strong> библиотеката ти, напредъка ти и собствените ти корици. Оценките за фенфикшън са лични. Всичко е зад вход и не е предназначено за търсачки. Моля, не публикувай лична информация за себе си или за други.</p>
+<h2>14. Промени в тази политика</h2>
+<p>Ще обновяваме политиката, когато приложението се променя. За съществени промени ще те уведомим в приложението (или по имейл), преди да влязат в сила. Датата горе показва текущата версия; по-стари версии се предоставят при поискване.</p>
+<h2>15. Контакт</h2>
+<p>Боряна Димитрова, support@livami.app</p>
 </div>
 </main>
 <footer>

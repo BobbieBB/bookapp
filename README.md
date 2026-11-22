@@ -158,6 +158,10 @@ npx expo start
 Scan the QR code with the phone camera (iPhone) or the Expo Go app (Android). The phone and the
 computer must be on the same Wi-Fi.
 
+**From a GitHub Codespace** the phone is not on the same network: start Expo with `npm run phone`
+instead of `npx expo start` (it points Expo Go at the Codespace's public address), and set port 8081
+to **Public** in the Ports tab. The Metro line must show `exps://…app.github.dev`, not `exp://10.…`.
+
 If Expo Go says the project uses an older SDK, upgrade it once with `npx expo install expo@latest`
 followed by `npx expo install --fix`.
 

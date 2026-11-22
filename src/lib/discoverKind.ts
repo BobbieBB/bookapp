@@ -8,8 +8,8 @@ export const DISCOVER_KIND_STORAGE_KEY = 'livami.discover.kind';
 export type DiscoverKind = 'book' | 'fanfic';
 
 /**
- * The reader's choice; null until the remembered one has been read. Fanfiction until they pick books: Discover was
- * fanfiction only before, so readers of both find it as they left it, with Books one tap away.
+ * The reader's choice; null until the remembered one has been read. Books until they pick fanfiction (PO, 21 Nov
+ * 2026: more readers come for books, and Discover looked fic-only).
  */
 export function useDiscoverKind(): [DiscoverKind | null, (kind: DiscoverKind) => void] {
   const [kind, setState] = useState<DiscoverKind | null>(null);
@@ -17,10 +17,10 @@ export function useDiscoverKind(): [DiscoverKind | null, (kind: DiscoverKind) =>
   useEffect(() => {
     let live = true;
     AsyncStorage.getItem(DISCOVER_KIND_STORAGE_KEY)
-      .catch(() => null) // unreadable storage: fanfiction
+      .catch(() => null) // unreadable storage: books
       .then((stored) => {
         // A tap that came before the read wins: it is newer than what was stored.
-        if (live) setState((chosen) => chosen ?? (stored === 'book' ? 'book' : 'fanfic'));
+        if (live) setState((chosen) => chosen ?? (stored === 'fanfic' ? 'fanfic' : 'book'));
       });
     return () => {
       live = false;

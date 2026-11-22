@@ -73,6 +73,15 @@ describe('a chapter you finished', () => {
     expect(screen.getByText('reply 1')).toBeOnTheScreen();
   });
 
+  // PO, 20 Nov: an empty room invites the first comment.
+  it('an empty room asks you to start the discussion; one with comments, to write a comment', async () => {
+    await open('en', '1');
+    expect(await screen.findByPlaceholderText('Start the discussion…', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await open('en', '2');
+    await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 });
+    expect(screen.getByPlaceholderText('Write a comment…')).toBeOnTheScreen();
+  });
+
   it('you can post a comment and reply to one', async () => {
     await open('en', '2');
     await screen.findByText('That ending of chapter 2!', {}, { timeout: 8000 });

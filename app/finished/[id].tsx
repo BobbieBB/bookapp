@@ -1,8 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import Feather from '@expo/vector-icons/Feather';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useCustomCover } from '@/components/CustomCover';
 import { useExplicitGate } from '@/components/ExplicitDialog';
+import { StoryCover } from '@/components/StoryCover';
 import { Button, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -11,7 +14,7 @@ import { isAo3Link } from '@/lib/links';
 import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/reviews';
 import { canComplete, loadStoryPage, markComplete, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
-import { space, useTheme } from '@/theme';
+import { radius, space, useTheme } from '@/theme';
 
 const STARS = [1, 2, 3, 4, 5];
 const REVIEW_MAX = 10000;
@@ -72,6 +75,9 @@ function Finished({
   // only opens once it is complete, so don't offer a door that is locked.
   const wip = story.kind === 'fanfic' && story.status === 'ongoing';
   const [completing, setCompleting] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const saveDraftRef = useRef<(() => Promise<boolean>) | null>(null);
+  const myCover = useCustomCover(story.id, true);
 
   // The usual case: the reader just read the last chapter, but Livami still has it as a WIP.
   // Finished is always opened on top of the story (the Finished chip, or Add): Back is the way, and a deep link
@@ -103,14 +109,27 @@ function Finished({
     );
   }
 
+  // Join The Epilogue saves a review still being written first, so nothing typed is lost (PO, 20 Nov 2026).
+  async function joinEpilogue() {
+    setJoining(true);
+    const saved = (await saveDraftRef.current?.()) ?? true;
+    setJoining(false);
+    if (saved) gate.ask(explicit && !profile?.is_admin, () => router.replace(`/room/${story.id}/epilogue`));
+  }
+
   return (
     <>
       {gate.dialog}
-      <View accessible accessibilityRole="header" style={{ gap: space.s, paddingVertical: space.xl }}>
-        <Text style={{ fontFamily: fonts.moment, fontSize: 44, lineHeight: 50, color: c.ink }}>
+      {/* The story is the hero: its cover, then its title, larger than "You finished it!" (PO, 20 Nov 2026). */}
+      <View accessible accessibilityRole="header" style={{ alignItems: 'center', gap: space.s, paddingTop: space.m, paddingBottom: space.s }}>
+        <Text style={{ fontFamily: fonts.moment, fontSize: 28, lineHeight: 34, color: c.ink, textAlign: 'center' }}>
           {wip ? t('finishing.caughtUpTitle') : t('finishing.title')}
         </Text>
-        <T v="h2">{story.title}</T>
+        <View style={{ marginVertical: space.s }}>
+          <StoryCover story={story} customUrl={myCover.url} width={132} />
+        </View>
+        <Text style={{ fontFamily: fonts.display, fontSize: 26, lineHeight: 32, color: c.ink, textAlign: 'center' }}>{story.title}</Text>
+        <T v="muted">{story.author_name}</T>
       </View>
 
       {story.kind === 'fanfic' ? (
@@ -131,7 +150,7 @@ function Finished({
           <ErrorText>{error}</ErrorText>
         </View>
       ) : (
-        <BookRating storyId={story.id} rating={savedRating} review={savedReview} />
+        <BookRating storyId={story.id} rating={savedRating} review={savedReview} saveDraftRef={saveDraftRef} />
       )}
 
       {wip ? (
@@ -146,73 +165,116 @@ function Finished({
           <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={backToStory} />
         </>
       ) : (
-        <Button
-          title={t('finishing.epilogue')}
-          onPress={() => gate.ask(explicit && !profile?.is_admin, () => router.replace(`/room/${story.id}/epilogue`))}
-        />
+        <Button title={t('finishing.epilogue')} onPress={joinEpilogue} loading={joining} />
       )}
     </>
   );
 }
 
+type Review = { body: string; contains_spoilers: boolean };
+
+/**
+ * Stars save as soon as you tap them. The review is written, then saved with "Save review"; once saved it
+ * shows read-only with a green tick and "Edit" (PO, 20 Nov 2026: after Save the form looked unchanged).
+ * `saveDraftRef` lets Join The Epilogue save a review that is still being written.
+ */
 function BookRating({
   storyId,
   rating: initialRating,
   review,
+  saveDraftRef,
 }: {
   storyId: string;
   rating: number | null;
-  review: { body: string; contains_spoilers: boolean } | null;
+  review: Review | null;
+  saveDraftRef: RefObject<(() => Promise<boolean>) | null>;
 }) {
   const t = useT();
+  const { c, fonts } = useTheme();
   const [rating, setRating] = useState(initialRating);
+  const [ratingFailed, setRatingFailed] = useState(false);
+  const [saved, setSaved] = useState<Review | null>(review);
+  const [editing, setEditing] = useState(!review);
   const [body, setBody] = useState(review?.body ?? '');
   const [spoilers, setSpoilers] = useState(review?.contains_spoilers ?? false);
-  const [hadReview, setHadReview] = useState(!!review);
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed' | 'reviewFailed'>('idle');
-  const nothingToSave = rating === null && !body.trim() && !hadReview;
+  const [status, setStatus] = useState<'idle' | 'saving' | 'failed'>('idle');
+  const dirty = editing && (body.trim() !== (saved?.body ?? '') || spoilers !== (saved?.contains_spoilers ?? false));
 
-  async function save() {
-    if (nothingToSave) return;
-    setStatus('saving');
-    let ratingSaved = false;
+  async function rate(value: number) {
+    const before = rating;
+    setRating(value);
+    setRatingFailed(false);
     try {
-      if (rating !== null) {
-        await rateBook(storyId, rating);
-        ratingSaved = true;
-      }
-      if (body.trim()) {
-        await saveReview(storyId, body, spoilers);
-        setHadReview(true);
-      } else if (hadReview) {
-        await deleteReview(storyId);
-        setHadReview(false);
-      }
-      setStatus('saved');
+      await rateBook(storyId, value);
     } catch {
-      setStatus(ratingSaved ? 'reviewFailed' : 'failed');
+      setRating(before);
+      setRatingFailed(true);
     }
   }
 
-  const edit = <A,>(set: (v: A) => void) => (v: A) => {
-    setStatus('idle');
-    set(v);
-  };
+  /** Saves the review being written; true when there was nothing to save or it saved. */
+  async function saveReviewNow(): Promise<boolean> {
+    if (!dirty) return true;
+    setStatus('saving');
+    try {
+      if (body.trim()) {
+        await saveReview(storyId, body, spoilers);
+        setSaved({ body: body.trim(), contains_spoilers: spoilers });
+        setEditing(false);
+      } else {
+        await deleteReview(storyId);
+        setSaved(null);
+      }
+      setStatus('idle');
+      return true;
+    } catch {
+      setStatus('failed');
+      return false;
+    }
+  }
+  // Join The Epilogue calls the latest one (it sees the text typed so far).
+  useEffect(() => {
+    saveDraftRef.current = saveReviewNow;
+  });
 
   return (
     <View style={{ gap: space.m }}>
       <T v="overline">{t('finishing.yourRating')}</T>
-      <StarPicker rating={rating} onRate={edit(setRating)} />
-      <Field label={t('finishing.reviewLabel')} value={body} onChangeText={edit(setBody)} multiline maxLength={REVIEW_MAX} />
-      <Toggle label={t('finishing.spoilers')} value={spoilers} onChange={edit(setSpoilers)} />
-      <Button title={t('finishing.save')} onPress={save} loading={status === 'saving'} disabled={nothingToSave} />
-      {status === 'saved' ? (
-        <Text accessibilityRole="alert" accessibilityLiveRegion="polite">
-          <T v="label">{t('finishing.saved')}</T>
-        </Text>
-      ) : null}
-      {status === 'failed' ? <ErrorText>{t('finishing.saveFailed')}</ErrorText> : null}
-      {status === 'reviewFailed' ? <ErrorText>{t('finishing.reviewNotSaved')}</ErrorText> : null}
+      <StarPicker rating={rating} onRate={(v) => void rate(v)} />
+      {ratingFailed ? <ErrorText>{t('finishing.saveFailed')}</ErrorText> : null}
+
+      {saved && !editing ? (
+        <View style={{ gap: space.s }}>
+          <View style={{ borderRadius: radius.s, borderWidth: 1.5, borderColor: c.hairline, padding: space.m, opacity: 0.85 }}>
+            <Text style={{ fontFamily: fonts.body, fontSize: 16, lineHeight: 22, color: c.inkSoft }}>{saved.body}</Text>
+            {saved.contains_spoilers ? <T v="muted">{t('finishing.spoilers')}</T> : null}
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s }}>
+            <View accessible accessibilityRole="text" style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, flexShrink: 1 }}>
+              <Feather name="check-circle" size={18} color={c.success} />
+              <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>{t('finishing.saved')}</Text>
+            </View>
+            <Button variant="link" title={t('finishing.editReview')} onPress={() => setEditing(true)} />
+          </View>
+          <T v="muted">{t('finishing.reviewOnPage')}</T>
+        </View>
+      ) : (
+        <>
+          <Field
+            label={t('finishing.reviewLabel')}
+            value={body}
+            onChangeText={(v) => {
+              setStatus('idle');
+              setBody(v);
+            }}
+            multiline
+            maxLength={REVIEW_MAX}
+          />
+          <Toggle label={t('finishing.spoilers')} value={spoilers} onChange={setSpoilers} />
+          <Button variant="secondary" title={t('finishing.saveReview')} onPress={() => void saveReviewNow()} loading={status === 'saving'} disabled={!dirty} />
+        </>
+      )}
+      {status === 'failed' ? <ErrorText>{t('finishing.reviewNotSaved')}</ErrorText> : null}
     </View>
   );
 }

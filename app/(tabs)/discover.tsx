@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useRouter } from 'expo-router';
 
+import { StoryCover } from '@/components/StoryCover';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { useLanguage, useT } from '@/i18n';
 import { track } from '@/lib/analytics';
@@ -23,7 +24,7 @@ import {
   type StoryHit,
 } from '@/lib/discover';
 import { useLookup } from '@/lib/useLookup';
-import { coverColor, softShadow, space, useTheme } from '@/theme';
+import { space, useTheme } from '@/theme';
 
 const MAX_CHIPS = 6;
 const SEARCH_DELAY_MS = 350;
@@ -35,33 +36,12 @@ const TIER_KEY = {
   starter: 'discover.tier.starter',
 } as const satisfies Record<LivelyTier, string>;
 
-const COVER = { width: 64, height: 92, borderRadius: 10 };
-
-/** Title and author on the story's colour: every fic, and books without an Open Library cover. Decorative. */
-function TypographicCover({ id, title, author }: { id: string; title: string; author: string }) {
-  const t = useTheme();
-  const cover = coverColor(id, t.mode);
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ ...COVER, backgroundColor: cover.bg, ...softShadow(t.mode, 'small'), justifyContent: 'space-between', padding: 6 }}
-    >
-      <Text numberOfLines={4} style={{ fontFamily: t.fonts.moment, fontSize: 15, lineHeight: 15, color: cover.fg }}>
-        {title}
-      </Text>
-      <Text numberOfLines={2} style={{ fontFamily: t.fonts.bodyBold, fontSize: 8, lineHeight: 9, letterSpacing: 0.2, color: cover.fg }}>
-        {author.toUpperCase()}
-      </Text>
-    </View>
-  );
-}
+const COVER_WIDTH = 64;
 
 /** A book being read now: its Open Library cover if it has one, the edition's language, and how many read it. */
 function BookNowRow({ book, onOpen }: { book: BookNow; onOpen: () => void }) {
   const t = useTheme();
   const tr = useT();
-  const [coverFailed, setCoverFailed] = useState(false);
   const subtitle = [book.author_name, book.language ? book.language.toUpperCase() : null].filter(Boolean).join(' · ');
   const count = book.reading > 0 ? tr('discover.readingNow', { count: book.reading }) : tr('discover.readers', { count: book.readers });
   return (
@@ -71,17 +51,10 @@ function BookNowRow({ book, onOpen }: { book: BookNow; onOpen: () => void }) {
       onPress={onOpen}
       style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
     >
-      {book.cover_url && !coverFailed ? (
-        <Image
-          source={{ uri: book.cover_url }}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          onError={() => setCoverFailed(true)}
-          style={{ ...COVER, ...softShadow(t.mode, 'small') }}
-        />
-      ) : (
-        <TypographicCover id={book.id} title={book.title} author={book.author_name} />
-      )}
+      {/* The same cover as everywhere else (StoryCover). Decorative: the title is read from the row. */}
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <StoryCover story={{ ...book, kind: 'book' }} width={COVER_WIDTH} />
+      </View>
       <View style={{ flex: 1, gap: 3 }}>
         <T v="h2" numberOfLines={2}>
           {book.title}
@@ -142,7 +115,9 @@ function LivelyRow({ story, onOpen }: { story: LivelyStory; onOpen: () => void }
       style={[t.card, { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space.m }]}
     >
       {/* Typographic cover: fics never have covers. Decorative: the title is read from the row. */}
-      <TypographicCover id={story.id} title={story.title} author={story.author_name} />
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <StoryCover story={{ ...story, kind: 'fanfic' }} width={COVER_WIDTH} />
+      </View>
       <View style={{ flex: 1, gap: 3 }}>
         <T v="h2" numberOfLines={2}>
           {story.title}
