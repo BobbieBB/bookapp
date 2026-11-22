@@ -651,6 +651,13 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   would renumber the rooms of books already added (`section_label` on `stories`, 20261115000400).
 - **F. Discover for books, in v1.** "Books | Fanfiction" at the top, shown only to readers who read both;
   readers of one kind see theirs directly. Books start as one "Being read now" list, no genres yet.
+  *Built 18 Nov 2026* (`books_being_read`): "Being read now" / „Четат се сега“ lists books other readers have that you
+  don't, those someone is reading right now first ("3 reading now"), then, so the list doesn't run dry, the most read
+  ("Most read"). Editions in the app's language come first within each; hidden books never show; at most 30. Open
+  Library covers where a book has one, else the typographic cover. For readers of both the switch starts on Fanfiction
+  (Discover was fanfiction only, so it stays as they knew it) and is remembered on the phone (`livami.discover.kind`),
+  like Complete only. A reader of books only no longer sees "Discover is for fanfiction for now". The title search
+  stays above both.
 - **G. A fic without a link.** If the site doesn't answer, adding falls back to the manual form with the link
   kept; a small grey "I don't have a link" opens the same form. Fics without a link show up in search but not in
   Discover (we can't send readers to the author or match a removal request) until a link is added.

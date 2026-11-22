@@ -3,7 +3,11 @@ import type { Messages, Translation } from '../types';
 // The Discover tab.
 export const en = {
   'discover.tab': 'Discover',
-  'discover.fanficOnly': 'Discover is for fanfiction for now.',
+  'discover.kindBooks': 'Books',
+  'discover.kindFanfic': 'Fanfiction',
+  'discover.booksNow': 'BEING READ NOW',
+  'discover.readingNow': { one: '{count} reading now', other: '{count} reading now' },
+  'discover.booksEmpty': 'Nobody else has added a book you don’t have yet. Add one you love and start the conversation.',
   'discover.storySearchLabel': 'Search books and fics: title or author',
   'discover.storySearchPlaceholder': 'A book, a fic or an author…',
   'discover.storySearchShort': 'Type at least 3 letters.',
@@ -43,7 +47,11 @@ export const en = {
 
 export const bg: Translation<typeof en> = {
   'discover.tab': 'Открий',
-  'discover.fanficOnly': 'Засега „Открий“ е само за фенфикшън.',
+  'discover.kindBooks': 'Книги',
+  'discover.kindFanfic': 'Фенфикшън',
+  'discover.booksNow': 'ЧЕТАТ СЕ СЕГА',
+  'discover.readingNow': { one: '{count} я чете сега', other: '{count} я четат сега' },
+  'discover.booksEmpty': 'Още никой не е добавил книга, която нямаш. Добави една, която обичаш, и започни разговора.',
   'discover.storySearchLabel': 'Търси книга или фикшън: заглавие или автор',
   'discover.storySearchPlaceholder': 'Книга, фикшън или автор…',
   'discover.storySearchShort': 'Напиши поне 3 букви.',
