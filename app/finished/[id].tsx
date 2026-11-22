@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ComponentRef, type RefObject } from 'react';
 import { ActivityIndicator, Keyboard, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useCustomCover } from '@/components/CustomCover';
@@ -35,7 +35,7 @@ export default function FinishedScreen() {
 
   // The review field is near the end: when the keyboard opens, scroll so it and its buttons stay in view
   // (PO, 22 Nov 2026: the keyboard hid what was being typed). Same as the discussion rooms.
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50));
     return () => shown.remove();
