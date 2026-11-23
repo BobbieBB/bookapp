@@ -50,17 +50,22 @@ it('empty feedback is refused before it is sent', async () => {
   await expect(sendFeedback('problem', '   ')).rejects.toThrow('empty');
 });
 
-it('an author asks for their fic to be removed by its AO3 link', async () => {
+it('an author asks for their fic to be hidden by its title and author name only', async () => {
   await as(me);
-  await requestRemoval({ storyUrl: 'archiveofourown.org/works/424242/chapters/1', contact: 'me@example.test', message: 'Please hide my fic' });
-  const { data } = await supabase.from('removal_requests').select('story_url, contact, status').eq('requester_id', me.id).single().throwOnError();
-  expect(data).toEqual({ story_url: 'https://archiveofourown.org/works/424242', contact: 'me@example.test', status: 'open' });
+  await requestRemoval({ title: '  A Fic Nobody Added  ', author: 'quiet_moth', message: 'Please hide my fic' });
+  const { data } = await supabase
+    .from('removal_requests')
+    .select('fic_title, fic_author, story_id, story_url, contact, status')
+    .eq('requester_id', me.id)
+    .single()
+    .throwOnError();
+  expect(data).toEqual({ fic_title: 'A Fic Nobody Added', fic_author: 'quiet_moth', story_id: null, story_url: null, contact: null, status: 'open' });
 });
 
-it('a removal request needs an AO3 work link and a way to reach the author', async () => {
+it('a removal request needs the title and the author name', async () => {
   await as(me);
-  await expect(requestRemoval({ storyUrl: 'https://example.com/x', contact: 'me@example.test', message: '' })).rejects.toThrow('AO3');
-  await expect(requestRemoval({ storyUrl: 'https://archiveofourown.org/works/1', contact: '  ', message: '' })).rejects.toThrow('reach you');
+  await expect(requestRemoval({ title: 'Something', author: '  ', message: '' })).rejects.toThrow('author name');
+  await expect(requestRemoval({ title: '', author: 'moth', message: '' })).rejects.toThrow('title');
 });
 
 it('reporting a reader', async () => {

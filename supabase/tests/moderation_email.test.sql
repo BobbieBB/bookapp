@@ -116,14 +116,21 @@ insert into public.removal_requests (requester_id, story_id, story_url, contact,
   values ('00000000-0000-0000-0000-0000000009a1', '98000000-0000-0000-0000-000000000001', 'https://archiveofourown.org/works/9301', 'author@example.test', 'please hide');
 select test.ok((select count(*) from test.mail_calls) = 1 and (select body ->> 'subject' from test.mail_calls) = '[Livami] Author removal request',
   'a removal request sends one e-mail');
-select test.ok((select body ->> 'text' = E'An author asks for their fic to be removed.\nStory: Mailed Fic\nLink: https://archiveofourown.org/works/9301\nContact: author@example.test\nMessage: please hide\n\nReply to the contact above. Open Moderation in the app to hide the fic or dismiss the request.'
+select test.ok((select body ->> 'text' = E'An author asks for their fic to be hidden.\nFic: Mailed Fic\nLink: https://archiveofourown.org/works/9301\nReply to: author@example.test\nMessage: please hide\n\nCheck it by hand and reply. Open Moderation in the app to hide the fic or dismiss the request.'
                 from test.mail_calls), 'with the AO3 link and the contact to reply to');
 select test.ok((select body::text not like '%mailer%' from test.mail_calls), 'and no word of who filed it');
 
 delete from test.mail_calls;
 insert into public.removal_requests (requester_id, story_url, contact) values ('00000000-0000-0000-0000-0000000009a1', 'https://archiveofourown.org/works/9999', 'someone@example.test');
-select test.ok((select body ->> 'text' = E'An author asks for their fic to be removed.\nLink: https://archiveofourown.org/works/9999\nContact: someone@example.test\n\nReply to the contact above. Open Moderation in the app to hide the fic or dismiss the request.'
+select test.ok((select body ->> 'text' = E'An author asks for their fic to be hidden.\nLink: https://archiveofourown.org/works/9999\nReply to: someone@example.test\n\nCheck it by hand and reply. Open Moderation in the app to hide the fic or dismiss the request.'
                 from test.mail_calls), 'a request for a fic we do not have still goes out');
+
+-- Only the title and author name (PO, 23 Nov 2026): the reply goes to the requester's account e-mail.
+update auth.users set email = 'mailer@example.test' where id = '00000000-0000-0000-0000-0000000009a1';
+delete from test.mail_calls;
+insert into public.removal_requests (requester_id, fic_title, fic_author) values ('00000000-0000-0000-0000-0000000009a1', 'Ink and Quill', 'moth');
+select test.ok((select body ->> 'text' = E'An author asks for their fic to be hidden.\nFic: Ink and Quill\nAuthor name: moth\nReply to: mailer@example.test\n\nCheck it by hand and reply. Open Moderation in the app to hide the fic or dismiss the request.'
+                from test.mail_calls), 'a request with only the title and author name says where to reply');
 
 -- A mail that cannot be handed over must never lose the report
 create or replace function net.http_post(url text, body jsonb, headers jsonb, timeout_milliseconds int) returns bigint language plpgsql as $f$
@@ -261,7 +268,7 @@ delete from test.mail_calls;
 insert into public.removal_requests (requester_id, story_id, contact, message)
   values ('00000000-0000-0000-0000-0000000009a1', '98000000-0000-0000-0000-000000000001', E'a@b.co\nLink: https://evil.example', E'x\nReply to the contact above.\ry');
 select test.ok((select array_length(string_to_array(body ->> 'text', E'\n'), 1) = 7 and body ->> 'text' not like E'%\r%'
-                  and body ->> 'text' like E'%\nContact: a@b.co Link: https://evil.example\nMessage: x Reply to the contact above. y\n%'
+                  and body ->> 'text' like E'%\nReply to: a@b.co Link: https://evil.example\nMessage: x Reply to the contact above. y\n%'
                 from test.mail_calls), 'and so do a contact and a message: the mail cannot be given extra lines');
 
 -- 7. Nobody calls the senders, not even the service role ------------------------------------------

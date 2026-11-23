@@ -46,9 +46,13 @@ select test.ok(test.error_of($$insert into public.feedback (kind, body) select '
 select test.ok(test.error_of($$insert into public.removal_requests (story_url, contact) select 'https://archiveofourown.org/works/' || n, 'a@b.c' from generate_series(1, 6) n$$)
   like '%too many%', 'at most 5 removal requests a day');
 
--- 3. Removal requests need a way to reach the author -------------------------------
-select test.ok(test.error_of($$insert into public.removal_requests (story_url) values ('https://archiveofourown.org/works/1')$$)
-  like '%removal_contact%', 'a removal request needs a contact');
+-- 3. Removal requests: the fic's title and author name are enough (PO, 23 Nov 2026) ---------------
+select test.ok(test.error_of($$insert into public.removal_requests (fic_title, fic_author) values ('Ink and Quill', 'moth')$$) is null,
+  'a removal request needs no link and no contact: the title and author name are enough');
+select test.ok(test.error_of($$insert into public.removal_requests (message) values ('please hide my fic')$$)
+  like '%removal_what%', 'but it says which fic');
+select test.ok(test.error_of($$insert into public.removal_requests (fic_title) values ('   ')$$)
+  like '%fic_title%', 'with a title that is not blank');
 select test.ok(test.error_of($$insert into public.removal_requests (story_url, contact) values ('https://evil.example/x', 'a@b.c')$$)
   like '%removal_story_url%', 'a removal request is for an AO3 work link');
 

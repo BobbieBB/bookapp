@@ -1,7 +1,6 @@
 // Report, block, feedback and author opt-out (docs/DECISIONS.md: Fandom etiquette by design, MVP v1).
 // Who may see or change what is decided by the Row Level Security policies on each table.
 import { APP_VERSION } from './config';
-import { normaliseAo3Link } from './sources';
 import { supabase } from './supabase';
 
 export type FeedbackKind = 'problem' | 'idea' | 'other';
@@ -27,18 +26,29 @@ export async function sendFeedback(kind: FeedbackKind, body: string, wantsReply 
 }
 
 /** An author asks for their fic to be hidden everywhere in the app (an admin processes it). */
-export async function requestRemoval(r: { storyUrl: string; contact: string; message: string }) {
-  const link = normaliseAo3Link(r.storyUrl);
-  if (!link) throw new Error('That doesn’t look like an AO3 work link.');
-  // An admin checks the request with the author before hiding the fic.
-  if (r.contact.trim().length < 3) throw new Error('Tell us how we can reach you.');
-  const { data: story, error } = await supabase.from('stories').select('id').eq('source_url', link).maybeSingle();
+/**
+ * An author asks us to hide their fic (PO, 23 Nov 2026): only the fic's title and their author name, no AO3 link
+ * and no contact details. The PO checks it by hand and replies to the e-mail of the requester's account. When
+ * exactly one fic in the app has that title and author, the request points at it.
+ */
+export async function requestRemoval(r: { title: string; author: string; message: string }) {
+  const title = r.title.trim();
+  const author = r.author.trim();
+  if (!title || !author) throw new Error('Tell us the title of the fic and your author name.');
+  const exactly = (text: string) => text.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+  const { data: matches, error } = await supabase
+    .from('stories')
+    .select('id')
+    .eq('kind', 'fanfic')
+    .ilike('title', exactly(title))
+    .ilike('author_name', exactly(author))
+    .limit(2);
   if (error) throw error;
   await check(
     supabase.from('removal_requests').insert({
-      story_id: story?.id ?? null,
-      story_url: link,
-      contact: r.contact.trim(),
+      story_id: matches?.length === 1 ? matches[0].id : null,
+      fic_title: title,
+      fic_author: author,
       message: r.message.trim() || null,
     }),
   );
