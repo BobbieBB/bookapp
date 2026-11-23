@@ -232,6 +232,6 @@ describe('Profile', () => {
     expect(await screen.findByText('Send feedback', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText('Blocked readers')).toBeOnTheScreen();
     await fireEvent.press(screen.getByText('Read more and ask to hide a fic'));
-    expect(await screen.findByLabelText('Link to your fic on AO3', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Title of the fic', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });
