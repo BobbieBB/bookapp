@@ -63,6 +63,9 @@ Decided 12 Oct 2026. The source of truth for open questions is the Trello card
   Auto-filling fic details will only be added if the OTW agrees.
 - Remind readers to leave **kudos and comments on AO3**.
 - **Authors can opt out**: removal requests hide the fic everywhere in the app.
+  *23 Nov 2026 (PO):* a request needs only the fic's title and the author name, no AO3 link and no contact details
+  (another app's recent scandal made authors wary of handing them over). The PO checks it by hand and replies to the
+  requester's account e-mail; Hide finds the fic when exactly one matches, otherwise she hides it by hand.
 - Everything is behind login and not indexed by search engines.
 - Fanfiction is never sold or paywalled.
 - An *Authors are welcome* page explains all of the above.

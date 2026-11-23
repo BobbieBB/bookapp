@@ -204,14 +204,18 @@ describe('Authors are welcome', () => {
     await renderScreen('en', { authors: Authors }, '/authors');
     expect(await screen.findByText('Authors are welcome here', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText('Every fic is a gift. Cherish it. Protect it.')).toBeOnTheScreen();
-    await fireEvent.changeText(screen.getByLabelText('Link to your fic on AO3'), 'not a link');
+    // No AO3 link and no contact details: the title and author name are enough (PO, 23 Nov 2026).
+    expect(screen.queryByLabelText('Link to your fic on AO3')).toBeNull();
+    expect(screen.queryByLabelText('How can we reach you?')).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText('Title of the fic'), 'A Title Nobody Added');
     await fireEvent.press(screen.getByText('Ask us to hide it'));
-    expect(await screen.findByText('That doesn’t look like an AO3 work link.', {}, { timeout: 8000 })).toBeOnTheScreen();
-    await fireEvent.changeText(screen.getByLabelText('Link to your fic on AO3'), 'https://archiveofourown.org/works/777777');
-    await fireEvent.changeText(screen.getByLabelText('How can we reach you?'), 'author@example.test');
+    expect(await screen.findByText('Tell us the title of the fic and your author name.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Your author name'), 'quiet_moth');
     await fireEvent.press(screen.getByText('Ask us to hide it'));
     expect(await screen.findByText('Thanks. We’ll hide it as soon as we can.', {}, { timeout: 8000 })).toBeOnTheScreen();
-    expect((await rows('removal_requests', 'requester_id')).map((r) => r.story_url)).toEqual(['https://archiveofourown.org/works/777777']);
+    expect((await rows('removal_requests', 'requester_id')).map((r) => [r.fic_title, r.fic_author, r.story_url, r.contact])).toEqual([
+      ['A Title Nobody Added', 'quiet_moth', null, null],
+    ]);
   });
 
   it('in Bulgarian', async () => {
@@ -228,6 +232,6 @@ describe('Profile', () => {
     expect(await screen.findByText('Send feedback', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.getByText('Blocked readers')).toBeOnTheScreen();
     await fireEvent.press(screen.getByText('Read more and ask to hide a fic'));
-    expect(await screen.findByLabelText('Link to your fic on AO3', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Title of the fic', {}, { timeout: 8000 })).toBeOnTheScreen();
   });
 });

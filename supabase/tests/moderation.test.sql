@@ -203,7 +203,7 @@ select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000
 select test.ok((select is_hidden from public.stories where id = '58000000-0000-0000-0000-000000000005')
   and (select status from public.removal_requests where id = '5d000000-0000-0000-0000-000000000001') = 'actioned', 'hide hides the fic and actions the request');
 select test.ok(test.error_of($$select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000002', 'hide')$$)
-  = 'no fic in the app matches this link: dismiss the request', 'a request whose fic is not in the app cannot be hidden');
+  = 'no single fic in the app matches this request: hide it by hand, then dismiss the request', 'a request whose fic is not in the app cannot be hidden');
 select test.ok(test.state_of($$select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000002', 'hide')$$) = 'MD001', '... with its own code');
 select test.ok((select status from public.removal_requests where id = '5d000000-0000-0000-0000-000000000002') = 'open', '... and stays open');
 select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000003', 'hide');
@@ -212,6 +212,26 @@ select test.ok((select is_hidden from public.stories where id = '58000000-0000-0
   'a request filed before the fic was added is matched by its link when resolved');
 select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000002', 'dismiss');
 select test.ok((select status from public.removal_requests where id = '5d000000-0000-0000-0000-000000000002') = 'dismissed', 'dismiss closes the request');
+
+-- Only the title and author name (PO, 23 Nov 2026): hidden when exactly one fic matches, case and spaces aside.
+insert into public.stories (id, kind, language, title, author_name, has_chapters, total_sections, status, source_url, created_by) values
+  ('58000000-0000-0000-0000-000000000006', 'fanfic', 'en', 'Ink and Quill', 'moth', true, null, 'ongoing', null, '00000000-0000-0000-0000-0000000008ad'),
+  ('58000000-0000-0000-0000-000000000007', 'fanfic', 'en', 'Twice Told', 'moth', true, null, 'ongoing', null, '00000000-0000-0000-0000-0000000008ad'),
+  ('58000000-0000-0000-0000-000000000008', 'fanfic', 'en', 'Twice Told', 'moth', true, null, 'ongoing', 'https://archiveofourown.org/works/8008', '00000000-0000-0000-0000-0000000008ad');
+insert into public.removal_requests (id, fic_title, fic_author) values
+  ('5d000000-0000-0000-0000-000000000004', ' ink and quill ', 'MOTH'),
+  ('5d000000-0000-0000-0000-000000000005', 'Twice Told', 'moth');
+select test.ok((select story_title || ' / ' || subject from public.moderation_queue() where id = '5d000000-0000-0000-0000-000000000004') = ' ink and quill  / MOTH',
+  'the queue shows the title and author name the author gave');
+select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000004', 'hide');
+select test.ok((select is_hidden from public.stories where id = '58000000-0000-0000-0000-000000000006')
+  and (select story_id from public.removal_requests where id = '5d000000-0000-0000-0000-000000000004') = '58000000-0000-0000-0000-000000000006',
+  'a request with only a title and author name hides the one fic that matches');
+select test.ok(test.state_of($$select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000005', 'hide')$$) = 'MD001'
+  and not (select is_hidden from public.stories where id = '58000000-0000-0000-0000-000000000007')
+  and not (select is_hidden from public.stories where id = '58000000-0000-0000-0000-000000000008'),
+  'two fics with that title and author: nothing is hidden, the PO hides the right one by hand');
+select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000005', 'dismiss');
 
 -- 7. Feedback ---------------------------------------------------------------------------
 select public.moderation_resolve('feedback', '5e000000-0000-0000-0000-000000000001', 'done');

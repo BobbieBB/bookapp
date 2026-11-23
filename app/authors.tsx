@@ -6,36 +6,31 @@ import { Button, Card, ErrorText, Field, T } from '@/components/ui';
 import { useT } from '@/i18n';
 import { useHeaderOffset } from '@/lib/headerOffset';
 import { requestRemoval } from '@/lib/safety';
-import { normaliseAo3Link } from '@/lib/sources';
 import { space, useTheme } from '@/theme';
 
 export default function Authors() {
   const { c, fonts } = useTheme();
   const t = useT();
   const headerOffset = useHeaderOffset();
-  const [storyUrl, setStoryUrl] = useState('');
-  const [contact, setContact] = useState('');
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [problem, setProblem] = useState<'link' | 'contact' | 'send' | null>(null);
+  const [problem, setProblem] = useState<'missing' | 'send' | null>(null);
   const [sent, setSent] = useState(false);
 
   const send = async () => {
     setSent(false);
-    if (!normaliseAo3Link(storyUrl)) {
-      setProblem('link');
-      return;
-    }
-    if (contact.trim().length < 3) {
-      setProblem('contact');
+    if (!title.trim() || !author.trim()) {
+      setProblem('missing');
       return;
     }
     setProblem(null);
     setSending(true);
     try {
-      await requestRemoval({ storyUrl, contact, message });
-      setStoryUrl('');
-      setContact('');
+      await requestRemoval({ title, author, message });
+      setTitle('');
+      setAuthor('');
       setMessage('');
       setSent(true);
     } catch {
@@ -58,10 +53,12 @@ export default function Authors() {
           </View>
           <Card tone="mine">
             <T v="h2">{t('safety.removalTitle')}</T>
-            <Field label={t('safety.removalLink')} value={storyUrl} onChangeText={setStoryUrl} autoCapitalize="none" autoCorrect={false} keyboardType="url" />
-            <Field label={t('safety.removalContact')} value={contact} onChangeText={setContact} autoCapitalize="none" />
+            {/* Only the title and author name: no AO3 link, no contact details (PO, 23 Nov 2026). */}
+            <T v="muted">{t('safety.removalHint')}</T>
+            <Field label={t('safety.removalFicTitle')} value={title} onChangeText={setTitle} />
+            <Field label={t('safety.removalAuthor')} value={author} onChangeText={setAuthor} autoCapitalize="none" autoCorrect={false} />
             <Field label={t('safety.removalMessage')} value={message} onChangeText={setMessage} multiline />
-            <ErrorText>{problem === 'link' ? t('safety.removalBadLink') : problem === 'contact' ? t('safety.removalNeedsContact') : problem === 'send' ? t('safety.error') : null}</ErrorText>
+            <ErrorText>{problem === 'missing' ? t('safety.removalNeedsTitle') : problem === 'send' ? t('safety.error') : null}</ErrorText>
             {sent ? (
               <Text accessibilityLiveRegion="polite" style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>
                 {t('safety.removalSent')}
