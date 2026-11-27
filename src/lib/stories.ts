@@ -152,6 +152,15 @@ export async function setFicLink(storyId: string, link: string): Promise<void> {
 }
 
 /** Adds the story to the signed-in reader's library (or updates its status if already there). */
+/**
+ * Takes a story out of the reader's library (PO, 27 Nov 2026): their progress and private cover go with it.
+ * Their comments, rating and review stay, as they are part of other readers' conversations.
+ */
+export async function removeFromLibrary(storyId: string) {
+  const { error } = await supabase.from('library_entries').delete().eq('story_id', storyId);
+  if (error) throw error;
+}
+
 export async function addToLibrary(storyId: string, status: LibraryStatus) {
   const { error } = await supabase
     .from('library_entries')
