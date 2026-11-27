@@ -752,3 +752,12 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   search engines (noindex, robots.txt), as we promise authors.
 - Checked 27 Nov: the web build bundles and renders sign-in on an iPhone-sized screen with no errors; the screens
   behind sign-in are checked by the PO on her iPhone.
+
+## Import from Goodreads (issue #111; built 27 Nov 2026)
+- Profile → Import from Goodreads. The export comes from goodreads.com on a computer, so the import runs in the web
+  version (livami.expo.app) there; the apps explain where. A file picker in the apps needs a new dependency: later.
+- The reader picks the CSV; it is read in the browser, never uploaded. Shelves read / currently-reading / to-read →
+  Finished / Currently Reading / Want to Read (the reader can untick shelves); whole-star ratings; no reviews.
+- Match by ISBN, else title + author (series suffix dropped) through the usual book search; one book at a time with
+  a pause (Open Library is volunteer-run). Already in the library: skipped. Not found: listed at the end.
+- Imported books have no chapter count; the reader sets it on the book's page. Privacy Policy says what is kept.

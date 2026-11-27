@@ -104,6 +104,7 @@ export function RootStack() {
           <Stack.Screen name="blocked" options={pushed} />
           <Stack.Screen name="feedback" options={pushed} />
           <Stack.Screen name="authors" options={pushed} />
+          <Stack.Screen name="import-goodreads" options={pushed} />
           <Stack.Screen name="notifications" options={pushed} />
           <Stack.Screen name="admin" options={pushed} />
           <Stack.Screen name="moderation" options={pushed} />
