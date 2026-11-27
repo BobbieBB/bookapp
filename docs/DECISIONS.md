@@ -777,3 +777,10 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   keep this work off other sites". And an author can ask for **all their works** with just the author name: once
   the PO checks it, Hide puts the name on `hidden_authors`, hides every fic under it and a trigger refuses new
   fics under it (case and spaces aside). Migration 20261128000000.
+
+## Chapter counts suggested (PO, 28 Nov 2026)
+- Looking every chapter count up by hand is tiresome. Neither book source gives one, so under the chapter field
+  (Add a book, add by hand, and a book's page while its count is missing) Livami suggests, with where it comes from:
+  the count other Livami readers set on the same work (another language or edition) or the same title and author;
+  and the most common chapter count among Open Library's tables of contents for the work, where libraries catalogued
+  one. Prologue, epilogue and front/back matter don't count. A tap fills the field; the reader checks their copy.

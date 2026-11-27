@@ -54,6 +54,10 @@ export const en = {
   'add.errorFandom': 'Add the fandom.',
   'add.errorLink': 'Paste the link to the fic on AO3.',
   'add.ao3Link': 'AO3 link',
+  'chapters.suggested': 'Suggested chapter count:',
+  'chapters.fromLivami': '{count} · other Livami readers',
+  'chapters.fromOpenLibrary': '{count} · Open Library contents',
+  'chapters.check': 'Check it against your copy: editions can differ.',
   'add.authorOk':
     'I checked the author’s notes: they don’t ask to keep this work off other sites (like Goodreads or StoryGraph).',
   'add.authorHidden': 'This author has asked Livami not to list their works, so this fic can’t be added.',
@@ -144,6 +148,10 @@ export const bg: Translation<typeof en> = {
   'add.errorFandom': 'Добави фендъма.',
   'add.errorLink': 'Постави линка към фикшъна в AO3.',
   'add.ao3Link': 'Линк към AO3',
+  'chapters.suggested': 'Предложен брой глави:',
+  'chapters.fromLivami': '{count} · от други читатели в Livami',
+  'chapters.fromOpenLibrary': '{count} · по съдържанието в Open Library',
+  'chapters.check': 'Сравни с твоето издание: изданията може да се различават.',
   'add.authorOk':
     'Проверих бележките на автора: не моли творбата да не се добавя в други сайтове (като Goodreads или StoryGraph).',
   'add.authorHidden': 'Този автор е помолил Livami да не показва творбите му, затова фикът не може да бъде добавен.',

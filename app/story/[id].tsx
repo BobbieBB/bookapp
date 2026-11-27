@@ -3,6 +3,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { ChapterSuggestions } from '@/components/ChapterSuggestions';
 import { BookReviews } from '@/components/BookReviews';
 import { StoryRooms } from '@/components/StoryRooms';
 import { CoverActions, CoverEditButton, useCustomCover } from '@/components/CustomCover';
@@ -374,6 +375,13 @@ function StoryBody({
                 }}
                 placeholder={t('add.chaptersPlaceholder')}
                 error={countError || undefined}
+              />
+              <ChapterSuggestions
+                book={{ title: story.title, author: story.author_name, excludeId: story.id }}
+                onPick={(n) => {
+                  setCountText(String(n));
+                  setCountError('');
+                }}
               />
               <Button
                 variant="secondary"
