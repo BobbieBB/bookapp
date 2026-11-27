@@ -418,6 +418,18 @@ describe('Discover: search Livami by title or author', () => {
     expect(screen.queryByTestId(`story-hit-${ficId}`)).toBeNull();
   });
 
+  it('the × empties the search in one tap and Discover comes back (PO, 27 Nov 2026)', async () => {
+    await as(reader);
+    await renderScreen('en', routes, '/discover');
+    const field = await screen.findByLabelText('Search books: title or author', {}, { timeout: 8000 });
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+    await fireEvent.changeText(field, `nothing like this ${run}`);
+    await fireEvent.press(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.getByLabelText('Search books: title or author')).toHaveDisplayValue('');
+    expect(await screen.findByText('HOTTEST BOOKS', {}, { timeout: 8000 })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+  });
+
   it('nothing found: offers to add a book or a fic', async () => {
     await as(reader);
     await renderScreen('en', routes, '/discover');

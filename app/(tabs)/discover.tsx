@@ -348,6 +348,10 @@ export default function Discover() {
             setTooShort(false);
           }}
           onSubmitEditing={() => setTooShort(storyQuery.trim().length > 0 && !searchingStories)}
+          onClear={() => {
+            setStoryQuery('');
+            setTooShort(false);
+          }}
           autoCorrect={false}
           returnKeyType="search"
           clearButtonMode="while-editing"
