@@ -20,7 +20,7 @@ import { progressLine, statusKey, type Translate } from '@/lib/library';
 import { track } from '@/lib/analytics';
 import { requestChapterCount } from '@/lib/moderation';
 import { shareStory } from '@/lib/share';
-import { addToLibrary, AO3_RATINGS, AO3_WARNINGS, setFicLink } from '@/lib/stories';
+import { addToLibrary, AO3_RATINGS, AO3_WARNINGS, removeFromLibrary, setFicLink } from '@/lib/stories';
 import { normaliseAo3Link } from '@/lib/sources';
 import {
   canComplete,
@@ -232,6 +232,7 @@ function StoryBody({
   const [pending, setPending] = useState<{ base: MyEntry | null; patch: Partial<MyEntry> }>({ base: null, patch: {} });
   const entry = loaded && pending.base === loaded ? { ...loaded, ...pending.patch } : loaded;
   const [statusOpen, setStatusOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
   // The value on the chapter (or page) wheel while its sheet is open.
   const [wheel, setWheel] = useState<number | null>(null);
   // The chapter just finished on this visit: its progress glows until you do something else.
@@ -432,7 +433,14 @@ function StoryBody({
             <Button variant="link" title={t('story.reopen')} onPress={() => act(() => reopen(story.id))} />
           ) : null}
 
-          <Sheet open={statusOpen} title={t('story.statusTitle')} onClose={() => setStatusOpen(false)}>
+          <Sheet
+            open={statusOpen}
+            title={t('story.statusTitle')}
+            onClose={() => {
+              setStatusOpen(false);
+              setRemoving(false);
+            }}
+          >
             <ChoiceList
               options={statuses.map((s) => ({ value: s, label: t(statusKey(s, story)) }))}
               value={entry.status}
@@ -444,6 +452,25 @@ function StoryBody({
                 else saved({ status: s }, () => setStatus(story.id, userId, s));
               }}
             />
+            {/* Take it out of the library (PO, 27 Nov 2026), asked twice: progress can't be brought back.
+                Inline, not an alert: alerts don't show on the web version. */}
+            {removing ? (
+              <View style={{ gap: space.s }}>
+                <T v="muted">{t('story.removeExplain')}</T>
+                <Button
+                  variant="secondary"
+                  title={t('story.removeConfirm')}
+                  onPress={() => {
+                    setStatusOpen(false);
+                    setRemoving(false);
+                    void act(() => removeFromLibrary(story.id));
+                  }}
+                />
+                <Button variant="link" title={t('story.removeCancel')} onPress={() => setRemoving(false)} />
+              </View>
+            ) : (
+              <Button variant="link" title={t('story.remove')} onPress={() => setRemoving(true)} />
+            )}
           </Sheet>
 
           <Sheet open={wheel !== null} title={t(story.has_chapters ? 'story.chapterPicker' : 'story.pagePicker')} onClose={() => setWheel(null)}>

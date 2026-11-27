@@ -197,6 +197,20 @@ describe('a story not in your library', () => {
     expect(await screen.findByText('I finished chapter 1', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect((await entry(strangerBookId)).status).toBe('want_to_read');
   });
+
+  it('can be taken out again, after a second "yes" (PO, 27 Nov 2026)', async () => {
+    await open('en', strangerBookId);
+    await fireEvent.press(await screen.findByRole('button', { name: /^Status: / }, { timeout: 8000 }));
+    await fireEvent.press(await screen.findByText('Remove from my library'));
+    expect(screen.getByText('Your progress and your private cover will be deleted. Your comments, rating and review stay.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Keep it'));
+    expect(screen.queryByText('Yes, remove it')).toBeNull();
+    await fireEvent.press(screen.getByText('Remove from my library'));
+    await fireEvent.press(screen.getByText('Yes, remove it'));
+    expect(await screen.findByText('Add to my library', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const { data } = await supabase.from('library_entries').select('story_id').eq('story_id', strangerBookId).eq('user_id', me);
+    expect(data).toEqual([]);
+  });
 });
 
 describe('the discussion rooms on a story page', () => {
