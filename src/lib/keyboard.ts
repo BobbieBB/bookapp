@@ -52,7 +52,7 @@ export function useKeyboardSpace(ref: RefObject<ComponentRef<typeof ScrollView> 
       hidden.remove();
       focusListeners.delete(reveal);
     };
-  }, []);
+  }, [ref]);
 
   return {
     /** Extra space for the end of the scroll view's content: the keyboard's height on Android, else 0. */
