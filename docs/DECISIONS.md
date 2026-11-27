@@ -767,3 +767,9 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   the Add fic form reminds the reader, every time, to respect that and not add such a fic.
 - Open: how common such notes are among testers' fics (ask during the test), whether to ask a favourite author
   directly, and whether fics should get a "just in my journal" mode (no page or rooms for others).
+
+## Android pushes need Firebase (27 Nov 2026)
+- Android testers couldn't turn pushes on: Expo's push token on Android needs Firebase Cloud Messaging, and the
+  build had no google-services.json. app.config.ts now takes it from the EAS file variable GOOGLE_SERVICES_JSON;
+  the FCM V1 key is uploaded to EAS credentials by the PO (README, "Android pushes"). Neither is in the repo.
+  The Privacy Policy already names Google (FCM) as the Android push service.

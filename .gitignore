@@ -11,3 +11,4 @@ android/
 .DS_Store
 supabase/.temp/
 supabase/.branches/
+google-services.json
