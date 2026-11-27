@@ -6,11 +6,27 @@ import { cleanQuery, googleParams, mapVolumes } from './books.ts';
 
 const GOOGLE = 'https://www.googleapis.com/books/v1/volumes';
 
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+// The web version (livami.expo.app, PO 27 Nov 2026) calls this from a browser, which first asks whether it may
+// (CORS). Only our own web origins get a yes; the apps aren't browsers and don't ask.
+const WEB_ORIGINS = new Set(['https://livami.expo.app', 'http://localhost:8081']);
+
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') ?? '';
+  if (!WEB_ORIGINS.has(origin)) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  };
 }
 
 Deno.serve(async (req) => {
+  const cors = corsHeaders(req);
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
   const key = Deno.env.get('GOOGLE_BOOKS_KEY');
   if (!key) return json(503, { error: 'GOOGLE_BOOKS_KEY is not set' });
