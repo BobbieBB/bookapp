@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -12,6 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { useT } from '@/i18n';
 import { fieldFocused } from '@/lib/keyboard';
 import { radius, softShadow, space, useTheme } from '@/theme';
 
@@ -69,33 +71,57 @@ export function Button({
   );
 }
 
-/** A labelled text input. With `error`, the border turns red and the message shows right under it. */
-export function Field({ label, error, ...props }: TextInputProps & { label: string; error?: string }) {
+/**
+ * A labelled text input. With `error`, the border turns red and the message shows right under it.
+ * With `onClear`, an × inside the field empties it in one tap while there is text (search fields; PO, 27 Nov 2026).
+ */
+export function Field({
+  label,
+  error,
+  onClear,
+  ...props
+}: TextInputProps & { label: string; error?: string; onClear?: () => void }) {
   const { c, fonts } = useTheme();
+  const t = useT();
+  const clearable = !!onClear && !!props.value;
   return (
     <View style={{ gap: space.xs }}>
       <Text style={{ fontSize: 15, fontFamily: fonts.bodyBold, color: c.inkSoft }}>{label}</Text>
-      <TextInput
-        placeholderTextColor={c.muted}
-        accessibilityLabel={label}
-        accessibilityHint={error || undefined}
-        style={{
-          ...(props.multiline ? { minHeight: 120, paddingVertical: space.m, textAlignVertical: 'top' } : { height: 50 }),
-          borderRadius: radius.s,
-          borderWidth: error ? 2 : 1.5,
-          borderColor: error ? c.danger : c.hairline,
-          backgroundColor: c.surface,
-          paddingHorizontal: space.m,
-          fontSize: 16,
-          fontFamily: fonts.body,
-          color: c.ink,
-        }}
-        {...props}
-        onFocus={(e) => {
-          fieldFocused();
-          props.onFocus?.(e);
-        }}
-      />
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput
+          placeholderTextColor={c.muted}
+          accessibilityLabel={label}
+          accessibilityHint={error || undefined}
+          style={{
+            ...(props.multiline ? { minHeight: 120, paddingVertical: space.m, textAlignVertical: 'top' } : { height: 50 }),
+            borderRadius: radius.s,
+            borderWidth: error ? 2 : 1.5,
+            borderColor: error ? c.danger : c.hairline,
+            backgroundColor: c.surface,
+            paddingHorizontal: space.m,
+            ...(onClear ? { paddingRight: 48 } : null),
+            fontSize: 16,
+            fontFamily: fonts.body,
+            color: c.ink,
+          }}
+          {...props}
+          onFocus={(e) => {
+            fieldFocused();
+            props.onFocus?.(e);
+          }}
+        />
+        {clearable ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('common.clear')}
+            onPress={onClear}
+            hitSlop={4}
+            style={{ position: 'absolute', right: 3, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Feather name="x-circle" size={20} color={c.muted} />
+          </Pressable>
+        ) : null}
+      </View>
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>
   );

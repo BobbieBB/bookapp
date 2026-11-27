@@ -8,6 +8,7 @@ export const en = {
   'common.profile': 'Profile',
   'common.name': 'Name',
   'common.tryAgain': 'Try again',
+  'common.clear': 'Clear',
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
@@ -18,4 +19,5 @@ export const bg: Translation<typeof en> = {
   'common.profile': 'Профил',
   'common.name': 'Име',
   'common.tryAgain': 'Опитай пак',
+  'common.clear': 'Изчисти',
 };

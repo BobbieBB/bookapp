@@ -231,6 +231,7 @@ function AddBook({ initialQuery }: { initialQuery?: string }) {
         placeholder={t('add.searchPlaceholder')}
         value={query}
         onChangeText={setQuery}
+        onClear={() => setQuery('')}
         autoCorrect={false}
         returnKeyType="search"
       />
