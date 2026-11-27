@@ -259,6 +259,7 @@ export default function Profile() {
         </Card>
 
         <Card>
+          <Button variant="link" title={t('goodreads.link')} onPress={() => router.push('/import-goodreads')} />
           <Button variant="link" title={t('safety.feedbackTitle')} onPress={() => router.push('/feedback')} />
           <Button variant="link" title={t('safety.blockedTitle')} onPress={() => router.push('/blocked')} />
           {profile?.is_admin && <Button variant="link" title={t('admin.link')} onPress={() => router.push('/admin')} />}

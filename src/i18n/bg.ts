@@ -16,6 +16,7 @@ import * as account from './messages/account';
 import * as admin from './messages/admin';
 import * as moderation from './messages/moderation';
 import * as legal from './messages/legal';
+import * as goodreads from './messages/goodreads';
 import type { Message } from './types';
 
-export const bg: Record<MessageKey, Message> = { ...common.bg, ...auth.bg, ...home.bg, ...library.bg, ...add.bg, ...profile.bg, ...story.bg, ...room.bg, ...discover.bg, ...safety.bg, ...finishing.bg, ...notifications.bg, ...covers.bg, ...account.bg, ...admin.bg, ...moderation.bg, ...legal.bg };
+export const bg: Record<MessageKey, Message> = { ...common.bg, ...auth.bg, ...home.bg, ...library.bg, ...add.bg, ...profile.bg, ...story.bg, ...room.bg, ...discover.bg, ...safety.bg, ...finishing.bg, ...notifications.bg, ...covers.bg, ...account.bg, ...admin.bg, ...moderation.bg, ...legal.bg, ...goodreads.bg };
