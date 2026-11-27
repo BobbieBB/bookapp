@@ -610,6 +610,14 @@ function AddFic() {
 
   return (
     <View style={{ gap: space.m }}>
+      {/* Some authors ask in their notes not to be listed on other sites (Goodreads, StoryGraph…). We don't read
+          AO3, so the reader is the one who can respect that (PO, 27 Nov 2026). */}
+      <Card tone="mine">
+        <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'flex-start' }}>
+          <Feather name="heart" size={18} color={c.ink} style={{ marginTop: 2 }} />
+          <T style={{ flex: 1 }}>{t('add.authorWishes')}</T>
+        </View>
+      </Card>
       {noLink ? (
         <>
           <T v="muted">{t('add.noLinkHint')}</T>

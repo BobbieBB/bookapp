@@ -241,6 +241,13 @@ describe('a fic without a link that is already in Livami', () => {
   });
 });
 
+it('the fic form reminds readers to respect an author who asks not to be listed elsewhere (PO, 27 Nov 2026)', async () => {
+  jest.useRealTimers();
+  await open('en');
+  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
+  expect(await screen.findByText(/If this fic’s author does, please respect that and don’t add it\./)).toBeOnTheScreen();
+});
+
 it('"I have a link after all" brings the link field back', async () => {
   await open('bg');
   await fireEvent.press(await screen.findByRole('button', { name: 'Фенфикшън' }));
