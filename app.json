@@ -37,7 +37,9 @@
       ]
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./public/favicon.png"
     },
     "extra": {
       "router": {
