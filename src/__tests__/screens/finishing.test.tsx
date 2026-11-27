@@ -209,6 +209,8 @@ describe('finishing', () => {
       const { data } = await supabase.from('ratings').select('rating').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
       expect(Number(data!.rating)).toBe(4.5);
     });
+    // ...and say so once the last tap is saved (PO, 27 Nov 2026).
+    expect(await screen.findByText('Rating saved', {}, { timeout: 8000 })).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Your review (optional)'), 'Beautiful and strange');
     await fireEvent.press(screen.getByText('Save review'));
     // Saved: the review shows read-only with a tick, the form and its button are gone, Edit brings them back.

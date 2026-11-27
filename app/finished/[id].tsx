@@ -211,6 +211,9 @@ function BookRating({
   const { c, fonts } = useTheme();
   const [rating, setRating] = useState(initialRating);
   const [ratingFailed, setRatingFailed] = useState(false);
+  // "Saved" under the stars once the latest tap is in the database (PO, 27 Nov 2026: no sign that it saved).
+  const [ratingSaved, setRatingSaved] = useState(false);
+  const lastTap = useRef(0);
   const [saved, setSaved] = useState<Review | null>(review);
   const [editing, setEditing] = useState(!review);
   const [body, setBody] = useState(review?.body ?? '');
@@ -224,11 +227,14 @@ function BookRating({
     const before = rating;
     setRating(value);
     setRatingFailed(false);
+    setRatingSaved(false);
+    const tap = ++lastTap.current;
     // Taps save one after another, so two quick taps (5, then 4.5) can't land in the wrong order and leave 5.
     const save = ratingSaves.current.catch(() => undefined).then(() => rateBook(storyId, value));
     ratingSaves.current = save;
     try {
       await save;
+      if (tap === lastTap.current) setRatingSaved(true);
     } catch {
       setRating(before);
       setRatingFailed(true);
@@ -265,6 +271,12 @@ function BookRating({
       <T v="overline">{t('finishing.yourRating')}</T>
       <StarPicker rating={rating} onRate={(v) => void rate(v)} />
       {ratingFailed ? <ErrorText>{t('finishing.saveFailed')}</ErrorText> : null}
+      {ratingSaved && !ratingFailed ? (
+        <View accessible accessibilityRole="text" accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+          <Feather name="check-circle" size={18} color={c.success} />
+          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 15, color: c.success }}>{t('finishing.ratingSaved')}</Text>
+        </View>
+      ) : null}
 
       {saved && !editing ? (
         <View style={{ gap: space.s }}>
@@ -368,9 +380,11 @@ function StarButton({
         <Text style={glyph}>{fill === 1 ? '★' : '☆'}</Text>
         {fill === 0.5 ? (
           <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: STAR_BOX / 2, overflow: 'hidden' }}>
-            <Text numberOfLines={1} style={glyph}>
-              ★
-            </Text>
+            {/* A full-width box inside the half-width clip, so the filled star sits exactly on the outline one.
+                Sizing the text itself let the web version shrink it to the clip and shift it left (PO, 27 Nov 2026). */}
+            <View style={{ position: 'absolute', left: 0, top: 0, width: STAR_BOX, flexShrink: 0 }}>
+              <Text style={glyph}>★</Text>
+            </View>
           </View>
         ) : null}
       </View>
