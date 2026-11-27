@@ -11,6 +11,7 @@ import { TERMS_VERSION } from '@/lib/legal';
 import { NAME_RULE, nameProblem } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { space, useTheme } from '@/theme';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 export default function Onboarding() {
   const { c } = useTheme();
@@ -76,10 +77,11 @@ export default function Onboarding() {
     await refreshProfile();
   }
 
+  const kb = useKeyboardSpace();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.ground }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }}>
+        <ScrollView ref={kb.ref} onScroll={kb.onScroll} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l }}>
           <View style={{ gap: space.s }}>
             <T v="h1">{t('auth.onboardTitle')}</T>
             <T>{t('auth.onboardIntro')}</T>

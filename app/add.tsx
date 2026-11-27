@@ -32,6 +32,7 @@ import type { LibraryStatus, Story, StoryKind } from '@/lib/types';
 import { RATING_LABEL, WARNING_LABEL } from '@/lib/ao3Labels';
 import { coverColor, softShadow, space, useTheme } from '@/theme';
 import { useT } from '@/i18n';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -44,6 +45,7 @@ export default function AddStory() {
     params.kind ?? (profile?.reads_books === false ? 'fanfic' : 'book'),
   );
 
+  const kb = useKeyboardSpace();
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, paddingHorizontal: space.m, paddingVertical: space.s, backgroundColor: c.band }}>
@@ -56,7 +58,7 @@ export default function AddStory() {
         </Text>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.l, gap: space.l, paddingBottom: space.xxl }}>
+        <ScrollView ref={kb.ref} onScroll={kb.onScroll} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.l, gap: space.l, paddingBottom: space.xxl + kb.bottom }}>
           <View style={{ flexDirection: 'row', gap: space.s }}>
             <View style={{ flex: 1 }}>
               <Chip label={t('add.kindBook')} active={kind === 'book'} onPress={() => setKind('book')} big />
