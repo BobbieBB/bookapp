@@ -4,6 +4,7 @@
 // Edge Function, which holds the key), from Google Books (PO, 19 Nov 2026: Google has far more
 // Bulgarian editions; Open Library more English ones).
 
+import { Platform } from 'react-native';
 import { APP_NAME, APP_VERSION, googleBooksEnabled, openLibraryUrl, PROJECT_URL } from './config';
 import type { BookLanguage } from './stories';
 import { supabase } from './supabase';
@@ -71,10 +72,12 @@ export async function searchOpenLibrary(query: string, signal?: AbortSignal): Pr
   if (isbn) params.set('isbn', isbn);
   else params.set('q', query.trim());
 
-  // Open Library asks apps to identify themselves so they can get in touch (docs/DECISIONS.md).
+  // Open Library asks apps to identify themselves so they can get in touch (docs/DECISIONS.md). Browsers
+  // don't let a page set User-Agent, and Safari fails the whole request if it tries ("Load failed" on the
+  // web version, PO 27 Nov 2026): there the browser's own User-Agent goes instead.
   const res = await fetch(`${openLibraryUrl()}/search.json?${params}`, {
     signal,
-    headers: { 'User-Agent': `${APP_NAME}/${APP_VERSION} (${PROJECT_URL})` },
+    headers: Platform.OS === 'web' ? undefined : { 'User-Agent': `${APP_NAME}/${APP_VERSION} (${PROJECT_URL})` },
   });
   if (!res.ok) throw new Error(`Open Library search failed (${res.status})`);
   const body = (await res.json()) as { docs?: OpenLibraryDoc[] };
