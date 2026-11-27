@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { passwordLongEnough, resetPassword, sendResetCode } from '@/lib/password';
 import { useT } from '@/i18n';
 import { space, useTheme } from '@/theme';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 // Forgot password: the reader asks for a 6-digit code by email, then types it here with a new
 // password. A code instead of a link, because the app has no deep links (src/lib/password.ts).
@@ -77,11 +78,13 @@ export default function ResetPassword() {
     }
   }
 
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const kb = useKeyboardSpace(scroll);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.band }}>
       <Stack.Screen options={{ gestureEnabled: !busy }} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
+        <ScrollView ref={scroll} onScroll={kb.onScroll} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
           <View style={{ gap: space.s, marginBottom: space.m }}>
             <T v="h1">{t('auth.resetTitle')}</T>
             <T>{step === 'email' ? t('auth.resetIntro') : t('auth.codeIntro', { email: email.trim() })}</T>

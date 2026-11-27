@@ -15,6 +15,7 @@ import { deleteReview, myRating, myReview, rateBook, saveReview } from '@/lib/re
 import { canComplete, loadStoryPage, markComplete, type StoryDetails } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 const STARS = [1, 2, 3, 4, 5];
 const REVIEW_MAX = 10000;
@@ -36,6 +37,7 @@ export default function FinishedScreen() {
   // The review field is near the end: when the keyboard opens, scroll so it and its buttons stay in view
   // (PO, 22 Nov 2026: the keyboard hid what was being typed). Same as the discussion rooms.
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const kb = useKeyboardSpace(scroll);
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50));
     return () => shown.remove();
@@ -45,7 +47,9 @@ export default function FinishedScreen() {
     <ScrollView
       ref={scroll}
       style={{ backgroundColor: c.ground }}
-      contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1 }}
+      onScroll={kb.onScroll}
+      scrollEventThrottle={16}
+      contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l, flexGrow: 1 }}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
     >

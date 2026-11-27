@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { passwordLongEnough } from '@/lib/password';
 import { supabase } from '@/lib/supabase';
 import { useT } from '@/i18n';
 import { space, useTheme } from '@/theme';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 export default function SignIn() {
   const { c } = useTheme();
@@ -49,10 +50,12 @@ export default function SignIn() {
     }
   }
 
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const kb = useKeyboardSpace(scroll);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.band }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
+        <ScrollView ref={scroll} onScroll={kb.onScroll} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
           <View style={{ gap: space.s, marginBottom: space.m }}>
             <T v="overline">{APP_NAME.toUpperCase()}</T>
             <T v="h1">{mode === 'sign-in' ? t('auth.welcomeBack') : t('auth.joinReaders')}</T>

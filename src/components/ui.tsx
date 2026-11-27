@@ -12,6 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { fieldFocused } from '@/lib/keyboard';
 import { radius, softShadow, space, useTheme } from '@/theme';
 
 export function Button({
@@ -90,6 +91,10 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
           color: c.ink,
         }}
         {...props}
+        onFocus={(e) => {
+          fieldFocused();
+          props.onFocus?.(e);
+        }}
       />
       {error ? <ErrorText>{error}</ErrorText> : null}
     </View>

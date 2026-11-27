@@ -32,6 +32,7 @@ import { track } from '@/lib/analytics';
 import { finishChapter, loadStoryPage, nextChapter } from '@/lib/story';
 import { useLookup } from '@/lib/useLookup';
 import { radius, space, useTheme } from '@/theme';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 const isLocked = (e: unknown) => (e as { message?: unknown } | null)?.message?.toString().startsWith('locked') === true;
 
@@ -57,6 +58,7 @@ export default function RoomScreen() {
   // (automaticallyAdjustKeyboardInsets): KeyboardAvoidingView's guess of the header height was off on
   // iOS 26, so the box ended up behind the keyboard. The scroll waits a moment for that inset.
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const kb = useKeyboardSpace(scroll);
   const writing = useRef(false);
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', () => {
@@ -120,7 +122,9 @@ export default function RoomScreen() {
       <View style={{ flex: 1 }}>
         <ScrollView
           ref={scroll}
-          contentContainerStyle={{ padding: space.xl, gap: space.l }}
+          onScroll={kb.onScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           automaticallyAdjustKeyboardInsets

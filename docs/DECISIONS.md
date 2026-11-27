@@ -736,3 +736,10 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - The character stays in Cormorant Garamond italic for moments (The Epilogue, typographic covers, "You finished it!").
 - Sofia Sans is made by a Bulgarian studio and has excellent Cyrillic. `@expo-google-fonts/unbounded` is no longer loaded; drop it
   from package.json with the next dependency update.
+
+## Android keyboard (first tester's report, 27 Nov 2026)
+- Android draws the app edge to edge (Android 15+), so the window no longer shrinks for the keyboard and fields low
+  on the screen were hidden behind it (sign-in password). `useKeyboardSpace` (src/lib/keyboard.ts) adds space as tall
+  as the keyboard under each form's scroll view and scrolls the focused field above the keyboard, on open and when
+  moving between fields (Field reports its focus). Sign-in, password reset, onboarding, Add, feedback, authors,
+  the epilogue and the room composer use it. iOS keeps KeyboardAvoidingView / automaticallyAdjustKeyboardInsets.

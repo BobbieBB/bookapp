@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +10,7 @@ import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { sendFeedback, type FeedbackKind } from '@/lib/safety';
 import { space, useTheme } from '@/theme';
+import { useKeyboardSpace } from '@/lib/keyboard';
 
 const KINDS: readonly FeedbackKind[] = ['problem', 'idea', 'other'];
 
@@ -43,10 +44,12 @@ export default function Feedback() {
     }
   };
 
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const kb = useKeyboardSpace(scroll);
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: c.ground }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerOffset}>
-        <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.l }} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} onScroll={kb.onScroll} scrollEventThrottle={16} contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l }} keyboardShouldPersistTaps="handled">
           <T v="h1">{t('safety.feedbackHeading')}</T>
           <T v="muted">{t('safety.feedbackIntro')}</T>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s }}>
