@@ -8,7 +8,7 @@ import { supabase } from './supabase';
 import type { LibraryEntry, LibraryStatus } from './types';
 
 const SELECT = `
-  story_id, status, is_favourite, progress_section, progress_page, updated_at,
+  story_id, status, is_favourite, progress_section, progress_page, listened, updated_at,
   story:stories!inner (
     id, kind, title, author_name, fandoms, ships, has_chapters, section_label,
     published_sections, total_sections, page_count, status, source_url, cover_url

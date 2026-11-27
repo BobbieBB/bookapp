@@ -1,6 +1,8 @@
 import type { Messages, Translation } from '../types';
 
 export const en = {
+  'library.audiobook': 'Audiobook',
+  'library.podfic': 'Podfic',
   'library.title': 'My Library',
   'library.books': 'Books',
   'library.fanfiction': 'Fanfiction',
@@ -27,6 +29,8 @@ export const en = {
 } as const satisfies Messages;
 
 export const bg: Translation<typeof en> = {
+  'library.audiobook': 'Аудиокнига',
+  'library.podfic': 'Подфик',
   'library.title': 'Моята библиотека',
   'library.books': 'Книги',
   'library.fanfiction': 'Фенфикшън',

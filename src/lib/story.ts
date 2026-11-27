@@ -79,7 +79,7 @@ export type StoryDetails = Story &
     is_hidden: boolean; // only its creator and admins still see a hidden story
   };
 
-export type MyEntry = Pick<LibraryEntry, 'status' | 'is_favourite' | 'progress_section' | 'progress_page'>;
+export type MyEntry = Pick<LibraryEntry, 'status' | 'is_favourite' | 'progress_section' | 'progress_page' | 'listened'>;
 
 const DETAILS =
   'id, kind, title, author_name, fandoms, ships, has_chapters, section_label, published_sections, total_sections, page_count, ' +
@@ -105,7 +105,7 @@ export async function loadStoryPage(storyId: string, userId: string): Promise<{ 
     supabase.from('stories').select(DETAILS).eq('id', storyId).maybeSingle(),
     supabase
       .from('library_entries')
-      .select('status, is_favourite, progress_section, progress_page')
+      .select('status, is_favourite, progress_section, progress_page, listened')
       .eq('story_id', storyId)
       .eq('user_id', userId)
       .maybeSingle(),
@@ -143,6 +143,9 @@ export async function finishChapter(storyId: string, userId: string, next: { cha
 /** The chapter picker: the last fully finished chapter. Moving back locks later chapters again. */
 export const setChapter = (storyId: string, userId: string, chapter: number) =>
   updateEntry(storyId, userId, { progress_section: chapter });
+
+/** Listened to as an audiobook or podfic: personal, like the rest of the entry (PO, 28 Nov 2026). */
+export const setListened = (storyId: string, userId: string, listened: boolean) => updateEntry(storyId, userId, { listened });
 
 /** "I'm on page 143": personal only, it never unlocks a discussion. */
 export const setPage = (storyId: string, userId: string, page: number | null) =>
