@@ -135,6 +135,15 @@ function Finished({
     if (saved) gate.ask(explicit && !profile?.is_admin, () => router.replace(`/room/${story.id}/epilogue`));
   }
 
+  // "Done": straight to the library, where the story now shows as Finished, instead of Back twice
+  // (Finished → story → where you started; PO, 27 Nov 2026). A review still being written is saved first.
+  async function toLibrary() {
+    const saved = (await saveDraftRef.current?.()) ?? true;
+    if (!saved) return;
+    if (router.canDismiss()) router.dismissAll();
+    router.navigate('/library');
+  }
+
   return (
     <>
       {gate.dialog}
@@ -183,7 +192,10 @@ function Finished({
           <Button variant={canComplete(story, progress) ? 'secondary' : 'primary'} title={t('finishing.backToStory')} onPress={backToStory} />
         </>
       ) : (
-        <Button title={t('finishing.epilogue')} onPress={joinEpilogue} loading={joining} />
+        <>
+          <Button title={t('finishing.epilogue')} onPress={joinEpilogue} loading={joining} />
+          <Button variant="link" title={t('finishing.toLibrary')} onPress={() => void toLibrary()} />
+        </>
       )}
     </>
   );
