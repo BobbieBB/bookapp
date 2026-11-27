@@ -42,6 +42,8 @@ export type LibraryEntry = {
   is_favourite: boolean;
   progress_section: number;
   progress_page: number | null;
+  /** Listened to as an audiobook or podfic (PO, 28 Nov 2026); absent where a list doesn't load it. */
+  listened?: boolean;
   updated_at: string;
   story: Story;
 };

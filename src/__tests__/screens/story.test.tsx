@@ -21,7 +21,7 @@ let wipId: string;
 let strangerBookId: string;
 
 const entry = async (storyId: string) =>
-  (await supabase.from('library_entries').select('status, progress_section, progress_page').eq('story_id', storyId).eq('user_id', me).single().throwOnError()).data!;
+  (await supabase.from('library_entries').select('status, progress_section, progress_page, listened').eq('story_id', storyId).eq('user_id', me).single().throwOnError()).data!;
 
 beforeAll(async () => {
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -95,6 +95,15 @@ describe('a book you are reading', () => {
     await open('en', bookId);
     expect(screen.queryByText('Change page')).toBeNull();
     expect(screen.queryByTestId('page-option-1')).toBeNull();
+  });
+
+  it('can be marked as listened to: an audiobook (PO, 28 Nov 2026)', async () => {
+    await open('en', bookId);
+    const toggle = screen.getByLabelText('I listen to it as an audiobook 🎧');
+    await fireEvent(toggle, 'valueChange', true);
+    await waitFor(async () => expect(await entry(bookId)).toMatchObject({ listened: true }), { timeout: 8000 });
+    await fireEvent(screen.getByLabelText('I listen to it as an audiobook 🎧'), 'valueChange', false);
+    await waitFor(async () => expect(await entry(bookId)).toMatchObject({ listened: false }), { timeout: 8000 });
   });
 
   it('status is saved; no On Hold; no favourites in v1', async () => {

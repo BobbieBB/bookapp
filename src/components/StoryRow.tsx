@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
@@ -51,7 +52,20 @@ export function StoryRow({
         <T v="muted" numberOfLines={1}>
           {s.author_name}
         </T>
-        {statusLine ? <T v="label">{statusLine}</T> : null}
+        {statusLine || entry.listened ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+            {entry.listened ? (
+              <Feather
+                name="headphones"
+                size={15}
+                color={c.ink}
+                accessible
+                accessibilityLabel={tr(s.kind === 'fanfic' ? 'library.podfic' : 'library.audiobook')}
+              />
+            ) : null}
+            {statusLine ? <T v="label">{statusLine}</T> : null}
+          </View>
+        ) : null}
         {hint ? <T v="muted">{hint}</T> : null}
         <View
           style={{

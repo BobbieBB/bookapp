@@ -10,7 +10,7 @@ import { CoverActions, CoverEditButton, useCustomCover } from '@/components/Cust
 import { StoryCover } from '@/components/StoryCover';
 import { useExplicitGate } from '@/components/ExplicitDialog';
 import { ChoiceList, NumberWheel, Sheet } from '@/components/Sheet';
-import { Button, Card, ErrorText, Field, T } from '@/components/ui';
+import { Button, Card, ErrorText, Field, T, Toggle } from '@/components/ui';
 import { useT } from '@/i18n';
 import { WARNING_LABEL, RATING_LABEL } from '@/lib/ao3Labels';
 import { useAuth } from '@/lib/auth';
@@ -35,6 +35,7 @@ import {
   reopen,
   setBookChapterCount,
   setChapter,
+  setListened,
   setPage,
   setStatus,
   StoryUnavailable,
@@ -359,6 +360,12 @@ function StoryBody({
             <T v="overline">{t('story.yourLibrary').toUpperCase()}</T>
             <StatusButton label={t(statusKey(entry.status, story))} onPress={() => setStatusOpen(true)} />
           </View>
+          {/* Audiobook or podfic (PO, 28 Nov 2026): the same rooms, chapter by chapter; only the format is yours. */}
+          <Toggle
+            label={t(story.kind === 'fanfic' ? 'story.listenedPodfic' : 'story.listenedAudiobook')}
+            value={!!entry.listened}
+            onChange={(v) => saved({ listened: v }, () => setListened(story.id, userId, v))}
+          />
 
           {/* A Want to read book added without its chapter count: ask for it here, once. */}
           {story.kind === 'book' && story.has_chapters && count === null ? (

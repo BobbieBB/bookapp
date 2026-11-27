@@ -784,3 +784,8 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   the count other Livami readers set on the same work (another language or edition) or the same title and author;
   and the most common chapter count among Open Library's tables of contents for the work, where libraries catalogued
   one. Prologue, epilogue and front/back matter don't count. A tap fills the field; the reader checks their copy.
+
+## Listened to (PO, 28 Nov 2026)
+- "I listen to it as an audiobook 🎧" (books) / "…as a podfic 🎧" (fics) on a story's page, in Your library.
+  `library_entries.listened`, private like the rest of the entry; the library row shows a headphones icon. Rooms,
+  chapters and progress are the same as for reading. Migration 20261128010000.
