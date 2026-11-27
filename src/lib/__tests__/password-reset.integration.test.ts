@@ -2,7 +2,7 @@ import { noMailWithin, waitForCode } from '../../../test/mail';
 import { passwordLongEnough, resetPassword, sendResetCode } from '../password';
 import { supabase } from '../supabase';
 
-// Forgot password: a 6-digit code by e-mail, then a new password (no links, see
+// Forgot password: a code by e-mail (6 to 10 digits), then a new password (no links, see
 // app/reset-password.tsx). Real readers on local Supabase, real mail in its mail catcher.
 const oldPassword = 'test-password-1234';
 const newPassword = 'brand-new-password-5678';
