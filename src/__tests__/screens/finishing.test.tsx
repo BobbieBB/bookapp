@@ -224,6 +224,17 @@ describe('finishing', () => {
     expect(screen.getByLabelText('Your review (optional)')).toHaveDisplayValue('Beautiful and strange');
   });
 
+  it('"Done, back to my library" saves a review still being written and goes to the library (PO, 27 Nov 2026)', async () => {
+    await as(me);
+    const id = await book('finished');
+    await renderScreen('en', { ...finishedRoutes, library: () => <Text>library stub</Text> }, `/finished/${id}`);
+    await fireEvent.changeText(await screen.findByLabelText('Your review (optional)', {}, { timeout: 8000 }), 'Saved on the way out');
+    await fireEvent.press(screen.getByText('Done, back to my library'));
+    expect(await screen.findByText('library stub', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const { data } = await supabase.from('reviews').select('body').eq('story_id', id).eq('user_id', me.id).single().throwOnError();
+    expect(data!.body).toBe('Saved on the way out');
+  });
+
   it('Join The Epilogue saves a review still being written', async () => {
     await as(me);
     const id = await book('finished');
