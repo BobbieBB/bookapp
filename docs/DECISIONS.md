@@ -761,3 +761,9 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
 - Match by ISBN, else title + author (series suffix dropped) through the usual book search; one book at a time with
   a pause (Open Library is volunteer-run). Already in the library: skipped. Not found: listed at the end.
 - Imported books have no chapter count; the reader sets it on the book's page. Privacy Policy says what is kept.
+
+## Authors who ask not to be listed elsewhere (PO, 27 Nov 2026)
+- Some authors' notes ask that their work isn't added to Goodreads, StoryGraph "or similar". We don't read AO3, so
+  the Add fic form reminds the reader, every time, to respect that and not add such a fic.
+- Open: how common such notes are among testers' fics (ask during the test), whether to ask a favourite author
+  directly, and whether fics should get a "just in my journal" mode (no page or rooms for others).
