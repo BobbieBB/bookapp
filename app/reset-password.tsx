@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -78,12 +78,13 @@ export default function ResetPassword() {
     }
   }
 
-  const kb = useKeyboardSpace();
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const kb = useKeyboardSpace(scroll);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.band }}>
       <Stack.Screen options={{ gestureEnabled: !busy }} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView ref={kb.ref} onScroll={kb.onScroll} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
+        <ScrollView ref={scroll} onScroll={kb.onScroll} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.xl, paddingBottom: space.xl + kb.bottom, gap: space.l, flexGrow: 1, justifyContent: 'center' }}>
           <View style={{ gap: space.s, marginBottom: space.m }}>
             <T v="h1">{t('auth.resetTitle')}</T>
             <T>{step === 'email' ? t('auth.resetIntro') : t('auth.codeIntro', { email: email.trim() })}</T>

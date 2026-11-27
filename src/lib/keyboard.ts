@@ -2,7 +2,7 @@
 // the keyboard opens and a field low on the screen ends up behind it (first tester's report, 27 Nov 2026: the
 // password field on sign-in). iOS is handled by KeyboardAvoidingView / automaticallyAdjustKeyboardInsets.
 //
-// useKeyboardSpace gives a scroll view room under its content as tall as the keyboard, and scrolls the field
+// useKeyboardSpace(ref of the scroll view) gives a scroll view room under its content as tall as the keyboard, and scrolls the field
 // being typed in up above the keyboard: when the keyboard opens, and when the reader moves to another field.
 import { useEffect, useRef, useState, type ComponentRef, type RefObject } from 'react';
 import { Keyboard, Platform, ScrollView, TextInput, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -18,9 +18,7 @@ export function fieldFocused() {
   for (const listener of focusListeners) listener();
 }
 
-export function useKeyboardSpace(scrollRef?: RefObject<ComponentRef<typeof ScrollView> | null>) {
-  const own = useRef<ComponentRef<typeof ScrollView>>(null);
-  const ref = scrollRef ?? own;
+export function useKeyboardSpace(ref: RefObject<ComponentRef<typeof ScrollView> | null>) {
   const offset = useRef(0);
   const keyboardTop = useRef<number | null>(null);
   const [height, setHeight] = useState(0);
@@ -57,8 +55,6 @@ export function useKeyboardSpace(scrollRef?: RefObject<ComponentRef<typeof Scrol
   }, []);
 
   return {
-    /** The scroll view's ref. */
-    ref,
     /** Extra space for the end of the scroll view's content: the keyboard's height on Android, else 0. */
     bottom: height,
     /** For the scroll view: keeps track of how far it is scrolled. */
