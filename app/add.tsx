@@ -5,11 +5,13 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, Sc
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceList, Sheet } from '@/components/Sheet';
+import { ChapterSuggestions } from '@/components/ChapterSuggestions';
 import { Checkbox } from '@/components/TermsConsent';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
 import { addFavouriteFandom, shipForNickname } from '@/lib/discover';
+import type { BookForSuggestions } from '@/lib/chapterSuggestions';
 import { findFicMatches } from '@/lib/sameFic';
 import { statusKey } from '@/lib/library';
 import { chaptersError, finishStory } from '@/lib/story';
@@ -367,6 +369,7 @@ function ConfirmBook({ book, onCancel }: { book: BookResult; onCancel: () => voi
               optional={status === 'want_to_read'}
               onBlur={fields.onBlur('chapters')}
               error={fields.show('chapters', sectionsError(split, chapters, t, status === 'want_to_read'), chapters)}
+              suggestFor={{ title: book.title, author: book.author, olWork: book.source === 'open_library' ? book.key : null }}
             />
           </>
         )
@@ -430,6 +433,7 @@ function ManualBook({ initialTitle, onCancel }: { initialTitle: string; onCancel
         optional={status === 'want_to_read'}
         onBlur={fields.onBlur('chapters')}
         error={fields.show('chapters', errors.chapters, chapters)}
+        suggestFor={{ title, author }}
       />
       <LanguagePicker value={language} onChange={setLanguage} />
       <StatusPicker value={status} onChange={setStatus} kind="book" />
@@ -743,6 +747,7 @@ function SectionsField({
   optional,
   onBlur,
   error,
+  suggestFor,
 }: {
   split: SplitKind;
   onSplit: (s: SplitKind) => void;
@@ -751,6 +756,8 @@ function SectionsField({
   optional: boolean;
   onBlur: () => void;
   error: string | undefined;
+  /** The book whose chapter count to suggest (PO, 28 Nov 2026). */
+  suggestFor?: BookForSuggestions | null;
 }) {
   const { c, fonts } = useTheme();
   const t = useT();
@@ -759,6 +766,7 @@ function SectionsField({
   return (
     <View style={{ gap: space.xs }}>
       <Field label={label} keyboardType="number-pad" value={value} onChangeText={onChange} onBlur={onBlur} error={error} placeholder={split === 'chapter' ? t('add.chaptersPlaceholder') : undefined} />
+      {split === 'chapter' && suggestFor !== undefined ? <ChapterSuggestions book={suggestFor} onPick={(n) => onChange(String(n))} /> : null}
       <Pressable accessibilityRole="button" onPress={() => setChoosing(true)} hitSlop={8} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
         <Text style={{ fontFamily: fonts.body, fontSize: 15, color: c.muted, textDecorationLine: 'underline' }}>
           {split === 'chapter' ? t('add.noChapters') : t('add.changeSplit')}
