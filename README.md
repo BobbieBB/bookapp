@@ -290,6 +290,22 @@ Troubleshooting:
 Before pushing, also run `npm run typecheck` and `npm run lint` (ESLint with `eslint-config-expo`,
 no warnings allowed); CI runs all three.
 
+## Android pushes (Firebase)
+
+Android delivers pushes through Firebase Cloud Messaging. Two files from Livami's Firebase project, both kept
+**out of the repo** (`google-services.json` is in `.gitignore`):
+
+1. **google-services.json** (app config). Firebase console → project → Add app → Android, package `app.livami` →
+   download. Give it to EAS builds as a file variable, then delete the local copy:
+   `npx eas-cli env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --environment production --visibility secret`
+   `app.config.ts` passes it to the build.
+2. **FCM V1 service account key** (secret). Firebase → Project settings → Service accounts → Generate new private
+   key. Upload it with `npx eas-cli credentials -p android` → production → Google Service Account → Manage your
+   Google Service Account Key for Push Notifications (FCM V1) → upload. Then delete the downloaded file. Never put
+   it in the repo, a chat or a screenshot.
+
+A new Android build is needed after step 1.
+
 ## Applying to Supabase
 
 Either paste the migration file into the Supabase **SQL Editor** and press Run (how the current
