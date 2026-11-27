@@ -218,6 +218,21 @@ describe('Authors are welcome', () => {
     ]);
   });
 
+  it('"All my works" needs only the author name (PO, 27 Nov 2026)', async () => {
+    await as(me);
+    await renderScreen('en', { authors: Authors }, '/authors');
+    await fireEvent.press(await screen.findByRole('checkbox', { name: 'All my works, not just one' }, { timeout: 8000 }));
+    expect(screen.queryByLabelText('Title of the fic')).toBeNull();
+    expect(screen.getByText(/every fic under this author name is hidden in Livami/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Ask us to hide it'));
+    expect(await screen.findByText('Tell us your author name.')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Your author name'), 'whole_moth');
+    await fireEvent.press(screen.getByText('Ask us to hide it'));
+    expect(await screen.findByText('Thanks. We’ll hide it as soon as we can.', {}, { timeout: 8000 })).toBeOnTheScreen();
+    const mine = (await rows('removal_requests', 'requester_id')).filter((r) => r.all_works);
+    expect(mine.map((r) => [r.fic_title, r.fic_author])).toEqual([[null, 'whole_moth']]);
+  });
+
   it('in Bulgarian', async () => {
     await as(me);
     await renderScreen('bg', { authors: Authors }, '/authors');

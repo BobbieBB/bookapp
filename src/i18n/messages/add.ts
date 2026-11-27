@@ -54,8 +54,9 @@ export const en = {
   'add.errorFandom': 'Add the fandom.',
   'add.errorLink': 'Paste the link to the fic on AO3.',
   'add.ao3Link': 'AO3 link',
-  'add.authorWishes':
-    'Some authors ask in their notes that their work isn’t added to other sites (like Goodreads or StoryGraph). If this fic’s author does, please respect that and don’t add it.',
+  'add.authorOk':
+    'I checked the author’s notes: they don’t ask to keep this work off other sites (like Goodreads or StoryGraph).',
+  'add.authorHidden': 'This author has asked Livami not to list their works, so this fic can’t be added.',
   'add.ao3Placeholder': 'archiveofourown.org/works/…',
   'add.checking': 'Checking…',
   'add.badLink': 'That doesn’t look like an AO3 work link.',
@@ -143,8 +144,9 @@ export const bg: Translation<typeof en> = {
   'add.errorFandom': 'Добави фендъма.',
   'add.errorLink': 'Постави линка към фикшъна в AO3.',
   'add.ao3Link': 'Линк към AO3',
-  'add.authorWishes':
-    'Някои автори молят в бележките си творбата им да не се добавя в други сайтове (като Goodreads или StoryGraph). Ако авторът на този фик го прави, моля, уважи желанието му и не го добавяй.',
+  'add.authorOk':
+    'Проверих бележките на автора: не моли творбата да не се добавя в други сайтове (като Goodreads или StoryGraph).',
+  'add.authorHidden': 'Този автор е помолил Livami да не показва творбите му, затова фикът не може да бъде добавен.',
   'add.ao3Placeholder': 'archiveofourown.org/works/…',
   'add.checking': 'Проверяваме…',
   'add.badLink': 'Това не прилича на линк към работа в AO3.',

@@ -51,6 +51,14 @@ function open(language: Language) {
   return renderScreen(language, { add: AddStory }, '/add');
 }
 
+const AUTHOR_OK = /^(I checked the author’s notes|Проверих бележките на автора)/;
+/** Ticks "I checked the author's notes" when the fic form shows it, then adds. */
+async function pressAdd() {
+  const ok = screen.queryByRole('checkbox', { name: AUTHOR_OK });
+  if (ok && !ok.props.accessibilityState?.checked) await fireEvent.press(ok);
+  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+}
+
 const words = {
   en: {
     title: 'Add a story',
@@ -66,6 +74,7 @@ const words = {
     badLink: 'That doesn’t look like an AO3 work link.',
     chapters: 'Chapters',
     add: 'Add to my library',
+    authorOk: 'I checked the author’s notes: they don’t ask to keep this work off other sites (like Goodreads or StoryGraph).',
     errorChapters: 'Enter the number of chapters (1 to 5000).',
     errorTitle: 'Add the title.',
     statusLabel: 'Add it as',
@@ -84,6 +93,7 @@ const words = {
     badLink: 'Това не прилича на линк към работа в AO3.',
     chapters: 'Глави',
     add: 'Добави в моята библиотека',
+    authorOk: 'Проверих бележките на автора: не моли творбата да не се добавя в други сайтове (като Goodreads или StoryGraph).',
     errorChapters: 'Въведи броя на главите (от 1 до 5000).',
     errorTitle: 'Добави заглавието.',
     statusLabel: 'Добави като',
@@ -135,6 +145,9 @@ describe.each(['en', 'bg'] as const)('add-story screen in %s', (lang) => {
     expect(await screen.findByText(w.errorChapters)).toBeOnTheScreen();
     // Empty required fields show only once the reader tries to save; no error for archive warnings.
     expect(screen.queryByText(w.errorTitle)).toBeNull();
+    // Adding waits for the reader to confirm the author doesn't ask to stay off other sites (PO, 27 Nov 2026).
+    expect(screen.getByRole('button', { name: w.add })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('checkbox', { name: w.authorOk }));
     await fireEvent.press(screen.getByRole('button', { name: w.add }));
     expect(await screen.findByText(w.errorTitle)).toBeOnTheScreen();
     expect(screen.queryByText(/Pick the archive warnings|Избери предупрежденията/)).toBeNull();
@@ -152,7 +165,7 @@ it('a fic without a link: "I don’t have a link" opens the same form; it is sav
   await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
   await fireEvent.changeText(screen.getByLabelText('Fandom'), `Linkless Fandom ${run}`);
   await fireEvent.changeText(screen.getByLabelText('Chapters'), '4');
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await pressAdd();
   await waitFor(
     async () => {
       const { data } = await supabase.from('stories').select('kind, source, source_url, published_sections').eq('title', title);
@@ -188,7 +201,7 @@ describe('a fic without a link that is already in Livami', () => {
     await typeIt();
     expect(await screen.findByText('Already on Livami', {}, { timeout: 8000 })).toBeOnTheScreen();
     expect(screen.queryByLabelText('Fandom')).toBeNull(); // nothing more to fill in
-    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await pressAdd();
     await waitFor(
       async () => {
         const { data } = await supabase.from('library_entries').select('story_id').eq('story_id', firstId);
@@ -223,7 +236,7 @@ describe('a fic without a link that is already in Livami', () => {
     await fireEvent.changeText(await screen.findByLabelText('Title', {}, { timeout: 8000 }), title);
     await fireEvent.changeText(screen.getByLabelText('Author'), author);
     expect(await screen.findByText(/your AO3 link is added to it/, {}, { timeout: 8000 })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await pressAdd();
     await waitFor(
       async () => {
         const { data } = await supabase.from('stories').select('source_url').eq('id', firstId).single();
@@ -239,13 +252,6 @@ describe('a fic without a link that is already in Livami', () => {
     expect(screen.queryByText('Already on Livami')).toBeNull();
     expect(screen.getByLabelText('Fandom')).toBeOnTheScreen();
   });
-});
-
-it('the fic form reminds readers to respect an author who asks not to be listed elsewhere (PO, 27 Nov 2026)', async () => {
-  jest.useRealTimers();
-  await open('en');
-  await fireEvent.press(await screen.findByRole('button', { name: 'Fanfiction' }));
-  expect(await screen.findByText(/If this fic’s author does, please respect that and don’t add it\./)).toBeOnTheScreen();
 });
 
 it('"I have a link after all" brings the link field back', async () => {
@@ -265,7 +271,7 @@ it('adding a fic adds its fandom to "Your fandoms"', async () => {
   await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
   await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
   await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await pressAdd();
   // If it never saves, say what the screen shows (errors under fields, a save error).
   const shown = () => JSON.stringify(screen.toJSON()).match(/"children":\["[^"]+"\]/g)?.join(' ') ?? '';
   await waitFor(
@@ -304,7 +310,7 @@ it('after adding, the story page opens in place of Add; Back lands on what was u
   await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
   await fireEvent.changeText(screen.getByLabelText('Fandom'), `Opened Fandom ${run}`);
   await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await pressAdd();
   expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
   await act(async () => router.back());
   expect(await screen.findByText('home', {}, { timeout: 8000 })).toBeOnTheScreen();
@@ -320,7 +326,7 @@ it('Add opened with nothing under it (a reload on the web): the story page still
   await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
   await fireEvent.changeText(screen.getByLabelText('Fandom'), `Reloaded Fandom ${run}`);
   await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await pressAdd();
   expect(await screen.findByTestId('story-title', {}, { timeout: 8000 })).toBeOnTheScreen();
   expect(router.canGoBack()).toBe(true);
   await act(async () => router.back());
@@ -346,7 +352,7 @@ it('a fic whose add to the library fails leaves its fandom out of "Your fandoms"
     await fireEvent.changeText(screen.getByLabelText('Author'), 'someone');
     await fireEvent.changeText(screen.getByLabelText('Fandom'), fandom);
     await fireEvent.changeText(screen.getByLabelText('Chapters'), '3');
-    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await pressAdd();
     expect(await screen.findByText('library entry refused', {}, { timeout: 8000 })).toBeOnTheScreen();
     const me = (await supabase.auth.getUser()).data.user!.id;
     const { data } = await supabase.from('profiles').select('favourite_fandoms').eq('id', me).single().throwOnError();
@@ -387,7 +393,7 @@ it('a play: "No chapters?" lets a book be split into acts; the main path stays "
   await fireEvent.changeText(await screen.findByLabelText('Acts'), '4');
   await fireEvent.changeText(screen.getByLabelText('Title'), title);
   await fireEvent.changeText(screen.getByLabelText('Author'), 'Someone');
-  await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+  await pressAdd();
   await waitFor(
     async () => {
       const { data } = await supabase.from('stories').select('has_chapters, section_label, total_sections').eq('title', title);
@@ -434,7 +440,7 @@ describe('the story_added event', () => {
     await fireEvent.changeText(screen.getByLabelText('Author'), 'Someone');
     await fireEvent.changeText(screen.getByLabelText('Chapters'), '12');
     await fireEvent.press(screen.getByRole('button', { name: 'Bulgarian' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await pressAdd();
     await waitFor(() =>
       expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'manual', status: 'currently_reading', language: 'bg' }),
     );
@@ -447,7 +453,7 @@ describe('the story_added event', () => {
     await fireEvent.press(await screen.findByRole('button', { name: `Add: Found Book ${run}` }, { timeout: 3000 }));
     await fireEvent.press(await screen.findByRole('button', { name: 'English' }));
     await fireEvent.changeText(await screen.findByLabelText('Chapters'), '9');
-    await fireEvent.press(screen.getByRole('button', { name: 'Add to my library' }));
+    await pressAdd();
     await waitFor(() =>
       expect(tracked).toHaveBeenCalledWith('story_added', { kind: 'book', source: 'open_library', status: 'currently_reading', language: 'en' }),
     );

@@ -45,6 +45,10 @@ export const en = {
   'safety.removalFicTitle': 'Title of the fic',
   'safety.removalAuthor': 'Your author name',
   'safety.removalNeedsTitle': 'Tell us the title of the fic and your author name.',
+  'safety.removalAllWorks': 'All my works, not just one',
+  'safety.removalAllWorksHint':
+    'Once we’ve checked it, every fic under this author name is hidden in Livami, and no fic under it can be added again.',
+  'safety.removalNeedsAuthor': 'Tell us your author name.',
   'safety.reportLabel': 'Report comment by {name}',
   'safety.reportReviewLabel': 'Report review by {name}',
   'safety.removalMessage': 'Anything else? (optional)',
@@ -98,6 +102,10 @@ export const bg: Translation<typeof en> = {
   'safety.removalFicTitle': 'Заглавие на фикшъна',
   'safety.removalAuthor': 'Авторското ти име',
   'safety.removalNeedsTitle': 'Напиши заглавието на фикшъна и авторското си име.',
+  'safety.removalAllWorks': 'Всички мои творби, не само една',
+  'safety.removalAllWorksHint':
+    'След като проверим, всеки фикшън с това авторско име се скрива в Livami и никой фикшън с него не може да бъде добавен отново.',
+  'safety.removalNeedsAuthor': 'Напиши авторското си име.',
   'safety.reportLabel': 'Докладвай коментар от {name}',
   'safety.reportReviewLabel': 'Докладвай мнение от {name}',
   'safety.removalMessage': 'Нещо друго? (по желание)',
