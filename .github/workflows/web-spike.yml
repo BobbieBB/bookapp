@@ -1,8 +1,10 @@
-# Temporary: does Livami build for the web (an iPhone stopgap until Apple approves the developer account)?
+# Temporary: does Livami build and render for the web (an iPhone stopgap until Apple approves the developer account)?
 name: web-spike
 on:
   push:
     branches: [spike/web]
+permissions:
+  contents: write
 jobs:
   web:
     runs-on: ubuntu-latest
@@ -19,8 +21,33 @@ jobs:
           EXPO_PUBLIC_SUPABASE_KEY: sb_publishable_spike
           CI: 1
         run: npx expo export -p web --output-dir web-dist
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: web-dist
-          path: web-dist
+      - name: Render it on an iPhone-sized screen
+        run: |
+          npx --yes serve -s web-dist -l 5050 > /dev/null 2>&1 &
+          sleep 5
+          mkdir -p shots
+          cat > shot.mjs <<'JS'
+          import puppeteer from 'puppeteer';
+          const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+          const page = await browser.newPage();
+          await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+          page.on('console', (m) => console.log('console', m.type(), m.text()));
+          page.on('pageerror', (e) => console.log('pageerror', e.message));
+          for (const [name, path] of [['start', '/'], ['sign-in', '/sign-in'], ['authors', '/authors']]) {
+            await page.goto('http://localhost:5050' + path, { waitUntil: 'networkidle0', timeout: 30000 }).catch((e) => console.log('goto', path, e.message));
+            await new Promise((r) => setTimeout(r, 2000));
+            await page.screenshot({ path: `shots/${name}.png` });
+          }
+          await browser.close();
+          JS
+          npm i --no-save puppeteer@23 > /dev/null 2>&1
+          node shot.mjs
+      - name: Keep the screenshots on a branch
+        run: |
+          git config user.name "web-spike"
+          git config user.email "web-spike@users.noreply.github.com"
+          git checkout --orphan spike/web-shots
+          git rm -rfq --cached .
+          git add -f shots
+          git commit -qm "Web spike screenshots"
+          git push -fq origin spike/web-shots
