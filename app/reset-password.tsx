@@ -11,7 +11,7 @@ import { useT } from '@/i18n';
 import { space, useTheme } from '@/theme';
 import { useKeyboardSpace } from '@/lib/keyboard';
 
-// Forgot password: the reader asks for a 6-digit code by email, then types it here with a new
+// Forgot password: the reader asks for a code by email (6 to 10 digits: Supabase's OTP length setting), then types it here with a new
 // password. A code instead of a link, because the app has no deep links (src/lib/password.ts).
 // The screen never says whether an account exists for the address, and never shows the
 // server's own error text.
@@ -53,7 +53,7 @@ export default function ResetPassword() {
   async function reset() {
     setError('');
     setNotice('');
-    if (!/^\d{6}$/.test(code.trim())) return setError(t('auth.errorCode'));
+    if (!/^\d{6,10}$/.test(code.trim())) return setError(t('auth.errorCode'));
     if (!passwordLongEnough(password)) return setError(t('auth.errorPasswordShort'));
     setBusy(true);
     setRecovering(true);
@@ -107,7 +107,7 @@ export default function ResetPassword() {
                 label={t('auth.code')}
                 value={code}
                 // Pasted codes often come with spaces or dashes ("123 456").
-                onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
+                onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 10))}
                 keyboardType="number-pad"
                 autoComplete="one-time-code"
                 placeholder={t('auth.codePlaceholder')}

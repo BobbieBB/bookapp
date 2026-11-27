@@ -2,7 +2,7 @@ import { isAuthError, type AuthError } from '@supabase/supabase-js';
 
 import { supabase } from './supabase';
 
-// Passwords and resetting a forgotten one. The reset is a 6-digit code by e-mail, typed into the
+// Passwords and resetting a forgotten one. The reset is a code by e-mail (6 to 10 digits, Supabase's OTP length), typed into the
 // app, never a link: the app has no deep-link handling, and a code works on any phone.
 
 const MIN_PASSWORD_LENGTH = 8;

@@ -1,5 +1,5 @@
 import { AuthApiError, AuthRetryableFetchError } from '@supabase/supabase-js';
-import { act, fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { router, Slot } from 'expo-router';
 import { Text } from 'react-native';
 
@@ -11,7 +11,7 @@ import { holdRequest } from '../../../test/network';
 import { renderScreen } from '../../../test/router';
 import { supabase } from '../../lib/supabase';
 
-// Forgot password (app/reset-password.tsx): a 6-digit code by e-mail, then a new password.
+// Forgot password (app/reset-password.tsx): a code by e-mail (6 to 10 digits), then a new password.
 // Through the real root stack, so the screen is only reachable signed out, as in the app.
 // Real readers on local Supabase, real mail read from its mail catcher.
 const oldPassword = 'test-password-1234';
@@ -37,7 +37,7 @@ const routes = {
 };
 
 const neutral =
-  'If an account exists for this email, we’ve sent a 6-digit code. It can take a minute; after that you can ask for a new one.';
+  'If an account exists for this email, we’ve sent you a code. It can take a minute; after that you can ask for a new one.';
 const codeSpent = 'We couldn’t save your new password, and that code is now used up. Please ask for a new one.';
 
 /** Opens the reset screen (directly, or from sign-in so there is a screen to go back to) and asks for a code. */
@@ -194,6 +194,17 @@ it('server errors when asking for a code are shown in the app’s words, never t
   }
 });
 
+it('an 8-digit code is accepted too: Supabase sends 6 to 10 digits, as its settings say (tester, 27 Nov 2026)', async () => {
+  await askForCode(`eight-${run}@example.test`);
+  const verify = jest.spyOn(supabase.auth, 'verifyOtp');
+  try {
+    await enter('1234 5678', newPassword);
+    await waitFor(() => expect(verify).toHaveBeenCalledWith(expect.objectContaining({ token: '12345678' })));
+  } finally {
+    verify.mockRestore();
+  }
+});
+
 it('a short password or a malformed code is caught before anything is sent', async () => {
   await askForCode(`checks-${run}@example.test`);
   const verify = jest.spyOn(supabase.auth, 'verifyOtp');
@@ -201,7 +212,7 @@ it('a short password or a malformed code is caught before anything is sent', asy
     await enter('123456', 'short');
     expect(screen.getByText('Your password needs at least 8 characters.')).toBeOnTheScreen();
     await enter('12a4', newPassword);
-    expect(screen.getByText('Enter the 6-digit code from the email.')).toBeOnTheScreen();
+    expect(screen.getByText('Enter the code from the email.')).toBeOnTheScreen();
     expect(verify).not.toHaveBeenCalled();
   } finally {
     verify.mockRestore();
@@ -274,7 +285,7 @@ it('in Bulgarian', async () => {
   await fireEvent.changeText(screen.getByLabelText('Имейл'), `bg-${run}@example.test`);
   await fireEvent.press(screen.getByText('Изпрати код'));
   expect(
-    await screen.findByText('Ако има акаунт с този имейл, изпратихме ти 6-цифрен код. Може да отнеме минута; след това можеш да поискаш нов.'),
+    await screen.findByText('Ако има акаунт с този имейл, изпратихме ти код. Може да отнеме минута; след това можеш да поискаш нов.'),
   ).toBeOnTheScreen();
   expect(screen.getByText(`Въведи кода от имейла до bg-${run}@example.test и избери нова парола.`)).toBeOnTheScreen();
   expect(screen.getByLabelText('Код от имейла')).toBeOnTheScreen();
