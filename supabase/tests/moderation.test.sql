@@ -233,6 +233,22 @@ select test.ok(test.state_of($$select public.moderation_resolve('removal_request
   'two fics with that title and author: nothing is hidden, the PO hides the right one by hand');
 select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000005', 'dismiss');
 
+-- "All my works" (PO, 27 Nov 2026): Hide lists the author name, hides every fic under it (spelling of case and
+-- spaces aside) and no new fic under that name can be added.
+insert into public.stories (id, kind, language, title, author_name, has_chapters, total_sections, status, source_url, created_by) values
+  ('58000000-0000-0000-0000-000000000009', 'fanfic', 'en', 'Quiet One', 'Night  Owl', true, null, 'ongoing', null, '00000000-0000-0000-0000-0000000008ad'),
+  ('58000000-0000-0000-0000-00000000000a', 'fanfic', 'en', 'Quiet Two', 'night owl', true, null, 'ongoing', null, '00000000-0000-0000-0000-0000000008ad');
+insert into public.removal_requests (id, fic_author, all_works) values ('5d000000-0000-0000-0000-000000000006', 'Night Owl', true);
+select test.ok((select story_title from public.moderation_queue() where id = '5d000000-0000-0000-0000-000000000006') like '%ALL WORKS%',
+  'the queue says the request is for all works');
+select public.moderation_resolve('removal_request', '5d000000-0000-0000-0000-000000000006', 'hide');
+select test.ok((select bool_and(is_hidden) from public.stories where id in ('58000000-0000-0000-0000-000000000009', '58000000-0000-0000-0000-00000000000a')),
+  'every fic under the name is hidden');
+select test.ok(test.state_of($$insert into public.stories (kind, language, title, author_name, has_chapters, status) values ('fanfic', 'en', 'Quiet Three', ' NIGHT owl ', true, 'ongoing')$$) = 'AU001',
+  'and no new fic under that name can be added');
+select test.ok(test.error_of($$insert into public.stories (kind, language, title, author_name, has_chapters, status, source) values ('book', 'en', 'A Book', 'Night Owl', true, 'completed', 'manual')$$) is null,
+  'a book by someone with the same name is fine');
+
 -- 7. Feedback ---------------------------------------------------------------------------
 select public.moderation_resolve('feedback', '5e000000-0000-0000-0000-000000000001', 'done');
 select public.moderation_resolve('feedback', '5e000000-0000-0000-0000-000000000002', 'dismiss');

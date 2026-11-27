@@ -53,6 +53,10 @@ select test.ok(test.error_of($$insert into public.removal_requests (message) val
   like '%removal_what%', 'but it says which fic');
 select test.ok(test.error_of($$insert into public.removal_requests (fic_title) values ('   ')$$)
   like '%fic_title%', 'with a title that is not blank');
+select test.ok(test.error_of($$insert into public.removal_requests (fic_author, all_works) values ('moth', true)$$) is null,
+  'all works needs only the author name');
+select test.ok(test.error_of($$insert into public.removal_requests (fic_title, all_works) values ('Some Fic', true)$$)
+  like '%removal_all_works_author%', 'but it does need the author name');
 select test.ok(test.error_of($$insert into public.removal_requests (story_url, contact) values ('https://evil.example/x', 'a@b.c')$$)
   like '%removal_story_url%', 'a removal request is for an AO3 work link');
 

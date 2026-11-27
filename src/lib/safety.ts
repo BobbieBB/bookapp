@@ -31,24 +31,30 @@ export async function sendFeedback(kind: FeedbackKind, body: string, wantsReply 
  * and no contact details. The PO checks it by hand and replies to the e-mail of the requester's account. When
  * exactly one fic in the app has that title and author, the request points at it.
  */
-export async function requestRemoval(r: { title: string; author: string; message: string }) {
+export async function requestRemoval(r: { title: string; author: string; message: string; allWorks?: boolean }) {
   const title = r.title.trim();
   const author = r.author.trim();
-  if (!title || !author) throw new Error('Tell us the title of the fic and your author name.');
-  const exactly = (text: string) => text.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-  const { data: matches, error } = await supabase
-    .from('stories')
-    .select('id')
-    .eq('kind', 'fanfic')
-    .ilike('title', exactly(title))
-    .ilike('author_name', exactly(author))
-    .limit(2);
-  if (error) throw error;
+  // "All my works" (PO, 27 Nov 2026) needs only the author name; one fic needs its title too.
+  if (!author || (!title && !r.allWorks)) throw new Error('Tell us the title of the fic and your author name.');
+  let storyId: string | null = null;
+  if (title) {
+    const exactly = (text: string) => text.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+    const { data: matches, error } = await supabase
+      .from('stories')
+      .select('id')
+      .eq('kind', 'fanfic')
+      .ilike('title', exactly(title))
+      .ilike('author_name', exactly(author))
+      .limit(2);
+    if (error) throw error;
+    storyId = matches?.length === 1 ? matches[0].id : null;
+  }
   await check(
     supabase.from('removal_requests').insert({
-      story_id: matches?.length === 1 ? matches[0].id : null,
-      fic_title: title,
+      story_id: storyId,
+      fic_title: title || null,
       fic_author: author,
+      all_works: !!r.allWorks,
       message: r.message.trim() || null,
     }),
   );

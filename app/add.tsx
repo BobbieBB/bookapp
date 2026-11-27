@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, Sc
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceList, Sheet } from '@/components/Sheet';
+import { Checkbox } from '@/components/TermsConsent';
 import { Button, Card, Chip, ErrorText, Field, T } from '@/components/ui';
 import { track } from '@/lib/analytics';
 import { parseAo3Share } from '@/lib/ao3Share';
@@ -195,6 +196,8 @@ function openInPlaceOfAdd(path: `/story/${string}`) {
 }
 
 function friendly(e: unknown, t: Translate) {
+  // The author asked us to hide all their works (removal request, "all my works"): no new fics under that name.
+  if ((e as { code?: string })?.code === 'AU001') return t('add.authorHidden');
   const msg = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
   if (/network|fetch/i.test(msg)) return t('add.errorNetwork');
   return msg;
@@ -558,8 +561,10 @@ function AddFic() {
     </Card>
   ) : null;
   const ready = noLink || (!!canonical && !checking);
+  const [authorOk, setAuthorOk] = useState(false);
 
   async function save() {
+    if (!authorOk) return;
     if (!noLink && !canonical) return setError(t('add.errorLink'));
     if (joining) {
       setBusy(true);
@@ -610,14 +615,6 @@ function AddFic() {
 
   return (
     <View style={{ gap: space.m }}>
-      {/* Some authors ask in their notes not to be listed on other sites (Goodreads, StoryGraph…). We don't read
-          AO3, so the reader is the one who can respect that (PO, 27 Nov 2026). */}
-      <Card tone="mine">
-        <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'flex-start' }}>
-          <Feather name="heart" size={18} color={c.ink} style={{ marginTop: 2 }} />
-          <T style={{ flex: 1 }}>{t('add.authorWishes')}</T>
-        </View>
-      </Card>
       {noLink ? (
         <>
           <T v="muted">{t('add.noLinkHint')}</T>
@@ -705,8 +702,13 @@ function AddFic() {
       {ready && (
         <>
           <StatusPicker value={status} onChange={setStatus} kind="fanfic" wip={joining ? joining.status === 'ongoing' : existing && !noLink ? existing.status === 'ongoing' : !complete} />
+          {/* Some authors ask in their notes not to be listed on other sites (Goodreads, StoryGraph…). We never read
+              AO3, so the reader, who is on the fic's page, confirms it before adding (PO, 27 Nov 2026). */}
+          <Card tone="mine">
+            <Checkbox label={t('add.authorOk')} checked={authorOk} onChange={setAuthorOk} />
+          </Card>
           <ErrorText>{error}</ErrorText>
-          <Button title={t('add.addToLibrary')} onPress={save} loading={busy} />
+          <Button title={t('add.addToLibrary')} onPress={save} loading={busy} disabled={!authorOk} />
         </>
       )}
     </View>

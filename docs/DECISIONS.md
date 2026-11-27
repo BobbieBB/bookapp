@@ -773,3 +773,7 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   build had no google-services.json. app.config.ts now takes it from the EAS file variable GOOGLE_SERVICES_JSON;
   the FCM V1 key is uploaded to EAS credentials by the PO (README, "Android pushes"). Neither is in the repo.
   The Privacy Policy already names Google (FCM) as the Android push service.
+- *27 Nov 2026, later (PO):* the reminder became a required tick: "I checked the author's notes: they don't ask to
+  keep this work off other sites". And an author can ask for **all their works** with just the author name: once
+  the PO checks it, Hide puts the name on `hidden_authors`, hides every fic under it and a trigger refuses new
+  fics under it (case and spaces aside). Migration 20261128000000.
