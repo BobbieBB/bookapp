@@ -743,3 +743,12 @@ Decisions from the PO's first test on her own phone. Each ships in its own pull 
   as the keyboard under each form's scroll view and scrolls the focused field above the keyboard, on open and when
   moving between fields (Field reports its focus). Sign-in, password reset, onboarding, Add, feedback, authors,
   the epilogue and the room composer use it. iOS keeps KeyboardAvoidingView / automaticallyAdjustKeyboardInsets.
+
+## Web version for iPhone readers (PO, 27 Nov 2026)
+- Until Apple approves the developer account, iPhone readers use Livami in Safari: the same app built for the web
+  (`npm run web:deploy` = `expo export -p web` + `eas deploy --prod`, on EAS Hosting's free plan at
+  livami.expo.app; a custom domain needs a paid plan). They add it to the Home Screen for a full-screen icon.
+- Same accounts and database as the apps. No push notifications on the web. `public/index.html` keeps it out of
+  search engines (noindex, robots.txt), as we promise authors.
+- Checked 27 Nov: the web build bundles and renders sign-in on an iPhone-sized screen with no errors; the screens
+  behind sign-in are checked by the PO on her iPhone.
